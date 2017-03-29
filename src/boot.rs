@@ -13,8 +13,6 @@ pub mod uefi;
 // #[no_stack_check]
 pub fn efi_main(sys : uefi::SystemTable) {
     sys.console().write("Hello, World!\n\r");
-
-    loop {}
 }
 
 #[no_mangle]
