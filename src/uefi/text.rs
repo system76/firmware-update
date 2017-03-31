@@ -13,6 +13,7 @@ pub struct TextInput {
     WaitForKey: *const (),
 }
 
+#[derive(Clone, Debug)]
 #[repr(C)]
 pub struct TextOutputMode {
     MaxMode: i32,
@@ -42,13 +43,17 @@ impl fmt::Write for TextOutput {
         let mut chars = string.chars();
 
         loop {
-            let mut buf = [0u16; 256];
+            let mut buf = [0u16; 4096];
 
             let mut i = 0;
             while let Some(c) = chars.next() {
                 buf[i] = c as u16; // TODO: won't work with non-BMP
                 i += 1;
-                if i + 1 >= buf.len() {
+                if c == '\n' {
+                    buf[i] = '\r' as u16;
+                    i += 1;
+                }
+                if i + 2 >= buf.len() {
                     break;
                 }
             }

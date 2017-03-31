@@ -1,3 +1,5 @@
+use core::slice;
+
 use super::boot::BootServices;
 use super::config::ConfigurationTable;
 use super::runtime::RuntimeServices;
@@ -27,4 +29,12 @@ pub struct SystemTable {
     pub BootServices: &'static mut BootServices,
     Entries: usize,
     ConfigurationTables: *const ConfigurationTable
+}
+
+impl SystemTable {
+    pub fn config_tables(&self) -> &'static [ConfigurationTable] {
+        unsafe {
+            slice::from_raw_parts(self.ConfigurationTables, self.Entries)
+        }
+    }
 }

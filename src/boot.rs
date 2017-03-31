@@ -11,8 +11,14 @@ use core::fmt::Write;
 pub mod uefi;
 
 pub fn main(uefi: &mut uefi::system::SystemTable) {
-    let _ = write!(uefi.ConsoleOut, "Hello, World write 2!!\n\r");
-    let _ = write!(uefi.ConsoleOut, "Test new Xargo!!\n\r");
+    let _ = writeln!(uefi.ConsoleOut, "Text Mode!!");
+
+    let mode = uefi.ConsoleOut.Mode.clone();
+    let _ = writeln!(uefi.ConsoleOut, "{:#?}", mode);
+
+    for (i, table) in uefi.config_tables().iter().enumerate() {
+        let _ = writeln!(uefi.ConsoleOut, "{}: {}: {:?}", i, table.VendorGuid, table.kind());
+    }
 
     loop {}
 }
