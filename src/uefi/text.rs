@@ -16,12 +16,12 @@ pub struct TextInput {
 #[derive(Clone, Debug)]
 #[repr(C)]
 pub struct TextOutputMode {
-    MaxMode: i32,
-    Mode: i32,
-    Attribute: i32,
-    CursorColumn: i32,
-    CursorRow: i32,
-    CursorVisible: bool,
+    pub MaxMode: i32,
+    pub Mode: i32,
+    pub Attribute: i32,
+    pub CursorColumn: i32,
+    pub CursorRow: i32,
+    pub CursorVisible: bool,
 }
 
 #[repr(C)]
@@ -29,7 +29,7 @@ pub struct TextOutput {
     Reset: extern "win64" fn(&TextInput, bool) -> isize,
     OutputString: extern "win64" fn(&TextOutput, *const u16) -> isize,
     TestString: extern "win64" fn(&TextOutput, *const u16) -> isize,
-    QueryMode: extern "win64" fn(&TextOutput, usize, &mut usize, &mut usize) -> isize,
+    pub QueryMode: extern "win64" fn(&TextOutput, usize, &mut usize, &mut usize) -> isize,
     SetMode: extern "win64" fn(&TextOutput, usize) -> isize,
     SetAttribute: extern "win64" fn(&TextOutput, usize) -> isize,
     ClearScreen: extern "win64" fn(&TextOutput) -> isize,
