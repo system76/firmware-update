@@ -1,0 +1,12 @@
+[package]
+name = "boot"
+version = "0.1.0"
+
+[lib]
+name = "boot"
+path = "src/boot.rs"
+crate-type = ["staticlib"]
+
+[dependencies.compiler_builtins]
+git = "https://github.com/rust-lang-nursery/compiler-builtins"
+features = []
