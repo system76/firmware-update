@@ -43,7 +43,7 @@ impl fmt::Write for TextOutput {
         let mut chars = string.chars();
 
         loop {
-            let mut buf = [0u16; 4096];
+            let mut buf = [0u16; 256];
 
             let mut i = 0;
             while let Some(c) = chars.next() {

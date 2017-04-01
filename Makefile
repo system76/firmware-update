@@ -27,7 +27,7 @@ build/boot.o: build/boot.a
 	cd build/boot && ar x ../boot.a
 	ld -r build/boot/*.o -o $@
 
-build/boot.a: src/boot.rs src/* src/*/*
+build/boot.a: src/main.rs src/* uefi/src/*
 	mkdir -p build
 	$(CARGO) rustc --lib $(CARGOFLAGS) -C lto --emit link=$@
 

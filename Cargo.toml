@@ -4,9 +4,12 @@ version = "0.1.0"
 
 [lib]
 name = "boot"
-path = "src/boot.rs"
+path = "src/main.rs"
 crate-type = ["staticlib"]
 
 [dependencies.compiler_builtins]
 git = "https://github.com/rust-lang-nursery/compiler-builtins"
 features = []
+
+[dependencies.uefi]
+path = "uefi"
