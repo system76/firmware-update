@@ -1,5 +1,6 @@
 {
     "linker": "false",
+    "linker-flavor": "ld",
     "llvm-target": "x86_64-efi-pe",
     "target-endian": "little",
     "target-pointer-width": "64",
