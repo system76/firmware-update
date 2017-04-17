@@ -1,16 +1,23 @@
-#[lang = "eh_personality"]
-pub extern "C" fn eh_personality() {}
+use core::fmt;
 
-/// Required to handle panics
-#[lang = "panic_fmt"]
+// These functions are used by the compiler, but not
+// for a bare-bones hello world. These are normally
+// provided by libstd.
+#[lang = "eh_personality"]
 #[no_mangle]
-pub extern "C" fn panic_fmt(fmt: ::core::fmt::Arguments, file: &str, line: u32) -> ! {
+pub extern fn rust_eh_personality() {}
+
+// This function may be needed based on the compilation target.
+#[lang = "eh_unwind_resume"]
+#[no_mangle]
+pub extern fn _Unwind_Resume() {
     loop {}
 }
 
-#[allow(non_snake_case)]
+#[lang = "panic_fmt"]
 #[no_mangle]
-/// Required to handle panics
-pub extern "C" fn _Unwind_Resume() -> ! {
+pub extern fn rust_begin_panic(_msg: fmt::Arguments,
+                               _file: &'static str,
+                               _line: u32) -> ! {
     loop {}
 }

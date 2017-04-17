@@ -11,5 +11,6 @@ crate-type = ["staticlib"]
 git = "https://github.com/rust-lang-nursery/compiler-builtins"
 features = []
 
-[dependencies.uefi]
-path = "uefi"
+[dependencies]
+alloc_uefi = { path = "alloc_uefi" }
+uefi = { path = "uefi" }

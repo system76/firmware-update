@@ -1,0 +1,6 @@
+[package]
+name = "alloc_uefi"
+version = "0.1.0"
+
+[dependencies]
+uefi = { path = "../uefi" }
