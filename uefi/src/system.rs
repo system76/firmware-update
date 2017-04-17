@@ -1,18 +1,10 @@
 use core::slice;
 
+use super::TableHeader;
 use super::boot::BootServices;
 use super::config::ConfigurationTable;
 use super::runtime::RuntimeServices;
 use super::text::{TextInput, TextOutput};
-
-#[repr(C)]
-struct TableHeader {
-    Signature: u64,
-    Revision: u32,
-    HeaderSize: u32,
-    CRC32: u32,
-    Reserved: u32
-}
 
 #[repr(C)]
 pub struct SystemTable {

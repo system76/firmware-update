@@ -7,9 +7,24 @@ LD=$(PREFIX)/bin/$(TARGET)-ld
 CARGO=xargo
 CARGOFLAGS=--target $(TARGET) --release -- -C soft-float
 
-.phony: all binutils
+.phony: all binutils qemu
 
 all: build/boot.iso
+
+qemu: build/boot.img
+	qemu-system-x86_64 -cpu qemu64 -bios /usr/share/ovmf/OVMF.fd $< -net none
+
+build/boot.img: build/efi.img
+	dd if=/dev/zero of=$@ bs=512 count=93750
+	parted $@ -s -a minimal mklabel gpt
+	parted $@ -s -a minimal mkpart EFI FAT16 2048s 93716s
+	parted $@ -s -a minimal toggle 1 boot
+	dd if=$< of=$@ bs=512 count=91669 seek=2048 conv=notrunc
+
+build/efi.img: build/iso/efi/boot/bootx64.efi
+	dd if=/dev/zero of=$@ bs=1024 count=91669
+	mformat -i $@ -h 32 -t 32 -n 32 -c 1
+	mcopy -i $@ -s build/iso/efi ::
 
 build/boot.iso: build/iso/efi/boot/bootx64.efi
 	mkisofs -o $@ build/iso
