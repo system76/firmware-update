@@ -30,7 +30,7 @@ pub struct TextOutput {
     OutputString: extern "win64" fn(&TextOutput, *const u16) -> isize,
     TestString: extern "win64" fn(&TextOutput, *const u16) -> isize,
     pub QueryMode: extern "win64" fn(&TextOutput, usize, &mut usize, &mut usize) -> isize,
-    SetMode: extern "win64" fn(&TextOutput, usize) -> isize,
+    pub SetMode: extern "win64" fn(&TextOutput, usize) -> isize,
     SetAttribute: extern "win64" fn(&TextOutput, usize) -> isize,
     ClearScreen: extern "win64" fn(&TextOutput) -> isize,
     SetCursorPosition: extern "win64" fn(&TextOutput, usize, usize) -> isize,

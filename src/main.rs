@@ -22,17 +22,25 @@ pub mod rt;
 fn main() {
     let uefi = unsafe { &mut *::UEFI };
 
-    let test = format!("A TEST OF {}", "COLLECTIONS");
-    println!("{}", test);
 
-    let mode = uefi.ConsoleOut.Mode.clone();
-    println!("Modes: {}", mode.MaxMode);
-    for i in 0..mode.MaxMode {
-        let mut x = 0;
-        let mut y = 0;
-        (uefi.ConsoleOut.QueryMode)(uefi.ConsoleOut, i as usize, &mut x, &mut y);
-        println!(" {}{}: {}, {}", if i == mode.Mode { "*" } else { " " }, i, x, y);
+    let mut max_i = 0;
+    let mut max_w = 0;
+    let mut max_h = 0;
+
+    for i in 0..uefi.ConsoleOut.Mode.MaxMode {
+        let mut w = 0;
+        let mut h = 0;
+        (uefi.ConsoleOut.QueryMode)(uefi.ConsoleOut, i as usize, &mut w, &mut h);
+
+        if w >= max_w && h >= max_h {
+            max_i = i;
+            max_w = w;
+            max_h = h;
+        }
     }
+
+    (uefi.ConsoleOut.SetMode)(uefi.ConsoleOut, max_i as usize);
+    println!("Mode {}: {}x{}", max_i, max_w, max_h);
 
     let tables = uefi.config_tables();
     println!("Config tables: {}", tables.len());
