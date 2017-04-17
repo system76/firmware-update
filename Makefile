@@ -9,7 +9,7 @@ CARGOFLAGS=--target $(TARGET) --release -- -C soft-float
 
 .phony: all binutils qemu
 
-all: build/boot.iso
+all: build/boot.img
 
 qemu: build/boot.img
 	qemu-system-x86_64 -cpu qemu64 -bios /usr/share/ovmf/OVMF.fd $< -net none

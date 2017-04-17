@@ -10,7 +10,7 @@ pub extern fn rust_eh_personality() {}
 // This function may be needed based on the compilation target.
 #[lang = "eh_unwind_resume"]
 #[no_mangle]
-pub extern fn _Unwind_Resume() {
+pub extern fn rust_eh_unwind_resume() {
     loop {}
 }
 
@@ -19,5 +19,11 @@ pub extern fn _Unwind_Resume() {
 pub extern fn rust_begin_panic(_msg: fmt::Arguments,
                                _file: &'static str,
                                _line: u32) -> ! {
+    loop {}
+}
+
+#[allow(non_snake_case)]
+#[no_mangle]
+pub extern fn _Unwind_Resume() {
     loop {}
 }

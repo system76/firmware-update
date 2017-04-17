@@ -1,10 +1,11 @@
 #![no_std]
-//#![feature(collections)]
+#![feature(collections)]
 #![feature(compiler_builtins_lib)]
 #![feature(lang_items)]
 
 extern crate alloc_uefi;
-//extern crate collections;
+#[macro_use]
+extern crate collections;
 extern crate compiler_builtins;
 extern crate uefi;
 
@@ -16,9 +17,13 @@ mod macros;
 pub mod externs;
 pub mod io;
 pub mod panic;
+pub mod rt;
 
 fn main() {
     let uefi = unsafe { &mut *::UEFI };
+
+    let test = format!("A TEST OF {}", "COLLECTIONS");
+    println!("{}", test);
 
     let mode = uefi.ConsoleOut.Mode.clone();
     println!("Modes: {}", mode.MaxMode);
@@ -37,16 +42,4 @@ fn main() {
 
     println!("Loop");
     loop {}
-}
-
-#[no_mangle]
-pub extern "win64" fn _start(_image_handle: *const (), uefi: &'static mut uefi::system::SystemTable) -> isize {
-    unsafe {
-        UEFI = uefi;
-        alloc_uefi::init(uefi);
-    }
-
-    main();
-
-    0
 }
