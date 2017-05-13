@@ -2,3 +2,6 @@
 	path = binutils-gdb
 	url = https://github.com/redox-os/binutils-gdb.git
 	branch = master
+[submodule "orbclient"]
+	path = orbclient
+	url = https://github.com/redox-os/orbclient.git
