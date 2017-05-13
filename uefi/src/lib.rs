@@ -4,6 +4,7 @@
 
 pub mod boot;
 pub mod config;
+pub mod graphics;
 pub mod guid;
 pub mod runtime;
 pub mod status;

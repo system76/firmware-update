@@ -13,4 +13,5 @@ features = []
 
 [dependencies]
 alloc_uefi = { path = "alloc_uefi" }
+orbclient = { path = "orbclient", features = ["no_std"] }
 uefi = { path = "uefi" }

@@ -1,16 +1,20 @@
 #![no_std]
+#![feature(asm)]
 #![feature(collections)]
 #![feature(compiler_builtins_lib)]
+#![feature(const_fn)]
 #![feature(lang_items)]
 
 extern crate alloc_uefi;
 #[macro_use]
 extern crate collections;
 extern crate compiler_builtins;
+extern crate orbclient;
 extern crate uefi;
 
-use uefi::boot::LocateSearchType;
-use uefi::guid::EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
+use orbclient::{Color, Renderer};
+
+use display::Display;
 
 pub static mut UEFI: *mut uefi::system::SystemTable = 0 as *mut uefi::system::SystemTable;
 
@@ -18,13 +22,14 @@ pub static mut UEFI: *mut uefi::system::SystemTable = 0 as *mut uefi::system::Sy
 mod macros;
 
 pub mod externs;
+
+pub mod display;
 pub mod io;
 pub mod panic;
 pub mod rt;
 
 fn main() {
     let uefi = unsafe { &mut *::UEFI };
-
 
     let mut max_i = 0;
     let mut max_w = 0;
@@ -51,19 +56,23 @@ fn main() {
         println!("  {}: {}: {:?}", i, table.VendorGuid, table.VendorGuid.kind());
     }
 
-    let guid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
-    let mut count = 32;
-    let mut handles = [uefi::Handle(0); 32];
-    (uefi.BootServices.LocateHandleBuffer)(LocateSearchType::ByProtocol, &guid, 0, &mut count, handles.as_mut_ptr());
-    println!("Graphics Outputs: {}", count);
-    for i in 0..count {
-        if let Some(handle) = handles.get(i) {
-            println!("  {}: {:?}", i, handle);
-        } else {
-            println!("  {}: out of buffer", i);
+    let mut displays = Display::all();
+    println!("Displays: {}", displays.len());
+    for display in displays.iter_mut() {
+        display.set(Color::rgb(0x5F, 0xAF, 0xFF));
+
+        let mut x = 0;
+        let mut y = 0;
+        for c in "This is a test\nof drawing".chars() {
+            if c == '\n' {
+                y += 16;
+                x = 0;
+            } else {
+                display.char(x, y, c, Color::rgb(255, 255, 255));
+                x += 8;
+            }
         }
     }
 
-    println!("Loop");
     loop {}
 }
