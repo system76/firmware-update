@@ -9,6 +9,9 @@ extern crate collections;
 extern crate compiler_builtins;
 extern crate uefi;
 
+use uefi::boot::LocateSearchType;
+use uefi::guid::EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
+
 pub static mut UEFI: *mut uefi::system::SystemTable = 0 as *mut uefi::system::SystemTable;
 
 #[macro_use]
@@ -45,7 +48,20 @@ fn main() {
     let tables = uefi.config_tables();
     println!("Config tables: {}", tables.len());
     for (i, table) in tables.iter().enumerate() {
-        println!("  {}: {}: {:?}", i, table.VendorGuid, table.kind());
+        println!("  {}: {}: {:?}", i, table.VendorGuid, table.VendorGuid.kind());
+    }
+
+    let guid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
+    let mut count = 32;
+    let mut handles = [uefi::Handle(0); 32];
+    (uefi.BootServices.LocateHandleBuffer)(LocateSearchType::ByProtocol, &guid, 0, &mut count, handles.as_mut_ptr());
+    println!("Graphics Outputs: {}", count);
+    for i in 0..count {
+        if let Some(handle) = handles.get(i) {
+            println!("  {}: {:?}", i, handle);
+        } else {
+            println!("  {}: out of buffer", i);
+        }
     }
 
     println!("Loop");

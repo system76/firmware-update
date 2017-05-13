@@ -10,6 +10,9 @@ pub mod status;
 pub mod system;
 pub mod text;
 
+#[derive(Copy, Clone, Debug)]
+pub struct Handle(pub usize);
+
 #[repr(C)]
 pub struct TableHeader {
     Signature: u64,

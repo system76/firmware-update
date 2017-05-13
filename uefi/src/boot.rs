@@ -1,4 +1,5 @@
-use super::TableHeader;
+use super::{Handle, TableHeader};
+use guid::Guid;
 
 #[repr(usize)]
 pub enum MemoryType {
@@ -72,6 +73,16 @@ pub enum MemoryType {
     EfiMaxMemoryType
 }
 
+#[repr(usize)]
+pub enum LocateSearchType {
+    /// Retrieve all the handles in the handle database.
+    AllHandles,
+    /// Retrieve the next handle fron a RegisterProtocolNotify() event.
+    ByRegisterNotify,
+    /// Retrieve the set of handles from the handle database that support a specified protocol.
+    ByProtocol
+}
+
 #[repr(C)]
 pub struct BootServices {
     header: TableHeader,
@@ -81,5 +92,42 @@ pub struct BootServices {
     FreePages: extern "win64" fn(Memory: usize, Pages: usize) -> isize,
     GetMemoryMap: extern "win64" fn(/* TODO */) -> isize,
     pub AllocatePool: extern "win64" fn(PoolType: MemoryType, Size: usize, Buffer: &mut usize) -> isize,
-    pub FreePool: extern "win64" fn(Buffer: usize) -> isize
+    pub FreePool: extern "win64" fn(Buffer: usize) -> isize,
+    CreateEvent: extern "win64" fn (),
+    SetTimer: extern "win64" fn (),
+    WaitForEvent: extern "win64" fn (),
+    SignalEvent: extern "win64" fn (),
+    CloseEvent: extern "win64" fn (),
+    CheckEvent: extern "win64" fn (),
+    InstallProtocolInterface: extern "win64" fn (),
+    ReinstallProtocolInterface: extern "win64" fn (),
+    UninstallProtocolInterface: extern "win64" fn (),
+    pub HandleProtocol: extern "win64" fn (Handle: Handle, Protocol: &Guid, Interface: &mut usize) -> isize,
+    _rsvd: usize,
+    RegisterProtocolNotify: extern "win64" fn (),
+    LocateHandle: extern "win64" fn (),
+    LocateDevicePath: extern "win64" fn (),
+    InstallConfigurationTable: extern "win64" fn (),
+    LoadImage: extern "win64" fn (),
+    StartImage: extern "win64" fn (),
+    Exit: extern "win64" fn (),
+    UnloadImage: extern "win64" fn (),
+    ExitBootServices: extern "win64" fn (),
+    GetNextMonotonicCount: extern "win64" fn (),
+    Stall: extern "win64" fn (),
+    SetWatchdogTimer: extern "win64" fn (),
+    ConnectController: extern "win64" fn (),
+    DisconnectController: extern "win64" fn (),
+    OpenProtocol: extern "win64" fn (),
+    CloseProtocol: extern "win64" fn (),
+    OpenProtocolInformation: extern "win64" fn (),
+    pub ProtocolsPerHandle: extern "win64" fn (Handle: Handle, ProtocolBuffer: * mut Guid, ProtocolBufferCount: usize) -> isize,
+    pub LocateHandleBuffer: extern "win64" fn (SearchType: LocateSearchType, Protocol: &Guid, SearchKey: usize, NoHandles: &mut usize, Buffer: * mut Handle),
+    LocateProtocol: extern "win64" fn (),
+    InstallMultipleProtocolInterfaces: extern "win64" fn (),
+    UninstallMultipleProtocolInterfaces: extern "win64" fn (),
+    CalculateCrc32: extern "win64" fn (),
+    CopyMem: extern "win64" fn (),
+    SetMem: extern "win64" fn (),
+    CreateEventEx: extern "win64" fn (),
 }
