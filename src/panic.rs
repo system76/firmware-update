@@ -16,9 +16,8 @@ pub extern fn rust_eh_unwind_resume() {
 
 #[lang = "panic_fmt"]
 #[no_mangle]
-pub extern fn rust_begin_panic(_msg: fmt::Arguments,
-                               _file: &'static str,
-                               _line: u32) -> ! {
+pub extern fn rust_begin_panic(msg: fmt::Arguments, file: &'static str, line: u32) -> ! {
+    print!("{}:{}: {}", file, line, msg);
     loop {}
 }
 

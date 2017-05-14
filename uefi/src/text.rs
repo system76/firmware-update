@@ -40,29 +40,9 @@ pub struct TextOutput {
 
 impl fmt::Write for TextOutput {
     fn write_str(&mut self, string: &str) -> Result<(), fmt::Error> {
-        let mut chars = string.chars();
-
-        loop {
-            let mut buf = [0u16; 256];
-
-            let mut i = 0;
-            while let Some(c) = chars.next() {
-                buf[i] = c as u16; // TODO: won't work with non-BMP
-                i += 1;
-                if c == '\n' {
-                    buf[i] = '\r' as u16;
-                    i += 1;
-                }
-                if i + 2 >= buf.len() {
-                    break;
-                }
-            }
-
-            if i == 0 {
-                break;
-            } else {
-                (self.OutputString)(self, buf.as_ptr());
-            }
+        for c in string.chars() {
+            let buf = [c as u16, 0];
+            (self.OutputString)(self, buf.as_ptr());
         }
 
         Ok(())

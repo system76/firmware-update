@@ -1,6 +1,8 @@
 use core::fmt::{Arguments, Write};
 
+pub static mut STDOUT: Option<*mut Write> = None;
+
 pub fn _print(args: Arguments) {
-    let uefi = unsafe { &mut *::UEFI };
-    let _ = uefi.ConsoleOut.write_fmt(args);
+    let stdout = unsafe { &mut *STDOUT.unwrap() };
+    let _ = stdout.write_fmt(args);
 }
