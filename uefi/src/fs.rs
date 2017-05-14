@@ -1,6 +1,18 @@
-use core::mem;
 use guid::Guid;
 use time::Time;
+
+// Open modes
+pub const FILE_MODE_READ: u64 = 0x0000000000000001;
+pub const FILE_MODE_WRITE: u64 = 0x0000000000000002;
+pub const FILE_MODE_CREATE: u64 = 0x8000000000000000;
+
+// Attributes
+pub const FILE_READ_ONLY: u64 = 0x01;
+pub const FILE_HIDDEN: u64 = 0x02;
+pub const FILE_SYSTEM: u64 = 0x04;
+pub const FILE_RESERVED: u64 = 0x08;
+pub const FILE_DIRECTORY: u64 = 0x10;
+pub const FILE_ARCHIVE: u64 = 0x20;
 
 #[repr(packed)]
 pub struct SimpleFileSystem {

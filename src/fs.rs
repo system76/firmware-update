@@ -1,4 +1,5 @@
-use uefi::fs::{File as InnerFile, SimpleFileSystem};
+use core::{mem, slice};
+use uefi::fs::{File as InnerFile, FileInfo, SimpleFileSystem, FILE_MODE_READ};
 use uefi::guid::{Guid, EFI_FILE_SYSTEM_GUID};
 
 use proto::Protocol;
@@ -16,14 +17,14 @@ impl Protocol<SimpleFileSystem> for FileSystem {
 }
 
 impl FileSystem {
-    pub fn root(&mut self) -> Result<File, isize> {
+    pub fn root(&mut self) -> Result<Dir, isize> {
         let mut interface = 0 as *mut InnerFile;
         let status = (self.0.OpenVolume)(self.0, &mut interface);
         if status != 0 {
             return Err(status);
         }
 
-        Ok(File(unsafe { &mut *interface }))
+        Ok(Dir(File(unsafe { &mut *interface })))
     }
 }
 
@@ -54,5 +55,39 @@ impl File {
 impl Drop for File {
     fn drop(&mut self) {
         (self.0.Close)(self.0);
+    }
+}
+
+pub struct Dir(File);
+
+impl Dir {
+    pub fn open(&mut self, filename: &[u16]) -> Result<File, isize> {
+        let mut interface = 0 as *mut InnerFile;
+        let status = ((self.0).0.Open)((self.0).0, &mut interface, filename.as_ptr(), FILE_MODE_READ, 0);
+        if status != 0 {
+            return Err(status);
+        }
+
+        Ok(File(unsafe { &mut *interface }))
+    }
+
+    pub fn open_dir(&mut self, filename: &[u16]) -> Result<Dir, isize> {
+        let file = self.open(filename)?;
+        Ok(Dir(file))
+    }
+
+    pub fn read(&mut self) -> Result<Option<FileInfo>, isize> {
+        let mut info = FileInfo::default();
+        let buf = unsafe {
+            slice::from_raw_parts_mut(
+                &mut info as *mut _ as *mut u8,
+                mem::size_of_val(&info)
+            )
+        };
+        match self.0.read(buf) {
+            Ok(0) => Ok(None),
+            Ok(_len) => Ok(Some(info)),
+            Err(err) => Err(err)
+        }
     }
 }

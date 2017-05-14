@@ -14,7 +14,8 @@ extern crate compiler_builtins;
 extern crate orbclient;
 extern crate uefi;
 
-use core::{char, mem, slice};
+use collections::String;
+use core::char;
 use orbclient::Renderer;
 
 use display::Display;
@@ -35,6 +36,49 @@ pub mod panic;
 pub mod proto;
 pub mod rt;
 
+fn dump(path: String, mut dir: fs::Dir) {
+    loop {
+        match dir.read() {
+            Ok(None) => {
+                break;
+            },
+            Ok(Some(info)) => {
+                let is_dir = info.Attribute & uefi::fs::FILE_DIRECTORY == uefi::fs::FILE_DIRECTORY;
+
+                let mut file_name = String::new();
+                for &w in info.FileName.iter() {
+                    if w == 0 {
+                        break;
+                    }
+                    if let Some(c) = char::from_u32(w as u32) {
+                        file_name.push(c);
+                    }
+                }
+
+                if ! file_name.starts_with(".") {
+                    if is_dir {
+                        println!("  {}/{}/", path, file_name);
+                        match dir.open_dir(&info.FileName) {
+                            Ok(new_dir) => {
+                                dump(format!("{}/{}", path, file_name), new_dir);
+                            },
+                            Err(err) => {
+                                println!("  Failed to open dir: {}", err);
+                            }
+                        }
+                    } else {
+                        println!("  {}/{}", path, file_name);
+                    }
+                }
+            },
+            Err(err) => {
+                println!("  Failed to read: {}", err);
+                break;
+            }
+        }
+    }
+}
+
 fn main() {
     for (i, display) in Display::all().iter().enumerate() {
         println!("Display {}: {}x{}", i, display.width(), display.height());
@@ -43,34 +87,8 @@ fn main() {
     for (i, mut fs) in FileSystem::all().iter_mut().enumerate() {
         println!("FileSystem {}", i);
         match fs.root() {
-            Ok(mut root) => {
-                println!("  Opened root");
-                loop {
-                    let mut info = uefi::fs::FileInfo::default();
-                    let buf = unsafe {
-                        slice::from_raw_parts_mut(
-                            &mut info as *mut _ as *mut u8,
-                            mem::size_of_val(&info)
-                        )
-                    };
-                    match root.read(buf) {
-                        Ok(0) => break,
-                        Ok(_len) => {
-                            print!("    File '");
-                            for &w in info.FileName.iter() {
-                                if w == 0 {
-                                    break;
-                                }
-                                print!("{}", char::from_u32(w as u32).unwrap_or('?'));
-                            }
-                            println!("'");
-                        },
-                        Err(err) => {
-                            println!("    Failed to read: {}", err);
-                            break;
-                        }
-                    }
-                }
+            Ok(root) => {
+                dump(String::new(), root)
             },
             Err(err) => {
                 println!("  Failed to open root: {}", err);

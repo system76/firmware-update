@@ -41,8 +41,10 @@ pub struct TextOutput {
 impl fmt::Write for TextOutput {
     fn write_str(&mut self, string: &str) -> Result<(), fmt::Error> {
         for c in string.chars() {
-            let buf = [c as u16, 0];
-            (self.OutputString)(self, buf.as_ptr());
+            (self.OutputString)(self, [c as u16, 0].as_ptr());
+            if c == '\n' {
+                (self.OutputString)(self, ['\r' as u16, 0].as_ptr());
+            }
         }
 
         Ok(())
