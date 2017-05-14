@@ -56,6 +56,23 @@ impl Display {
         handles
     }
 
+    fn locate_protocol() -> Option<Self> {
+        let uefi = unsafe { &mut *::UEFI };
+
+        let mut interface = 0;
+        let status = (uefi.BootServices.LocateProtocol)(&DISPLAY_GUID, 0, &mut interface);
+        if status != 0 {
+            return None;
+        }
+
+        let output = unsafe { &mut *(interface as *mut uefi::graphics::GraphicsOutput) };
+        Some(Display::new(output))
+    }
+
+    pub fn first() -> Option<Self> {
+        Self::locate_protocol()
+    }
+
     pub fn all() -> Vec<Self> {
         let mut displays = Vec::new();
 

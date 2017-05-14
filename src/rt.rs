@@ -16,12 +16,11 @@ pub extern "win64" fn _start(_image_handle: *const (), uefi: &'static mut uefi::
         alloc_uefi::init(&mut *::UEFI);
     }
 
-    for display in Display::all() {
-        let console = Console::new(display);
+    if let Some(display) = Display::first() {
+        let console = Box::new(Console::new(display));
         unsafe {
-            io::STDOUT = Some(Box::into_raw(Box::new(console)) as *mut Write);
+            io::STDOUT = Some(Box::into_raw(console) as *mut Write);
         }
-        break;
     }
 
     main();

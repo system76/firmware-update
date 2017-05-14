@@ -14,6 +14,10 @@ extern crate compiler_builtins;
 extern crate orbclient;
 extern crate uefi;
 
+use orbclient::Renderer;
+
+use display::Display;
+
 pub static mut UEFI: *mut uefi::system::SystemTable = 0 as *mut uefi::system::SystemTable;
 
 #[macro_use]
@@ -27,5 +31,7 @@ pub mod panic;
 pub mod rt;
 
 fn main() {
-    println!("This is a test");
+    for display in Display::all() {
+        println!("Display: {}x{}", display.width(), display.height());
+    }
 }
