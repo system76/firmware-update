@@ -12,8 +12,8 @@ impl Protocol<GraphicsOutput> for Display {
         EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID
     }
 
-    fn new(output: &'static mut GraphicsOutput) -> Self {
-        Display(output)
+    fn new(inner: &'static mut GraphicsOutput) -> Self {
+        Display(inner)
     }
 }
 

@@ -11,6 +11,7 @@ pub mod runtime;
 pub mod status;
 pub mod system;
 pub mod text;
+pub mod time;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Handle(pub usize);

@@ -9,30 +9,30 @@ pub trait Protocol<T: 'static> {
 
     fn new(fs: &'static mut T) -> Self where Self: Sized ;
 
-    fn locate_protocol() -> Option<Self> where Self: Sized {
+    fn locate_protocol() -> Result<Self, isize> where Self: Sized {
         let uefi = unsafe { &mut *::UEFI };
 
         let guid = Self::guid();
         let mut interface = 0;
         let status = (uefi.BootServices.LocateProtocol)(&guid, 0, &mut interface);
         if status != 0 {
-            return None;
+            return Err(status);
         }
 
-        Some(Self::new(unsafe { &mut *(interface as *mut T) }))
+        Ok(Self::new(unsafe { &mut *(interface as *mut T) }))
     }
 
-    fn handle_protocol(handle: Handle) -> Option<Self> where Self: Sized {
+    fn handle_protocol(handle: Handle) -> Result<Self, isize> where Self: Sized {
         let uefi = unsafe { &mut *::UEFI };
 
         let guid = Self::guid();
         let mut interface = 0;
         let status = (uefi.BootServices.HandleProtocol)(handle, &guid, &mut interface);
         if status != 0 {
-            return None;
+            return Err(status);
         }
 
-        Some(Self::new(unsafe { &mut *(interface as *mut T) }))
+        Ok(Self::new(unsafe { &mut *(interface as *mut T) }))
     }
 
     fn locate_handle() -> Vec<Self> where Self: Sized {
@@ -46,14 +46,14 @@ pub trait Protocol<T: 'static> {
 
         let mut instances = Vec::new();
         for handle in handles {
-            if let Some(instance) = Self::handle_protocol(handle) {
+            if let Ok(instance) = Self::handle_protocol(handle) {
                 instances.push(instance);
             }
         }
         instances
     }
 
-    fn one() -> Option<Self> where Self: Sized {
+    fn one() -> Result<Self, isize> where Self: Sized {
         Self::locate_protocol()
     }
 
