@@ -17,6 +17,7 @@ extern crate uefi;
 use orbclient::Renderer;
 
 use display::Display;
+use proto::Protocol;
 
 pub static mut UEFI: *mut uefi::system::SystemTable = 0 as *mut uefi::system::SystemTable;
 
@@ -28,6 +29,7 @@ pub mod display;
 pub mod externs;
 pub mod io;
 pub mod panic;
+pub mod proto;
 pub mod rt;
 
 fn main() {

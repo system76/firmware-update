@@ -5,6 +5,7 @@ use uefi;
 
 use console::Console;
 use display::Display;
+use proto::Protocol;
 use io;
 use main;
 
@@ -16,7 +17,7 @@ pub extern "win64" fn _start(_image_handle: *const (), uefi: &'static mut uefi::
         alloc_uefi::init(&mut *::UEFI);
     }
 
-    if let Some(display) = Display::first() {
+    if let Some(display) = Display::one() {
         let console = Box::new(Console::new(display));
         unsafe {
             io::STDOUT = Some(Box::into_raw(console) as *mut Write);
