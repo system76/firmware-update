@@ -6,8 +6,9 @@ use io;
 use main;
 
 #[no_mangle]
-pub extern "win64" fn _start(_image_handle: *const (), uefi: &'static mut uefi::system::SystemTable) -> isize {
+pub extern "win64" fn _start(handle: uefi::Handle, uefi: &'static mut uefi::system::SystemTable) -> isize {
     unsafe {
+        ::HANDLE = handle;
         ::UEFI = uefi;
 
         let mut max_i = 0;

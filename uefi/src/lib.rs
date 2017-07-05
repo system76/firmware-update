@@ -8,6 +8,7 @@ pub mod fs;
 pub mod graphics;
 pub mod guid;
 pub mod runtime;
+pub mod shell;
 pub mod status;
 pub mod system;
 pub mod text;

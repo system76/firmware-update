@@ -2,6 +2,21 @@ use super::{Handle, TableHeader};
 use guid::Guid;
 
 #[repr(C)]
+pub enum InterfaceType {
+    NativeInterface
+}
+
+#[repr(C)]
+pub enum LocateSearchType {
+    /// Retrieve all the handles in the handle database.
+    AllHandles,
+    /// Retrieve the next handle fron a RegisterProtocolNotify() event.
+    ByRegisterNotify,
+    /// Retrieve the set of handles from the handle database that support a specified protocol.
+    ByProtocol
+}
+
+#[repr(C)]
 pub enum MemoryType {
     ///
     /// Not used.
@@ -74,16 +89,6 @@ pub enum MemoryType {
 }
 
 #[repr(C)]
-pub enum LocateSearchType {
-    /// Retrieve all the handles in the handle database.
-    AllHandles,
-    /// Retrieve the next handle fron a RegisterProtocolNotify() event.
-    ByRegisterNotify,
-    /// Retrieve the set of handles from the handle database that support a specified protocol.
-    ByProtocol
-}
-
-#[repr(C)]
 pub struct BootServices {
     header: TableHeader,
     RaiseTpl: extern "win64" fn(NewTpl: usize) -> usize,
@@ -99,7 +104,7 @@ pub struct BootServices {
     SignalEvent: extern "win64" fn (),
     CloseEvent: extern "win64" fn (),
     CheckEvent: extern "win64" fn (),
-    InstallProtocolInterface: extern "win64" fn (),
+    pub InstallProtocolInterface: extern "win64" fn (Handle: &mut Handle, Protocol: &Guid, InterfaceType: InterfaceType, Interface: usize) -> isize,
     ReinstallProtocolInterface: extern "win64" fn (),
     UninstallProtocolInterface: extern "win64" fn (),
     pub HandleProtocol: extern "win64" fn (Handle: Handle, Protocol: &Guid, Interface: &mut usize) -> isize,
@@ -108,14 +113,14 @@ pub struct BootServices {
     pub LocateHandle: extern "win64" fn (SearchType: LocateSearchType, Protocol: &Guid, SearchKey: usize, BufferSize: &mut usize, Buffer: *mut Handle),
     LocateDevicePath: extern "win64" fn (),
     InstallConfigurationTable: extern "win64" fn (),
-    LoadImage: extern "win64" fn (),
-    StartImage: extern "win64" fn (),
+    pub LoadImage: extern "win64" fn (BootPolicy: bool, ParentImageHandle: Handle, DevicePath: usize /*TODO*/, SourceBuffer: *const u8, SourceSize: usize, ImageHandle: &mut Handle) -> isize,
+    pub StartImage: extern "win64" fn (ImageHandle: Handle, ExitDataSize: &mut usize, ExitData: &mut *mut u16) -> isize,
     Exit: extern "win64" fn (),
     UnloadImage: extern "win64" fn (),
     ExitBootServices: extern "win64" fn (),
     GetNextMonotonicCount: extern "win64" fn (),
-    Stall: extern "win64" fn (),
-    SetWatchdogTimer: extern "win64" fn (),
+    pub Stall: extern "win64" fn (Microseconds: usize),
+    pub SetWatchdogTimer: extern "win64" fn (Timeout: usize, WatchdogCode: u64, DataSize: usize, WatchdogData: *const u16),
     ConnectController: extern "win64" fn (),
     DisconnectController: extern "win64" fn (),
     OpenProtocol: extern "win64" fn (),

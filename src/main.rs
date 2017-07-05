@@ -19,6 +19,7 @@ use console::Console;
 use display::{Display, Output};
 use proto::Protocol;
 
+pub static mut HANDLE: uefi::Handle = uefi::Handle(0);
 pub static mut UEFI: *mut uefi::system::SystemTable = 0 as *mut uefi::system::SystemTable;
 
 #[macro_use]
@@ -36,6 +37,33 @@ pub mod proto;
 pub mod rt;
 
 fn main() {
+    {
+        let uefi = unsafe { &mut *::UEFI };
+
+        println!("Wait");
+
+        (uefi.BootServices.Stall)(1000000);
+
+        println!("Start shell");
+
+        let parent_handle = unsafe { ::HANDLE };
+        let shell = include_bytes!("../res/shell.efi");
+        let mut shell_handle = uefi::Handle(0);
+        let res = (uefi.BootServices.LoadImage)(false, parent_handle, 0, shell.as_ptr(), shell.len(), &mut shell_handle);
+        println!("Load image: {:X}", res);
+
+        //TODO (uefi.BootServices.InstallProtocolInterface)(shell_handle, uefi::guid::EFI_SHELL_PARAMETERS_GUID,
+
+        let mut exit_size = 0;
+        let mut exit_ptr = ::core::ptr::null_mut();
+        let res = (uefi.BootServices.StartImage)(shell_handle, &mut exit_size, &mut exit_ptr);
+        println!("Start image: {:X}", res);
+
+        println!("Exit shell: {}", exit_size);
+
+        return;
+    }
+
     if let Ok(mut output) = Output::one() {
         let mut max_i = 0;
         let mut max_w = 0;
@@ -80,6 +108,7 @@ fn main() {
 
         display.sync();
 
+        /*
         {
             let mut console = Console::new(&mut display);
 
@@ -99,5 +128,6 @@ fn main() {
                 }
             }
         }
+        */
     }
 }
