@@ -1,5 +1,27 @@
-#[derive(Debug)]
-#[repr(usize)]
+#[derive(Copy, Clone, Debug)]
+#[repr(packed)]
+pub struct GraphicsBltPixel {
+    pub Blue: u8,
+    pub Green: u8,
+    pub Red: u8,
+    pub Reserved: u8
+}
+
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub enum GraphicsBltOp {
+    // Write data from the first buffer pixel to every pixel of the display
+    VideoFill,
+    // Copy from the display to the buffer
+    VideoToBuffer,
+    // Copy from the buffer to the display
+    BufferToVideo,
+    // Copy from the display to the display
+    VideoToVideo
+}
+
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
 pub enum GraphicsPixelFormat {
   ///
   /// A pixel is 32-bits and byte zero represents red, byte one represents green,
@@ -31,7 +53,7 @@ pub enum GraphicsPixelFormat {
   PixelFormatMax
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 #[repr(packed)]
 pub struct GraphicsPixelBitmask {
   pub RedMask: u32,
@@ -40,7 +62,7 @@ pub struct GraphicsPixelBitmask {
   pub ReservedMask: u32,
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 #[repr(packed)]
 pub struct GraphicsOutputModeInfo {
   /// The version of this data structure. A value of zero represents the
@@ -81,8 +103,8 @@ pub struct GraphicsOutputMode {
 
 #[repr(packed)]
 pub struct GraphicsOutput {
-    pub QueryMode: extern "win64" fn (),
-    pub SetMode: extern "win64" fn (),
-    pub Blt: extern "win64" fn (),
+    pub QueryMode: extern "win64" fn (&mut GraphicsOutput, u32, &mut usize, &mut *mut GraphicsOutputModeInfo),
+    pub SetMode: extern "win64" fn (&mut GraphicsOutput, u32),
+    pub Blt: extern "win64" fn (&mut GraphicsOutput, *mut GraphicsBltPixel, GraphicsBltOp, usize, usize, usize, usize, usize, usize, usize),
     pub Mode: &'static mut GraphicsOutputMode
 }

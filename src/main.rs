@@ -14,7 +14,7 @@ extern crate uefi;
 
 use alloc::String;
 use core::char;
-use orbclient::Renderer;
+use orbclient::{Color, Renderer};
 
 use display::Display;
 use fs::FileSystem;
@@ -29,6 +29,7 @@ pub mod console;
 pub mod display;
 pub mod externs;
 pub mod fs;
+pub mod image;
 pub mod io;
 pub mod panic;
 pub mod proto;
@@ -83,10 +84,18 @@ fn dump(path: String, mut dir: fs::Dir) {
 }
 
 fn main() {
-    for (i, display) in Display::all().iter().enumerate() {
+    for (i, mut display) in Display::all().iter_mut().enumerate() {
         println!("Display {}: {}x{}", i, display.width(), display.height());
+        for j in 0..display.0.Mode.MaxMode {
+            let mut mode_ptr = ::core::ptr::null_mut();
+            let mut mode_size = 0;
+            (display.0.QueryMode)(display.0, j, &mut mode_size, &mut mode_ptr);
+            let mode = unsafe { &mut *mode_ptr };
+            println!("  {}: {:X} {}: {}, {}, {}", j, mode_ptr as usize, mode_size, mode.HorizontalResolution, mode.VerticalResolution, mode.PixelFormat as usize);
+        }
     }
 
+    /*
     for (i, mut fs) in FileSystem::all().iter_mut().enumerate() {
         println!("FileSystem {}", i);
         match fs.root() {
@@ -98,4 +107,27 @@ fn main() {
             }
         }
     }
+    */
+
+    /*
+    if let Ok(mut display) = Display::one() {
+        display.set(Color::rgb(0x41, 0x3e, 0x3c));
+
+        if let Ok(splash) = image::bmp::parse(include_bytes!("../res/splash.bmp")) {
+            let x = (display.width() as i32 - splash.width() as i32)/2;
+            let y = (display.height() as i32 - splash.height() as i32)/2;
+            splash.draw(&mut display, x, y);
+        }
+
+        {
+            let prompt = "Firmware Updater";
+            let mut x = (display.width() as i32 - prompt.len() as i32 * 8)/2;
+            let y = display.height() as i32 - 32;
+            for c in prompt.chars() {
+                display.char(x, y, c, Color::rgb(0xff, 0xff, 0xff));
+                x += 8;
+            }
+        }
+    }
+    */
 }

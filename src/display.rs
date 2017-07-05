@@ -5,7 +5,7 @@ use uefi::guid::{Guid, EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID};
 
 use proto::Protocol;
 
-pub struct Display(&'static mut GraphicsOutput);
+pub struct Display(pub &'static mut GraphicsOutput);
 
 impl Protocol<GraphicsOutput> for Display {
     fn guid() -> Guid {

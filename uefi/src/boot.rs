@@ -1,7 +1,7 @@
 use super::{Handle, TableHeader};
 use guid::Guid;
 
-#[repr(usize)]
+#[repr(C)]
 pub enum MemoryType {
     ///
     /// Not used.
@@ -73,7 +73,7 @@ pub enum MemoryType {
     EfiMaxMemoryType
 }
 
-#[repr(usize)]
+#[repr(C)]
 pub enum LocateSearchType {
     /// Retrieve all the handles in the handle database.
     AllHandles,

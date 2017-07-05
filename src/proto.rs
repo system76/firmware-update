@@ -7,7 +7,7 @@ use uefi::guid::Guid;
 pub trait Protocol<T: 'static> {
     fn guid() -> Guid;
 
-    fn new(fs: &'static mut T) -> Self where Self: Sized ;
+    fn new(fs: &'static mut T) -> Self where Self: Sized;
 
     fn locate_protocol() -> Result<Self, isize> where Self: Sized {
         let uefi = unsafe { &mut *::UEFI };
