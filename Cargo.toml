@@ -15,3 +15,4 @@ features = []
 alloc_uefi = { path = "alloc_uefi" }
 orbclient = { path = "orbclient" }
 uefi = { path = "uefi" }
+x86 = "0.7"

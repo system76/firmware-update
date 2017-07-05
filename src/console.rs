@@ -2,31 +2,35 @@ use core::fmt::{Write, Result};
 use display::Display;
 use orbclient::{Color, Renderer};
 
-pub struct Console {
+pub struct Console<'a> {
     x: i32,
     y: i32,
-    bg: Color,
-    fg: Color,
-    display: Display,
+    pub bg: Color,
+    pub fg: Color,
+    display: &'a mut Display,
 }
 
-impl Console {
-    pub fn new(display: Display) -> Console {
-        let mut console = Console {
+impl<'a> Console<'a> {
+    pub fn new(display: &'a mut Display) -> Console<'a> {
+        Console {
             x: 0,
             y: 0,
             bg: Color::rgb(0, 0, 0),
             fg: Color::rgb(255, 255, 255),
             display: display,
-        };
+        }
+    }
 
-        console.display.set(console.bg);
+    pub fn clear(&mut self) {
+        self.x = 0;
+        self.y = 0;
 
-        console
+        self.display.set(self.bg);
+        self.display.sync();
     }
 }
 
-impl Write for Console {
+impl<'a> Write for Console<'a> {
     fn write_str(&mut self, s: &str) -> Result {
         for c in s.chars() {
             if c == '\n' {
