@@ -1,8 +1,10 @@
 TARGET=x86_64-efi-pe
 
-export RUST_TARGET_PATH=$(PWD)/targets
 PREFIX=$(PWD)/prefix
-LD=$(PREFIX)/bin/$(TARGET)-ld
+export LD=$(PREFIX)/bin/$(TARGET)-ld
+export RUST_TARGET_PATH=$(PWD)/targets
+export XARGO_HOME=$(PWD)/xargo
+export XARGO_RUST_SRC=$(PWD)/rust/src
 
 CARGO=xargo
 CARGOFLAGS=--target $(TARGET) --release -- -C soft-float

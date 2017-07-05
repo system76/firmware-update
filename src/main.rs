@@ -1,20 +1,18 @@
 #![no_std]
 #![feature(alloc)]
 #![feature(asm)]
-#![feature(collections)]
 #![feature(compiler_builtins_lib)]
 #![feature(const_fn)]
 #![feature(lang_items)]
 
+#[macro_use]
 extern crate alloc;
 extern crate alloc_uefi;
-#[macro_use]
-extern crate collections;
 extern crate compiler_builtins;
 extern crate orbclient;
 extern crate uefi;
 
-use collections::String;
+use alloc::String;
 use core::char;
 use orbclient::Renderer;
 

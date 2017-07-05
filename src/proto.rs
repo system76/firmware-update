@@ -1,4 +1,4 @@
-use collections::Vec;
+use alloc::Vec;
 use core::mem;
 use uefi::Handle;
 use uefi::boot::LocateSearchType;
