@@ -42,30 +42,35 @@ fn dump(path: String, mut dir: fs::Dir) {
             },
             Ok(Some(info)) => {
                 let is_dir = info.Attribute & uefi::fs::FILE_DIRECTORY == uefi::fs::FILE_DIRECTORY;
+                let mut hidden = info.Attribute & uefi::fs::FILE_HIDDEN == uefi::fs::FILE_HIDDEN;
 
-                let mut file_name = String::new();
-                for &w in info.FileName.iter() {
+                let mut file_name = path.clone();
+                file_name.push('/');
+                for (i, &w) in info.FileName.iter().enumerate() {
                     if w == 0 {
                         break;
+                    }
+                    if i == 0 && w == '.' as u16 {
+                        hidden = true;
                     }
                     if let Some(c) = char::from_u32(w as u32) {
                         file_name.push(c);
                     }
                 }
 
-                if ! file_name.starts_with(".") {
+                if ! hidden {
                     if is_dir {
-                        println!("  {}/{}/", path, file_name);
+                        println!("  {}/", file_name);
                         match dir.open_dir(&info.FileName) {
                             Ok(new_dir) => {
-                                dump(format!("{}/{}", path, file_name), new_dir);
+                                dump(file_name, new_dir);
                             },
                             Err(err) => {
                                 println!("  Failed to open dir: {}", err);
                             }
                         }
                     } else {
-                        println!("  {}/{}", path, file_name);
+                        println!("  {}", file_name);
                     }
                 }
             },
