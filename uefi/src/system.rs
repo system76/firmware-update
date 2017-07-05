@@ -1,6 +1,6 @@
 use core::slice;
 
-use super::TableHeader;
+use super::{Handle, TableHeader};
 use super::boot::BootServices;
 use super::config::ConfigurationTable;
 use super::runtime::RuntimeServices;
@@ -11,11 +11,11 @@ pub struct SystemTable {
     header: TableHeader,
     vendor: *const u16,
     revision: u32,
-    ConsoleInHandle: * const (),
+    pub ConsoleInHandle: Handle,
     pub ConsoleIn: &'static mut TextInput,
-    ConsoleOutHandle: * const (),
+    pub ConsoleOutHandle: Handle,
     pub ConsoleOut: &'static mut TextOutput,
-    ConsoleErrorHandle: * const (),
+    pub ConsoleErrorHandle: Handle,
     pub ConsoleError: &'static mut TextOutput,
     pub RuntimeServices: &'static mut RuntimeServices,
     pub BootServices: &'static mut BootServices,

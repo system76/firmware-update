@@ -41,7 +41,6 @@ fn main() {
         let uefi = unsafe { &mut *::UEFI };
 
         println!("Wait");
-
         (uefi.BootServices.Stall)(1000000);
 
         println!("Start shell");
@@ -52,14 +51,48 @@ fn main() {
         let res = (uefi.BootServices.LoadImage)(false, parent_handle, 0, shell.as_ptr(), shell.len(), &mut shell_handle);
         println!("Load image: {:X}", res);
 
-        //TODO (uefi.BootServices.InstallProtocolInterface)(shell_handle, uefi::guid::EFI_SHELL_PARAMETERS_GUID,
+        let arg = [
+            b'T' as u16,
+            b'E' as u16,
+            b'S' as u16,
+            b'T' as u16,
+            0u16
+        ];
+        println!("Arg {:X}", arg.as_ptr() as usize);
+
+        let args = [
+            arg.as_ptr()
+        ];
+        println!("Args {:X}", args.as_ptr() as usize);
+
+        let parameters = uefi::shell::ShellParameters {
+            Argv: args.as_ptr(),
+            Argc: args.len(),
+            StdIn: uefi.ConsoleInHandle,
+            StdOut: uefi.ConsoleOutHandle,
+            StdErr: uefi.ConsoleErrorHandle,
+        };
+        println!("StdIn: {:X}", parameters.StdIn.0);
+        println!("StdOut: {:X}", parameters.StdOut.0);
+        println!("StdErr: {:X}", parameters.StdErr.0);
+        println!("Parameters: {:X}", &parameters as *const _ as usize);
+
+        // println!("Wait");
+        // (uefi.BootServices.Stall)(1000000);
+
+        // let res = (uefi.BootServices.InstallProtocolInterface)(&mut shell_handle, &uefi::guid::EFI_SHELL_PARAMETERS_GUID, uefi::boot::InterfaceType::NativeInterface, &parameters as *const _ as usize);
+        // println!("Install parameters: {:X}", res);
+
+        println!("Wait");
+        (uefi.BootServices.Stall)(1000000);
 
         let mut exit_size = 0;
         let mut exit_ptr = ::core::ptr::null_mut();
         let res = (uefi.BootServices.StartImage)(shell_handle, &mut exit_size, &mut exit_ptr);
-        println!("Start image: {:X}", res);
+        println!("Start image: {:X}, {}", res, exit_size);
 
-        println!("Exit shell: {}", exit_size);
+        println!("Wait");
+        (uefi.BootServices.Stall)(1000000);
 
         return;
     }

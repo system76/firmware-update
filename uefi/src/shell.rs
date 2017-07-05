@@ -2,9 +2,9 @@ use super::Handle;
 
 #[repr(packed)]
 pub struct ShellParameters {
-    Argv: * const * const u16,
-    Argc: usize,
-    StdIn: Handle,
-    StdOut: Handle,
-    StdErr: Handle
+    pub Argv: * const * const u16,
+    pub Argc: usize,
+    pub StdIn: Handle,
+    pub StdOut: Handle,
+    pub StdErr: Handle
 }
