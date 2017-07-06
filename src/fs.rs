@@ -4,7 +4,7 @@ use uefi::guid::{Guid, EFI_FILE_SYSTEM_GUID};
 
 use proto::Protocol;
 
-pub struct FileSystem(&'static mut SimpleFileSystem);
+pub struct FileSystem(pub &'static mut SimpleFileSystem);
 
 impl Protocol<SimpleFileSystem> for FileSystem {
     fn guid() -> Guid {
@@ -28,7 +28,7 @@ impl FileSystem {
     }
 }
 
-pub struct File(&'static mut InnerFile);
+pub struct File(pub &'static mut InnerFile);
 
 impl File {
     pub fn read(&mut self, buf: &mut [u8]) -> Result<usize, isize> {
@@ -58,7 +58,7 @@ impl Drop for File {
     }
 }
 
-pub struct Dir(File);
+pub struct Dir(pub File);
 
 impl Dir {
     pub fn open(&mut self, filename: &[u16]) -> Result<File, isize> {

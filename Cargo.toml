@@ -4,7 +4,7 @@ version = "0.1.0"
 
 [lib]
 name = "boot"
-path = "src/main.rs"
+path = "src/lib.rs"
 crate-type = ["staticlib"]
 
 [dependencies.compiler_builtins]
@@ -15,5 +15,4 @@ features = []
 orbclient = { path = "orbclient" }
 uefi = { git = "https://github.com/redox-os/uefi.git" }
 uefi_alloc = { git = "https://github.com/redox-os/uefi_alloc.git" }
-wstr = "0.1"
 x86 = "0.7"
