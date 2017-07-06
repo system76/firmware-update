@@ -14,6 +14,6 @@ features = ["mem"]
 [dependencies]
 ecflash = { git = "https://github.com/system76/ecflash.git" }
 orbclient = { path = "orbclient" }
-uefi = { git = "https://github.com/redox-os/uefi.git" }
+uefi = { path = "uefi" }
 uefi_alloc = { git = "https://github.com/redox-os/uefi_alloc.git" }
 x86 = "0.7"

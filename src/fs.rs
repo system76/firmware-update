@@ -2,6 +2,7 @@ use alloc::vec::Vec;
 use core::{mem, slice};
 use uefi::fs::{File as InnerFile, FileInfo, SimpleFileSystem, FILE_MODE_READ};
 use uefi::guid::{Guid, EFI_FILE_SYSTEM_GUID};
+use uefi::status::Result;
 
 use proto::Protocol;
 
@@ -18,12 +19,9 @@ impl Protocol<SimpleFileSystem> for FileSystem {
 }
 
 impl FileSystem {
-    pub fn root(&mut self) -> Result<Dir, isize> {
+    pub fn root(&mut self) -> Result<Dir> {
         let mut interface = 0 as *mut InnerFile;
-        let status = (self.0.OpenVolume)(self.0, &mut interface);
-        if status != 0 {
-            return Err(status);
-        }
+        (self.0.OpenVolume)(self.0, &mut interface)?;
 
         Ok(Dir(File(unsafe { &mut *interface })))
     }
@@ -32,17 +30,13 @@ impl FileSystem {
 pub struct File(pub &'static mut InnerFile);
 
 impl File {
-    pub fn read(&mut self, buf: &mut [u8]) -> Result<usize, isize> {
+    pub fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
         let mut len = buf.len();
-        let status = (self.0.Read)(self.0, &mut len, buf.as_mut_ptr());
-        if status != 0 {
-            return Err(status);
-        }
-
+        (self.0.Read)(self.0, &mut len, buf.as_mut_ptr())?;
         Ok(len)
     }
 
-    pub fn read_to_end(&mut self, vec: &mut Vec<u8>) -> Result<usize, isize> {
+    pub fn read_to_end(&mut self, vec: &mut Vec<u8>) -> Result<usize> {
         let mut total = 0;
 
         loop {
@@ -60,42 +54,35 @@ impl File {
         Ok(total)
     }
 
-    pub fn write(&mut self, buf: &[u8]) -> Result<usize, isize> {
+    pub fn write(&mut self, buf: &[u8]) -> Result<usize> {
         let mut len = buf.len();
-        let status = (self.0.Write)(self.0, &mut len, buf.as_ptr());
-        if status != 0 {
-            return Err(status);
-        }
-
+        (self.0.Write)(self.0, &mut len, buf.as_ptr())?;
         Ok(len)
     }
 }
 
 impl Drop for File {
     fn drop(&mut self) {
-        (self.0.Close)(self.0);
+        let _ = (self.0.Close)(self.0);
     }
 }
 
 pub struct Dir(pub File);
 
 impl Dir {
-    pub fn open(&mut self, filename: &[u16]) -> Result<File, isize> {
+    pub fn open(&mut self, filename: &[u16]) -> Result<File> {
         let mut interface = 0 as *mut InnerFile;
-        let status = ((self.0).0.Open)((self.0).0, &mut interface, filename.as_ptr(), FILE_MODE_READ, 0);
-        if status != 0 {
-            return Err(status);
-        }
+        ((self.0).0.Open)((self.0).0, &mut interface, filename.as_ptr(), FILE_MODE_READ, 0)?;
 
         Ok(File(unsafe { &mut *interface }))
     }
 
-    pub fn open_dir(&mut self, filename: &[u16]) -> Result<Dir, isize> {
+    pub fn open_dir(&mut self, filename: &[u16]) -> Result<Dir> {
         let file = self.open(filename)?;
         Ok(Dir(file))
     }
 
-    pub fn read(&mut self) -> Result<Option<FileInfo>, isize> {
+    pub fn read(&mut self) -> Result<Option<FileInfo>> {
         let mut info = FileInfo::default();
         let buf = unsafe {
             slice::from_raw_parts_mut(

@@ -1,4 +1,5 @@
 use alloc::boxed::Box;
+use core::ops::Try;
 use orbclient::{Color, Renderer};
 use uefi::graphics::{GraphicsOutput, GraphicsBltOp, GraphicsBltPixel};
 use uefi::guid::{Guid, EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID};
@@ -75,8 +76,8 @@ impl Renderer for Display {
     fn sync(&mut self) -> bool {
         let w = self.w as usize;
         let h = self.h as usize;
-        (self.output.0.Blt)(self.output.0, self.data.as_mut_ptr() as *mut GraphicsBltPixel, GraphicsBltOp::BufferToVideo, 0, 0, 0, 0, w, h, 0);
-        true
+        let status = (self.output.0.Blt)(self.output.0, self.data.as_mut_ptr() as *mut GraphicsBltPixel, GraphicsBltOp::BufferToVideo, 0, 0, 0, 0, w, h, 0);
+        status.into_result().is_ok()
     }
 }
 
