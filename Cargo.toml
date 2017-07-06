@@ -12,7 +12,8 @@ git = "https://github.com/rust-lang-nursery/compiler-builtins"
 features = []
 
 [dependencies]
-alloc_uefi = { path = "alloc_uefi" }
 orbclient = { path = "orbclient" }
-uefi = { path = "uefi" }
+uefi = { git = "https://github.com/redox-os/uefi.git" }
+uefi_alloc = { git = "https://github.com/redox-os/uefi_alloc.git" }
+wstr = "0.1"
 x86 = "0.7"

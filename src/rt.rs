@@ -1,6 +1,6 @@
-use alloc_uefi;
 use core::fmt::Write;
 use uefi;
+use uefi_alloc;
 
 use io;
 use main;
@@ -30,7 +30,7 @@ pub extern "win64" fn _start(handle: uefi::Handle, uefi: &'static mut uefi::syst
         (uefi.ConsoleOut.SetMode)(uefi.ConsoleOut, max_i as usize);
 
         io::STDOUT = Some(uefi.ConsoleOut as *mut Write);
-        alloc_uefi::init(&mut *::UEFI);
+        uefi_alloc::init(&mut *::UEFI);
     }
 
     main();

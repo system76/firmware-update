@@ -25,13 +25,23 @@ build/boot.img: build/efi.img
 	parted $@ -s -a minimal toggle 1 boot
 	dd if=$< of=$@ bs=512 count=91669 seek=2048 conv=notrunc
 
-build/efi.img: build/iso/efi/boot/bootx64.efi
+build/efi.img: build/iso/efi/boot/bootx64.efi build/iso/efi/shell.efi build/iso/efi/test.nsh build/iso/efi/test.txt
 	dd if=/dev/zero of=$@ bs=1024 count=91669
 	mformat -i $@ -h 32 -t 32 -n 32 -c 1
 	mcopy -i $@ -s build/iso/efi ::
 
 build/boot.iso: build/iso/efi/boot/bootx64.efi
 	mkisofs -o $@ build/iso
+
+build/iso/efi/shell.efi: res/shell.efi
+	cp $< $@
+
+build/iso/efi/test.nsh:
+	echo "echo Hello" > $@
+	echo "exit 0" > $@
+
+build/iso/efi/test.txt:
+	date > $@
 
 build/iso/efi/boot/bootx64.efi: build/boot.efi
 	mkdir -p `dirname $@`
@@ -46,7 +56,7 @@ build/boot.o: build/boot.a
 	cd build/boot && ar x ../boot.a
 	ld -r build/boot/*.o -o $@
 
-build/boot.a: src/main.rs src/* uefi/src/*
+build/boot.a: src/main.rs src/* src/*/*
 	mkdir -p build
 	$(CARGO) rustc --lib $(CARGOFLAGS) -C lto --emit link=$@
 

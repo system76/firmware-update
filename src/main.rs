@@ -7,10 +7,12 @@
 
 #[macro_use]
 extern crate alloc;
-extern crate alloc_uefi;
 extern crate compiler_builtins;
 extern crate orbclient;
 extern crate uefi;
+extern crate uefi_alloc;
+#[macro_use]
+extern crate wstr;
 
 use core::fmt::Write;
 use orbclient::{Color, Renderer};
@@ -37,6 +39,25 @@ pub mod proto;
 pub mod rt;
 
 fn main() {
+    for (i, mut fs) in fs::FileSystem::all().iter_mut().enumerate() {
+        println!("FileSystem {}", i);
+        match fs.root() {
+            Ok(root) => {
+                match root.open(wstr!("efi\\test.txt")) {
+                    Ok(file) => {
+                        println!("  Found test file");
+                    },
+                    Err(err) => {
+                        println!("  Failed to open test file: {}", err);
+                    }
+                }
+            },
+            Err(err) => {
+                println!("  Failed to open root: {}", err);
+            }
+        }
+    }
+
     {
         let uefi = unsafe { &mut *::UEFI };
 
