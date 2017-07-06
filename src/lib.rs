@@ -18,10 +18,12 @@ use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::char;
+use core::fmt::Write;
 use ecflash::{Ec, EcFile, EcFlash};
 use orbclient::{Color, Renderer};
 use uefi::status::{Error, Result};
 
+use console::Console;
 use display::{Display, Output};
 use proto::Protocol;
 
@@ -193,10 +195,33 @@ fn splash() -> Result<()> {
 
     display.sync();
 
-    let _ = (uefi.ConsoleOut.SetCursorPosition)(uefi.ConsoleOut, 0, 0);
+    let cur_w = display.width();
+    let cur_h = display.height();
 
-    println!("Current: {}x{}", display.width(), display.height());
-    println!("Max: {}x{}", max_w, max_h);
+    {
+        let mut console = Console::new(&mut display);
+
+        console.bg = Color::rgb(0x41, 0x3e, 0x3c);
+
+        let _ = (uefi.ConsoleOut.SetCursorPosition)(uefi.ConsoleOut, 0, 0);
+
+        let _ = writeln!(console, "Current: {}x{}", cur_w, cur_h);
+        let _ = writeln!(console, "Max: {}x{}", max_w, max_h);
+        let _ = writeln!(console, "Press any key to return to menu");
+    }
+
+    let mut input = uefi::text::TextInputKey {
+        ScanCode: 0,
+        UnicodeChar: 0
+    };
+
+    while input.UnicodeChar == 0 {
+        let _ = (uefi.ConsoleIn.ReadKeyStroke)(uefi.ConsoleIn, &mut input);
+    }
+
+    display.set(Color::rgb(0, 0, 0));
+
+    display.sync();
 
     Ok(())
 }
