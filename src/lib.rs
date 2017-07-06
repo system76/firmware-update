@@ -144,6 +144,8 @@ fn exec() -> Result<()> {
 }
 
 fn splash() -> Result<()> {
+    let uefi = unsafe { &mut *::UEFI };
+
     let mut output = Output::one()?;
 
     let mut max_i = 0;
@@ -190,6 +192,11 @@ fn splash() -> Result<()> {
     }
 
     display.sync();
+
+    let _ = (uefi.ConsoleOut.SetCursorPosition)(uefi.ConsoleOut, 0, 0);
+
+    println!("Current: {}x{}", display.width(), display.height());
+    println!("Max: {}x{}", max_w, max_h);
 
     Ok(())
 }
