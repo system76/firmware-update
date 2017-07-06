@@ -25,30 +25,38 @@ build/boot.img: build/efi.img
 	parted $@ -s -a minimal toggle 1 boot
 	dd if=$< of=$@ bs=512 count=91669 seek=2048 conv=notrunc
 
-build/efi.img: build/iso/efi/boot/bootx64.efi build/iso/efi/shell.efi build/iso/efi/test.nsh build/iso/efi/test.txt
+build/efi.img: build/iso/efi/boot/bootx64.efi res/*
 	dd if=/dev/zero of=$@ bs=1024 count=91669
 	mformat -i $@ -h 32 -t 32 -n 32 -c 1
 	mcopy -i $@ -s build/iso/efi ::
+	mcopy -i $@ -s res ::
 
 build/boot.iso: build/iso/efi/boot/bootx64.efi
 	mkisofs -o $@ build/iso
-
-build/iso/efi/shell.efi: res/shell.efi
-	cp $< $@
-
-build/iso/efi/test.nsh:
-	echo "echo Hello" > $@
-	echo "exit 0" > $@
-
-build/iso/efi/test.txt:
-	date > $@
 
 build/iso/efi/boot/bootx64.efi: build/boot.efi
 	mkdir -p `dirname $@`
 	cp $< $@
 
 build/boot.efi: build/boot.o $(LD)
-	$(LD) --oformat pei-x86-64 --subsystem 10 --pic-executable --entry _start $< -o $@
+	$(LD) \
+		--oformat pei-x86-64 \
+		--dll \
+		--image-base 0 \
+		--section-alignment 32 \
+		--file-alignment 32 \
+		--major-os-version 0 \
+		--minor-os-version 0 \
+		--major-image-version 0 \
+		--minor-image-version 0 \
+		--major-subsystem-version 0 \
+		--minor-subsystem-version 0 \
+		--subsystem 10 \
+		--heap 0,0 \
+		--stack 0,0 \
+		--pic-executable \
+		--entry _start \
+		$< -o $@
 
 build/boot.o: build/boot.a
 	rm -rf build/boot
