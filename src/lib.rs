@@ -8,14 +8,18 @@
 #[macro_use]
 extern crate alloc;
 extern crate compiler_builtins;
+extern crate ecflash;
 extern crate orbclient;
 extern crate uefi;
 extern crate uefi_alloc;
 
-use core::fmt::Write;
+use alloc::boxed::Box;
+use alloc::string::String;
+use alloc::vec::Vec;
+use core::char;
+use ecflash::{Ec, EcFile, EcFlash};
 use orbclient::{Color, Renderer};
 
-use console::Console;
 use display::{Display, Output};
 use proto::Protocol;
 
@@ -27,7 +31,6 @@ mod macros;
 
 pub mod console;
 pub mod display;
-pub mod ec;
 pub mod externs;
 pub mod fs;
 pub mod image;
@@ -36,62 +39,108 @@ pub mod panic;
 pub mod proto;
 pub mod rt;
 
+fn wstr(string: &str) -> Box<[u16]> {
+    let mut wstring = vec![];
+    for c in string.chars() {
+        wstring.push(c as u16);
+    }
+    wstring.push(0);
+    wstring.into_boxed_slice()
+}
+
+fn load(path: &str) -> Result<Vec<u8>, isize> {
+    let wpath = wstr(path);
+
+    for (i, mut fs) in fs::FileSystem::all().iter_mut().enumerate() {
+        let mut root = fs.root()?;
+        match root.open(&wpath) {
+            Ok(mut file) => {
+                let mut data = vec![];
+                let _count = file.read_to_end(&mut data)?;
+
+                return Ok(data);
+            },
+            Err(err) => if err != (1 << 63) | 0xE {
+                return Err(err);
+            }
+        }
+    }
+
+    Err(0)
+}
+
+fn ec() {
+    match EcFlash::new(1) {
+        Ok(mut ec) => {
+            println!("EC FOUND");
+            println!("Project: {}", ec.project());
+            println!("Version: {}", ec.version());
+            println!("Size: {} KB", ec.size()/1024);
+        },
+        Err(err) => {
+            println!("EC ERROR: {}", err);
+        }
+    }
+}
+
 fn exec() {
     let uefi = unsafe { &mut *::UEFI };
 
-    println!("Wait");
-    (uefi.BootServices.Stall)(1000000);
+    match load("res\\shell.efi") {
+        Ok(data) => {
+            println!("Start shell");
 
-    println!("Start shell");
+            let parent_handle = unsafe { ::HANDLE };
+            let mut shell_handle = uefi::Handle(0);
+            let res = (uefi.BootServices.LoadImage)(false, parent_handle, 0, data.as_ptr(), data.len(), &mut shell_handle);
+            println!("Load image: {:X}", res);
 
-    let parent_handle = unsafe { ::HANDLE };
-    let shell = include_bytes!("../res/shell.efi");
-    let mut shell_handle = uefi::Handle(0);
-    let res = (uefi.BootServices.LoadImage)(false, parent_handle, 0, shell.as_ptr(), shell.len(), &mut shell_handle);
-    println!("Load image: {:X}", res);
+            /*
+            let arg = [
+                b'T' as u16,
+                b'E' as u16,
+                b'S' as u16,
+                b'T' as u16,
+                0u16
+            ];
+            println!("Arg {:X}", arg.as_ptr() as usize);
 
-    let arg = [
-        b'T' as u16,
-        b'E' as u16,
-        b'S' as u16,
-        b'T' as u16,
-        0u16
-    ];
-    println!("Arg {:X}", arg.as_ptr() as usize);
+            let args = [
+                arg.as_ptr()
+            ];
+            println!("Args {:X}", args.as_ptr() as usize);
 
-    let args = [
-        arg.as_ptr()
-    ];
-    println!("Args {:X}", args.as_ptr() as usize);
+            let parameters = uefi::shell::ShellParameters {
+                Argv: args.as_ptr(),
+                Argc: args.len(),
+                StdIn: uefi.ConsoleInHandle,
+                StdOut: uefi.ConsoleOutHandle,
+                StdErr: uefi.ConsoleErrorHandle,
+            };
+            println!("StdIn: {:X}", parameters.StdIn.0);
+            println!("StdOut: {:X}", parameters.StdOut.0);
+            println!("StdErr: {:X}", parameters.StdErr.0);
+            println!("Parameters: {:X}", &parameters as *const _ as usize);
 
-    let parameters = uefi::shell::ShellParameters {
-        Argv: args.as_ptr(),
-        Argc: args.len(),
-        StdIn: uefi.ConsoleInHandle,
-        StdOut: uefi.ConsoleOutHandle,
-        StdErr: uefi.ConsoleErrorHandle,
-    };
-    println!("StdIn: {:X}", parameters.StdIn.0);
-    println!("StdOut: {:X}", parameters.StdOut.0);
-    println!("StdErr: {:X}", parameters.StdErr.0);
-    println!("Parameters: {:X}", &parameters as *const _ as usize);
+            // println!("Wait");
+            // (uefi.BootServices.Stall)(1000000);
 
-    // println!("Wait");
-    // (uefi.BootServices.Stall)(1000000);
+            // let res = (uefi.BootServices.InstallProtocolInterface)(&mut shell_handle, &uefi::guid::EFI_SHELL_PARAMETERS_GUID, uefi::boot::InterfaceType::NativeInterface, &parameters as *const _ as usize);
+            // println!("Install parameters: {:X}", res);
+            */
 
-    // let res = (uefi.BootServices.InstallProtocolInterface)(&mut shell_handle, &uefi::guid::EFI_SHELL_PARAMETERS_GUID, uefi::boot::InterfaceType::NativeInterface, &parameters as *const _ as usize);
-    // println!("Install parameters: {:X}", res);
+            println!("Wait");
+            (uefi.BootServices.Stall)(1000000);
 
-    println!("Wait");
-    (uefi.BootServices.Stall)(1000000);
-
-    let mut exit_size = 0;
-    let mut exit_ptr = ::core::ptr::null_mut();
-    let res = (uefi.BootServices.StartImage)(shell_handle, &mut exit_size, &mut exit_ptr);
-    println!("Start image: {:X}, {}", res, exit_size);
-
-    println!("Wait");
-    (uefi.BootServices.Stall)(1000000);
+            let mut exit_size = 0;
+            let mut exit_ptr = ::core::ptr::null_mut();
+            let res = (uefi.BootServices.StartImage)(shell_handle, &mut exit_size, &mut exit_ptr);
+            println!("Start image: {:X}, {}", res, exit_size);
+        },
+        Err(err) => {
+            println!("Failed to load shell: {:X}", err);
+        }
+    }
 }
 
 fn splash() {
@@ -115,16 +164,18 @@ fn splash() {
             }
         }
 
-        (output.0.SetMode)(output.0, max_i);
+        //(output.0.SetMode)(output.0, max_i);
 
         let mut display = Display::new(output);
 
         display.set(Color::rgb(0x41, 0x3e, 0x3c));
 
-        if let Ok(splash) = image::bmp::parse(include_bytes!("../res/splash.bmp")) {
-            let x = (display.width() as i32 - splash.width() as i32)/2;
-            let y = (display.height() as i32 - splash.height() as i32)/2;
-            splash.draw(&mut display, x, y);
+        if let Ok(data) = load("res\\splash.bmp") {
+            if let Ok(splash) = image::bmp::parse(&data) {
+                let x = (display.width() as i32 - splash.width() as i32)/2;
+                let y = (display.height() as i32 - splash.height() as i32)/2;
+                splash.draw(&mut display, x, y);
+            }
         }
 
         {
@@ -138,67 +189,52 @@ fn splash() {
         }
 
         display.sync();
+    }
+}
 
-        {
-            let mut console = Console::new(&mut display);
-
-            console.bg = Color::rgb(0x41, 0x3e, 0x3c);
-
-            match ec::EcFlash::new(1) {
-                Some(mut ec) => {
-                    let _ = writeln!(console, "EC FOUND");
-                    let _ = writeln!(console, "Project: {}", ec.project());
-                    let _ = writeln!(console, "Version: {}", ec.version());
-                    /*
-                    writeln!(console, "Size: {} KB", ec.size()/1024);
-                    */
-                },
-                None => {
-                    let _ = writeln!(console, "EC NOT FOUND");
-                }
+fn text() {
+    match load("res\\test.txt") {
+        Ok(data) => {
+            if let Ok(string) = String::from_utf8(data) {
+                println!("{}", string);
+            } else {
+                println!("Failed to parse test file");
             }
+        },
+        Err(err) => {
+            println!("Failed to load test file: {:X}", err);
         }
     }
 }
 
 fn main() {
-    for (i, mut fs) in fs::FileSystem::all().iter_mut().enumerate() {
-        println!("FileSystem {}", i);
-        match fs.root() {
-            Ok(mut root) => {
-                let mut path = vec![];
-                for c in "efi\\test.txt".chars() {
-                    path.push(c as u16);
-                }
-                path.push(0);
+    let uefi = unsafe { &mut *::UEFI };
 
-                match root.open(&path) {
-                    Ok(mut file) => {
-                        println!("  Found test file");
-                        let mut buf = [0; 8192];
-                        match file.read(&mut buf) {
-                            Ok(count) => {
-                                println!("  Read test file: {}", count);
-				for &b in buf[.. count].iter() {
-				    print!("{}", b as char);
-				}
-                            },
-                            Err(err) => {
-                                println!("  Failed to read test file: {}", err);
-                            }
-                        }
-                    },
-                    Err(err) => {
-                        println!("  Failed to open test file: {}", err);
-                    }
-                }
-            },
-            Err(err) => {
-                println!("  Failed to open root: {}", err);
-            }
+    loop {
+        println!("  1 => ec");
+        println!("  2 => exec");
+        println!("  3 => splash");
+        println!("  4 => text");
+        println!("  0 => exit");
+
+        let mut input = uefi::text::TextInputKey {
+            ScanCode: 0,
+            UnicodeChar: 0
+        };
+
+        while input.UnicodeChar == 0 {
+            (uefi.ConsoleIn.ReadKeyStroke)(uefi.ConsoleIn, &mut input);
+        }
+
+        println!("{}", char::from_u32(input.UnicodeChar as u32).unwrap_or('?'));
+
+        match input.UnicodeChar as u8 {
+            b'1' => ec(),
+            b'2' => exec(),
+            b'3' => splash(),
+            b'4' => text(),
+            b'0' => return,
+            b => println!("Invalid selection '{}'", b as char)
         }
     }
-
-    /*
-    */
 }

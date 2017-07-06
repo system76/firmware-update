@@ -9,9 +9,10 @@ crate-type = ["staticlib"]
 
 [dependencies.compiler_builtins]
 git = "https://github.com/rust-lang-nursery/compiler-builtins"
-features = []
+features = ["mem"]
 
 [dependencies]
+ecflash = { git = "https://github.com/system76/ecflash.git" }
 orbclient = { path = "orbclient" }
 uefi = { git = "https://github.com/redox-os/uefi.git" }
 uefi_alloc = { git = "https://github.com/redox-os/uefi_alloc.git" }

@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 use core::{mem, slice};
 use uefi::fs::{File as InnerFile, FileInfo, SimpleFileSystem, FILE_MODE_READ};
 use uefi::guid::{Guid, EFI_FILE_SYSTEM_GUID};
@@ -39,6 +40,24 @@ impl File {
         }
 
         Ok(len)
+    }
+
+    pub fn read_to_end(&mut self, vec: &mut Vec<u8>) -> Result<usize, isize> {
+        let mut total = 0;
+
+        loop {
+            let mut buf = [0; 8192];
+
+            let count = self.read(&mut buf)?;
+            if count == 0 {
+                break;
+            }
+
+            vec.extend(&buf[.. count]);
+            total += count;
+        }
+
+        Ok(total)
     }
 
     pub fn write(&mut self, buf: &[u8]) -> Result<usize, isize> {
