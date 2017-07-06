@@ -50,6 +50,11 @@ impl Display {
             }
         }
     }
+
+    pub fn blit(&mut self, x: usize, y: usize, w: usize, h: usize) -> bool {
+        let status = (self.output.0.Blt)(self.output.0, self.data.as_mut_ptr() as *mut GraphicsBltPixel, GraphicsBltOp::BufferToVideo, x, y, x, y, w, h, 0);
+        status.into_result().is_ok()
+    }
 }
 
 impl Renderer for Display {
@@ -76,8 +81,7 @@ impl Renderer for Display {
     fn sync(&mut self) -> bool {
         let w = self.w as usize;
         let h = self.h as usize;
-        let status = (self.output.0.Blt)(self.output.0, self.data.as_mut_ptr() as *mut GraphicsBltPixel, GraphicsBltOp::BufferToVideo, 0, 0, 0, 0, w, h, 0);
-        status.into_result().is_ok()
+        self.blit(0, 0, w, h)
     }
 }
 

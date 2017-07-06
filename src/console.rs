@@ -32,6 +32,10 @@ impl<'a> Console<'a> {
 
 impl<'a> Write for Console<'a> {
     fn write_str(&mut self, s: &str) -> Result {
+        let mut scrolled = false;
+        let sx = self.x;
+        let sy = self.y;
+
         for c in s.chars() {
             if c == '\n' {
                 self.x = 0;
@@ -50,10 +54,24 @@ impl<'a> Write for Console<'a> {
             while self.y + 16 > self.display.height() as i32 {
                 self.display.scroll(16, self.bg);
                 self.y -= 16;
+
+                scrolled = true;
             }
         }
 
-        self.display.sync();
+        if scrolled {
+            self.display.sync();
+        } else if self.x != sx || self.y != sy {
+            let (cx, cw) = if self.y > sy {
+                (0, self.display.width() as i32)
+            } else {
+                (sx, self.x - sx)
+            };
+
+            let (cy, ch) = (sy, self.y + 16 - sy);
+
+            self.display.blit(cx as usize, cy as usize, cw as usize, ch as usize);
+        }
 
         Ok(())
     }
