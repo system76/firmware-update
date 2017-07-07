@@ -18,3 +18,6 @@
 	path = uefi_alloc
 	url = https://github.com/redox-os/uefi_alloc.git
 	branch = master
+[submodule "dmi"]
+	path = dmi
+	url = https://github.com/redox-os/dmi.git
