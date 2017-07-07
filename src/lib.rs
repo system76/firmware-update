@@ -150,16 +150,20 @@ fn bios() -> Result<()> {
         return Err(Error::DeviceError);
     }
 
-    println!("Press any key to flash BIOS");
-    let _ = wait_key();
+    println!("Press enter key to flash BIOS, any other to cancel");
+    let c = wait_key()?;
 
-    let status = shell("fs0:\\res\\firmware.nsh bios flash")?;
-    if status != 0 {
-        println!("Failed to flash BIOS: {}", status);
-        return Err(Error::DeviceError);
+    if c == '\r' || c == '\n' {
+        let status = shell("fs0:\\res\\firmware.nsh bios flash")?;
+        if status != 0 {
+            println!("Failed to flash BIOS: {}", status);
+            return Err(Error::DeviceError);
+        }
+
+        println!("Flashed BIOS successfully");
+    } else {
+        println!("Cancelled BIOS flashing");
     }
-
-    println!("Flashed BIOS successfully");
 
     Ok(())
 }
@@ -259,16 +263,20 @@ fn ec() -> Result<()> {
         return Err(Error::DeviceError);
     }
 
-    println!("Press any key to flash EC");
-    let _ = wait_key();
+    println!("Press enter key to flash EC, any other to cancel");
+    let c = wait_key()?;
 
-    let status = shell("fs0:\\res\\firmware.nsh ec flash")?;
-    if status != 0 {
-        println!("Failed to flash EC: {}", status);
-        return Err(Error::DeviceError);
+    if c == '\r' || c == '\n' {
+        let status = shell("fs0:\\res\\firmware.nsh ec flash")?;
+        if status != 0 {
+            println!("Failed to flash EC: {}", status);
+            return Err(Error::DeviceError);
+        }
+
+        println!("Flashed EC successfully");
+    } else {
+        println!("Cancelled EC flashing");
     }
-
-    println!("Flashed EC successfully");
 
     Ok(())
 }
