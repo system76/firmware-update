@@ -9,22 +9,25 @@
 #[macro_use]
 extern crate alloc;
 extern crate compiler_builtins;
+extern crate dmi;
 extern crate ecflash;
 extern crate orbclient;
+extern crate plain;
 extern crate uefi;
 extern crate uefi_alloc;
 
 use alloc::boxed::Box;
-use alloc::string::String;
 use alloc::vec::Vec;
-use core::char;
+use core::{char, mem, ptr, slice};
 use core::fmt::Write;
 use ecflash::{Ec, EcFile, EcFlash};
 use orbclient::{Color, Renderer};
-use uefi::status::{Error, Result};
+use uefi::guid::GuidKind;
+use uefi::status::{Error, Result, Status};
 
 use console::Console;
 use display::{Display, Output};
+use loaded_image::LoadedImage;
 use proto::Protocol;
 
 pub static mut HANDLE: uefi::Handle = uefi::Handle(0);
@@ -39,10 +42,12 @@ pub mod externs;
 pub mod fs;
 pub mod image;
 pub mod io;
+pub mod loaded_image;
 pub mod panic;
 pub mod pointer;
 pub mod proto;
 pub mod rt;
+pub mod shell;
 
 fn wstr(string: &str) -> Box<[u16]> {
     let mut wstring = vec![];
@@ -74,75 +79,196 @@ fn load(path: &str) -> Result<Vec<u8>> {
     Err(Error::NotFound)
 }
 
-fn ec() -> Result<()> {
-    match EcFlash::new(1) {
-        Ok(mut ec) => {
-            println!("EC FOUND");
-            println!("Project: {}", ec.project());
-            println!("Version: {}", ec.version());
-            println!("Size: {} KB", ec.size()/1024);
-            Ok(())
-        },
-        Err(err) => {
-            println!("EC ERROR: {}", err);
-            Err(Error::NotFound)
-        }
-    }
+extern "win64" fn fake_clear(a: &uefi::text::TextOutput) -> Status {
+    Status(0)
 }
 
-fn exec() -> Result<()> {
+fn shell(cmd: &str) -> Result<usize> {
+    let handle = unsafe { ::HANDLE };
     let uefi = unsafe { &mut *::UEFI };
 
-    let data =  load("res\\shell.efi")?;
-
-    println!("Load image");
-
-    let parent_handle = unsafe { ::HANDLE };
-    let mut shell_handle = uefi::Handle(0);
-    (uefi.BootServices.LoadImage)(false, parent_handle, 0, data.as_ptr(), data.len(), &mut shell_handle)?;
-
-    /*
     let args = [
-        wstr("res\\shell.efi"),
-        wstr("echo"),
-        wstr("hello"),
+        "res\\shell.efi",
+        "-nointerrupt",
+        "-nomap",
+        "-nostartup",
+        "-noversion",
+        cmd
     ];
 
-    let mut arg_ptrs = vec![];
-    for arg in args.iter() {
-        println!("Arg {:X}", arg.as_ptr() as usize);
-        arg_ptrs.push(arg.as_ptr());
+    let mut cmdline = format!("\"{}\"", args[0]);
+    for arg in args.iter().skip(1) {
+        cmdline.push_str(" \"");
+        cmdline.push_str(arg);
+        cmdline.push_str("\"");
     }
 
-    println!("Args {:X}", arg_ptrs.as_ptr() as usize);
+    let wcmdline = wstr(&cmdline);
 
-    let parameters = uefi::shell::ShellParameters {
-        Argv: arg_ptrs.as_ptr(),
-        Argc: arg_ptrs.len(),
-        StdIn: uefi.ConsoleInHandle,
-        StdOut: uefi.ConsoleOutHandle,
-        StdErr: uefi.ConsoleErrorHandle,
-    };
-    println!("StdIn: {:X}", parameters.StdIn.0);
-    println!("StdOut: {:X}", parameters.StdOut.0);
-    println!("StdErr: {:X}", parameters.StdErr.0);
-    println!("Parameters: {:X}", &parameters as *const _ as usize);
+    let data = load(args[0])?;
 
-    println!("Wait");
-    (uefi.BootServices.Stall)(1000000);
+    let mut shell_handle = uefi::Handle(0);
+    (uefi.BootServices.LoadImage)(false, handle, 0, data.as_ptr(), data.len(), &mut shell_handle)?;
 
-    println!("Install parameters");
-    (uefi.BootServices.InstallProtocolInterface)(&mut shell_handle, &uefi::guid::EFI_SHELL_PARAMETERS_GUID, uefi::boot::InterfaceType::NativeInterface, &parameters as *const _ as usize)?;
+    if let Ok(loaded_image) = LoadedImage::handle_protocol(shell_handle) {
+        //loaded_image.0.SystemTable.ConsoleOut.ClearScreen = fake_clear;
+        loaded_image.0.LoadOptionsSize = (wcmdline.len() as u32) * 2;
+        loaded_image.0.LoadOptions = wcmdline.as_ptr();
+    }
 
-    println!("Wait");
-    (uefi.BootServices.Stall)(1000000);
-    */
-
-    println!("Start image");
     let mut exit_size = 0;
     let mut exit_ptr = ::core::ptr::null_mut();
     let ret = (uefi.BootServices.StartImage)(shell_handle, &mut exit_size, &mut exit_ptr)?;
-    println!("Shell exited: {}, {:X} {}", ret, exit_ptr as usize, exit_size);
+
+    Ok(ret)
+}
+
+fn wait_key() -> Result<char> {
+    let uefi = unsafe { &mut *::UEFI };
+
+    let mut index = 0;
+    (uefi.BootServices.WaitForEvent)(1, &uefi.ConsoleIn.WaitForKey, &mut index)?;
+
+    let mut input = uefi::text::TextInputKey {
+        ScanCode: 0,
+        UnicodeChar: 0
+    };
+
+    let _ = (uefi.ConsoleIn.ReadKeyStroke)(uefi.ConsoleIn, &mut input)?;
+
+    Ok(unsafe {
+        char::from_u32_unchecked(input.UnicodeChar as u32)
+    })
+}
+
+fn bios() -> Result<()> {
+    let uefi = unsafe { &mut *::UEFI };
+
+    let status = shell("fs0:\\res\\firmware.nsh bios verify")?;
+    if status != 0 {
+        println!("Failed to verify BIOS: {}", status);
+        return Err(Error::DeviceError);
+    }
+
+    println!("Press any key to flash BIOS");
+    let _ = wait_key();
+
+    let status = shell("fs0:\\res\\firmware.nsh bios flash")?;
+    if status != 0 {
+        println!("Failed to flash BIOS: {}", status);
+        return Err(Error::DeviceError);
+    }
+
+    println!("Flashed BIOS successfully");
+
+    Ok(())
+}
+
+fn dmi() -> Result<()> {
+    let uefi = unsafe { &mut *::UEFI };
+
+    for table in uefi.config_tables().iter() {
+        if table.VendorGuid.kind() == GuidKind::Smbios {
+            let smbios = plain::from_bytes::<dmi::Smbios>(unsafe {
+                slice::from_raw_parts(table.VendorTable as *const u8, mem::size_of::<dmi::Smbios>())
+            }).unwrap();
+
+            //TODO: Check anchors, checksums
+
+            let tables = dmi::tables(unsafe {
+                slice::from_raw_parts(smbios.table_address as *const u8, smbios.table_length as usize)
+            });
+            for table in tables {
+                match table.header.kind {
+                    0 => if let Ok(info) = plain::from_bytes::<dmi::BiosInfo>(&table.data){
+                        println!("{:?}", info);
+
+                        if let Some(string) = table.get_str(info.vendor) {
+                            println!("  Vendor: {}", string);
+                        }
+
+                        if let Some(string) = table.get_str(info.version) {
+                            println!("  Version: {}", string);
+                        }
+
+                        if let Some(string) = table.get_str(info.date) {
+                            println!("  Date: {}", string);
+                        }
+                    },
+                    1 => if let Ok(info) = plain::from_bytes::<dmi::SystemInfo>(&table.data) {
+                        println!("{:?}", info);
+
+                        if let Some(string) = table.get_str(info.manufacturer) {
+                            println!("  Manufacturer: {}", string);
+                        }
+
+                        if let Some(string) = table.get_str(info.name) {
+                            println!("  Name: {}", string);
+                        }
+
+                        if let Some(string) = table.get_str(info.version) {
+                            println!("  Version: {}", string);
+                        }
+                    },
+                    _ => ()
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn ec() -> Result<()> {
+    let uefi = unsafe { &mut *::UEFI };
+
+    (uefi.ConsoleOut.ClearScreen)(uefi.ConsoleOut)?;
+
+    println!("Verifying EC");
+
+    let (e_p, e_v, e_s) = match EcFlash::new(1) {
+        Ok(mut ec) => {
+            (ec.project(), ec.version(), ec.size())
+        },
+        Err(err) => {
+            println!("EC Error: {}", err);
+            return Err(Error::NotFound);
+        }
+    };
+
+    println!("Flash Project: {}", e_p);
+    println!("Flash Version: {}", e_v);
+    println!("Flash Size: {} KB", e_s/1024);
+
+    let (f_p, f_v, f_s) = {
+        let mut file = EcFile::new(load("res\\firmware\\ec.rom")?);
+        (file.project(), file.version(), file.size())
+    };
+
+    println!("File Project: {}", f_p);
+    println!("File Version: {}", f_v);
+    println!("File Size: {} KB", f_s/1024);
+
+    if e_p != f_p {
+        println!("Project Mismatch");
+        return Err(Error::DeviceError);
+    }
+
+    if e_s != f_s {
+        println!("Size Mismatch");
+        return Err(Error::DeviceError);
+    }
+
+    println!("Press any key to flash EC");
+    let _ = wait_key();
+
+    let status = shell("fs0:\\res\\firmware.nsh ec flash")?;
+    if status != 0 {
+        println!("Failed to flash EC: {}", status);
+        return Err(Error::DeviceError);
+    }
+
+    println!("Flashed EC successfully");
 
     Ok(())
 }
@@ -256,31 +382,10 @@ fn splash() -> Result<()> {
         let _ = writeln!(console, "Press any key to return to menu");
     }
 
-    let mut index = 0;
-    let _ = (uefi.BootServices.WaitForEvent)(1, &uefi.ConsoleIn.WaitForKey, &mut index);
-
-    let mut input = uefi::text::TextInputKey {
-        ScanCode: 0,
-        UnicodeChar: 0
-    };
-
-    let _ = (uefi.ConsoleIn.ReadKeyStroke)(uefi.ConsoleIn, &mut input);
+    let _ = wait_key();
 
     display.set(Color::rgb(0, 0, 0));
-
     display.sync();
-
-    Ok(())
-}
-
-fn text() -> Result<()> {
-    let data = load("res\\test.txt")?;
-
-    if let Ok(string) = String::from_utf8(data) {
-        println!("{}", string);
-    } else {
-        println!("Failed to parse test file");
-    }
 
     Ok(())
 }
@@ -288,35 +393,32 @@ fn text() -> Result<()> {
 fn main() {
     let uefi = unsafe { &mut *::UEFI };
 
+    let _ = (uefi.BootServices.SetWatchdogTimer)(0, 0, 0, ptr::null());
+
+    let _ = (uefi.ConsoleOut.SetAttribute)(uefi.ConsoleOut, 0x0F);
+
     loop {
-        println!("  1 => ec");
-        println!("  2 => exec");
-        println!("  3 => mouse");
-        println!("  4 => splash");
-        println!("  5 => text");
-        println!("  0 => exit");
+        print!("1 => bios");
+        print!(", 2 => dmi");
+        print!(", 3 => ec");
+        print!(", 4 => mouse");
+        print!(", 5 => splash");
+        println!(", 0 => exit");
 
-        let mut index = 0;
-        let _ = (uefi.BootServices.WaitForEvent)(1, &uefi.ConsoleIn.WaitForKey, &mut index);
 
-        let mut input = uefi::text::TextInputKey {
-            ScanCode: 0,
-            UnicodeChar: 0
-        };
+        let c = wait_key().unwrap_or('?');
 
-        let _ = (uefi.ConsoleIn.ReadKeyStroke)(uefi.ConsoleIn, &mut input);
+        println!("{}", c);
 
-        println!("{}", char::from_u32(input.UnicodeChar as u32).unwrap_or('?'));
-
-        let res = match input.UnicodeChar as u8 {
-            b'1' => ec(),
-            b'2' => exec(),
-            b'3' => mouse(),
-            b'4' => splash(),
-            b'5' => text(),
-            b'0' => return,
-            b => {
-                println!("Invalid selection '{}'", b as char);
+        let res = match c {
+            '1' => bios(),
+            '2' => dmi(),
+            '3' => ec(),
+            '4' => mouse(),
+            '5' => splash(),
+            '0' => return,
+            _ => {
+                println!("Invalid selection '{}'", c);
                 Ok(())
             }
         };

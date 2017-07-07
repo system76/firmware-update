@@ -3,11 +3,11 @@ use display::Display;
 use orbclient::{Color, Renderer};
 
 pub struct Console<'a> {
-    x: i32,
-    y: i32,
+    pub x: i32,
+    pub y: i32,
     pub bg: Color,
     pub fg: Color,
-    display: &'a mut Display,
+    pub display: &'a mut Display,
 }
 
 impl<'a> Console<'a> {
