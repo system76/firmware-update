@@ -14,8 +14,7 @@ CARGOFLAGS=--target $(TARGET) --release -- -C soft-float
 all: build/boot.img
 
 qemu: build/boot.img
-	#qemu-system-x86_64 -enable-kvm -cpu kvm64 -m 1024 -net none -vga cirrus \
-	qemu-system-x86_64 -cpu qemu64 -m 1024 -net none \
+	qemu-system-x86_64 -enable-kvm -cpu kvm64 -m 1024 -net none -vga cirrus \
 		-monitor stdio -bios /usr/share/ovmf/OVMF.fd $<
 
 build/boot.img: build/efi.img

@@ -40,6 +40,7 @@ pub mod fs;
 pub mod image;
 pub mod io;
 pub mod panic;
+pub mod pointer;
 pub mod proto;
 pub mod rt;
 
@@ -94,30 +95,30 @@ fn exec() -> Result<()> {
 
     let data =  load("res\\shell.efi")?;
 
-    println!("Start shell");
+    println!("Load image");
 
     let parent_handle = unsafe { ::HANDLE };
     let mut shell_handle = uefi::Handle(0);
     (uefi.BootServices.LoadImage)(false, parent_handle, 0, data.as_ptr(), data.len(), &mut shell_handle)?;
 
     /*
-    let arg = [
-        b'T' as u16,
-        b'E' as u16,
-        b'S' as u16,
-        b'T' as u16,
-        0u16
-    ];
-    println!("Arg {:X}", arg.as_ptr() as usize);
-
     let args = [
-        arg.as_ptr()
+        wstr("res\\shell.efi"),
+        wstr("echo"),
+        wstr("hello"),
     ];
-    println!("Args {:X}", args.as_ptr() as usize);
+
+    let mut arg_ptrs = vec![];
+    for arg in args.iter() {
+        println!("Arg {:X}", arg.as_ptr() as usize);
+        arg_ptrs.push(arg.as_ptr());
+    }
+
+    println!("Args {:X}", arg_ptrs.as_ptr() as usize);
 
     let parameters = uefi::shell::ShellParameters {
-        Argv: args.as_ptr(),
-        Argc: args.len(),
+        Argv: arg_ptrs.as_ptr(),
+        Argc: arg_ptrs.len(),
         StdIn: uefi.ConsoleInHandle,
         StdOut: uefi.ConsoleOutHandle,
         StdErr: uefi.ConsoleErrorHandle,
@@ -127,20 +128,65 @@ fn exec() -> Result<()> {
     println!("StdErr: {:X}", parameters.StdErr.0);
     println!("Parameters: {:X}", &parameters as *const _ as usize);
 
-    // println!("Wait");
-    // (uefi.BootServices.Stall)(1000000);
+    println!("Wait");
+    (uefi.BootServices.Stall)(1000000);
 
-    // let res = (uefi.BootServices.InstallProtocolInterface)(&mut shell_handle, &uefi::guid::EFI_SHELL_PARAMETERS_GUID, uefi::boot::InterfaceType::NativeInterface, &parameters as *const _ as usize);
-    // println!("Install parameters: {:X}", res);
-    */
+    println!("Install parameters");
+    (uefi.BootServices.InstallProtocolInterface)(&mut shell_handle, &uefi::guid::EFI_SHELL_PARAMETERS_GUID, uefi::boot::InterfaceType::NativeInterface, &parameters as *const _ as usize)?;
 
     println!("Wait");
-    (uefi.BootServices.Stall)(1000000)?;
+    (uefi.BootServices.Stall)(1000000);
+    */
 
+    println!("Start image");
     let mut exit_size = 0;
     let mut exit_ptr = ::core::ptr::null_mut();
-    (uefi.BootServices.StartImage)(shell_handle, &mut exit_size, &mut exit_ptr)?;
-    println!("Start image: {}", exit_size);
+    let ret = (uefi.BootServices.StartImage)(shell_handle, &mut exit_size, &mut exit_ptr)?;
+    println!("Shell exited: {}, {:X} {}", ret, exit_ptr as usize, exit_size);
+
+    Ok(())
+}
+
+fn mouse() -> Result<()> {
+    use uefi::pointer::SimplePointerState;
+    use uefi::text::TextInputKey;
+
+    let uefi = unsafe { &mut *::UEFI };
+
+    let mut pointers = pointer::Pointer::all();
+
+    let mut events = vec![];
+    for (i, mut pointer) in pointers.iter_mut().enumerate() {
+        (pointer.0.Reset)(pointer.0, false)?;
+
+        println!("Pointer {}: {:X}, {:?}", i, pointer.0.WaitForInput.0, pointer.0.Mode);
+        events.push(pointer.0.WaitForInput)
+    }
+
+    println!("Keyboard {:X}", uefi.ConsoleIn.WaitForKey.0);
+    events.push(uefi.ConsoleIn.WaitForKey);
+
+    loop {
+        let mut index = 0;
+        (uefi.BootServices.WaitForEvent)(events.len(), events.as_mut_ptr(), &mut index)?;
+
+        println!("Event {:X}", index);
+
+        if let Some(mut pointer) = pointers.get_mut(index) {
+            let mut state = SimplePointerState::default();
+            (pointer.0.GetState)(pointer.0, &mut state)?;
+
+            println!("{}: {:?}", index, state);
+        } else {
+            let mut input = TextInputKey::default();
+
+            let _ = (uefi.ConsoleIn.ReadKeyStroke)(uefi.ConsoleIn, &mut input);
+
+            println!("{}", char::from_u32(input.UnicodeChar as u32).unwrap_or('?'));
+
+            break;
+        }
+    }
 
     Ok(())
 }
@@ -210,14 +256,15 @@ fn splash() -> Result<()> {
         let _ = writeln!(console, "Press any key to return to menu");
     }
 
+    let mut index = 0;
+    let _ = (uefi.BootServices.WaitForEvent)(1, &uefi.ConsoleIn.WaitForKey, &mut index);
+
     let mut input = uefi::text::TextInputKey {
         ScanCode: 0,
         UnicodeChar: 0
     };
 
-    while input.UnicodeChar == 0 {
-        let _ = (uefi.ConsoleIn.ReadKeyStroke)(uefi.ConsoleIn, &mut input);
-    }
+    let _ = (uefi.ConsoleIn.ReadKeyStroke)(uefi.ConsoleIn, &mut input);
 
     display.set(Color::rgb(0, 0, 0));
 
@@ -244,26 +291,29 @@ fn main() {
     loop {
         println!("  1 => ec");
         println!("  2 => exec");
-        println!("  3 => splash");
-        println!("  4 => text");
+        println!("  3 => mouse");
+        println!("  4 => splash");
+        println!("  5 => text");
         println!("  0 => exit");
+
+        let mut index = 0;
+        let _ = (uefi.BootServices.WaitForEvent)(1, &uefi.ConsoleIn.WaitForKey, &mut index);
 
         let mut input = uefi::text::TextInputKey {
             ScanCode: 0,
             UnicodeChar: 0
         };
 
-        while input.UnicodeChar == 0 {
-            let _ = (uefi.ConsoleIn.ReadKeyStroke)(uefi.ConsoleIn, &mut input);
-        }
+        let _ = (uefi.ConsoleIn.ReadKeyStroke)(uefi.ConsoleIn, &mut input);
 
         println!("{}", char::from_u32(input.UnicodeChar as u32).unwrap_or('?'));
 
         let res = match input.UnicodeChar as u8 {
             b'1' => ec(),
             b'2' => exec(),
-            b'3' => splash(),
-            b'4' => text(),
+            b'3' => mouse(),
+            b'4' => splash(),
+            b'5' => text(),
             b'0' => return,
             b => {
                 println!("Invalid selection '{}'", b as char);
