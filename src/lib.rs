@@ -472,7 +472,6 @@ fn splash() -> Result<()> {
     let mut display = {
         let output = Output::one()?;
 
-        /*
         let mut max_i = 0;
         let mut max_w = 0;
         let mut max_h = 0;
@@ -493,7 +492,6 @@ fn splash() -> Result<()> {
         }
 
         (output.0.SetMode)(output.0, max_i);
-        */
 
         Display::new(output)
     };
@@ -520,8 +518,7 @@ fn splash() -> Result<()> {
     {
         let mut console = console(&mut display, &splash);
 
-        let res: ::core::result::Result<String, String> = Ok(format!("TEST")); // EcFlash::new(1).map(|mut ec| ec.project());
-        match res {
+        match EcFlash::new(1).map(|mut ec| ec.project()) {
             Ok(sys_project) => {
                 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
                 enum ValidateKind {
@@ -541,7 +538,7 @@ fn splash() -> Result<()> {
                     console.x = (name.len() as i32 + 2) * 8;
 
                     let ret = match res {
-                        Ok(data) => if EcFile::new(data.clone()).project() == sys_project {
+                        Ok(data) => if EcFile::new(data).project() == sys_project {
                             ValidateKind::Found
                         } else {
                             ValidateKind::Mismatch
@@ -605,6 +602,9 @@ fn splash() -> Result<()> {
         let _ = writeln!(console, "Press any key to exit");
         wait_key()?;
     };
+
+    display.set(Color::rgb(0, 0, 0));
+    display.sync();
 
     (uefi.ConsoleOut.ClearScreen)(uefi.ConsoleOut)?;
 
