@@ -65,7 +65,8 @@ impl<'a> Write for Console<'a> {
             let (cx, cw) = if self.y > sy {
                 (0, self.display.width() as i32)
             } else {
-                (sx, self.x - sx)
+                (0, self.display.width() as i32)
+                //(sx, self.x - sx)
             };
 
             let (cy, ch) = (sy, self.y + 16 - sy);

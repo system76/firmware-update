@@ -28,6 +28,7 @@ use uefi::status::{Error, Result, Status};
 
 use console::Console;
 use display::{Display, Output};
+use fs::File;
 use loaded_image::LoadedImage;
 use proto::Protocol;
 
@@ -78,17 +79,14 @@ fn nstr(wstring: *const u16) -> String {
     string
 }
 
-fn load(path: &str) -> Result<Vec<u8>> {
+fn find(path: &str) -> Result<(usize, File)> {
     let wpath = wstr(path);
 
-    for mut fs in fs::FileSystem::all().iter_mut() {
+    for (i, mut fs) in fs::FileSystem::all().iter_mut().enumerate() {
         let mut root = fs.root()?;
         match root.open(&wpath) {
-            Ok(mut file) => {
-                let mut data = vec![];
-                let _count = file.read_to_end(&mut data)?;
-
-                return Ok(data);
+            Ok(file) => {
+                return Ok((i, file));
             },
             Err(err) => if err != Error::NotFound {
                 return Err(err);
@@ -97,6 +95,15 @@ fn load(path: &str) -> Result<Vec<u8>> {
     }
 
     Err(Error::NotFound)
+}
+
+fn load(path: &str) -> Result<Vec<u8>> {
+    let (_i, mut file) = find(path)?;
+
+    let mut data = vec![];
+    let _count = file.read_to_end(&mut data)?;
+
+    Ok(data)
 }
 
 extern "win64" fn fake_clear(a: &uefi::text::TextOutput) -> Status {
@@ -164,7 +171,11 @@ fn wait_key() -> Result<char> {
 fn bios() -> Result<()> {
     let uefi = unsafe { &mut *::UEFI };
 
-    let status = shell("fs0:\\res\\firmware.nsh bios verify")?;
+    let (fs, _) = find("\\res\\firmware.nsh")?;
+
+    (uefi.ConsoleOut.ClearScreen)(uefi.ConsoleOut)?;
+
+    let status = shell(&format!("fs{}:\\res\\firmware.nsh bios verify", fs))?;
     if status != 0 {
         println!("Failed to verify BIOS: {}", status);
         return Err(Error::DeviceError);
@@ -174,7 +185,7 @@ fn bios() -> Result<()> {
     let c = wait_key()?;
 
     if c == '\r' || c == '\n' {
-        let status = shell("fs0:\\res\\firmware.nsh bios flash")?;
+        let status = shell(&format!("fs{}:\\res\\firmware.nsh bios flash", fs))?;
         if status != 0 {
             println!("Failed to flash BIOS: {}", status);
             return Err(Error::DeviceError);
@@ -325,6 +336,8 @@ fn dmi() -> Result<()> {
 fn ec() -> Result<()> {
     let uefi = unsafe { &mut *::UEFI };
 
+    let (fs, _) = find("\\res\\firmware.nsh")?;
+
     (uefi.ConsoleOut.ClearScreen)(uefi.ConsoleOut)?;
 
     println!("Verifying EC");
@@ -366,7 +379,7 @@ fn ec() -> Result<()> {
     let c = wait_key()?;
 
     if c == '\r' || c == '\n' {
-        let status = shell("fs0:\\res\\firmware.nsh ec flash")?;
+        let status = shell(&format!("fs{}:\\res\\firmware.nsh ec flash", fs))?;
         if status != 0 {
             println!("Failed to flash EC: {}", status);
             return Err(Error::DeviceError);
@@ -424,42 +437,15 @@ fn mouse() -> Result<()> {
     Ok(())
 }
 
-fn splash() -> Result<()> {
-    let uefi = unsafe { &mut *::UEFI };
+fn console<'a>(display: &'a mut Display, splash: &image::Image) -> Console<'a> {
+    let bg = Color::rgb(0x41, 0x3e, 0x3c);
 
-    let mut output = Output::one()?;
+    display.set(bg);
 
-    let mut max_i = 0;
-    let mut max_w = 0;
-    let mut max_h = 0;
-
-    for i in 0..output.0.Mode.MaxMode {
-        let mut mode_ptr = ::core::ptr::null_mut();
-        let mut mode_size = 0;
-        (output.0.QueryMode)(output.0, i, &mut mode_size, &mut mode_ptr)?;
-
-        let mode = unsafe { &mut *mode_ptr };
-        let w = mode.HorizontalResolution;
-        let h = mode.VerticalResolution;
-        if w >= max_w && h >= max_h {
-            max_i = i;
-            max_w = w;
-            max_h = h;
-        }
-    }
-
-    //(output.0.SetMode)(output.0, max_i);
-
-    let mut display = Display::new(output);
-
-    display.set(Color::rgb(0x41, 0x3e, 0x3c));
-
-    if let Ok(data) = load("res\\splash.bmp") {
-        if let Ok(splash) = image::bmp::parse(&data) {
-            let x = (display.width() as i32 - splash.width() as i32)/2;
-            let y = (display.height() as i32 - splash.height() as i32)/2;
-            splash.draw(&mut display, x, y);
-        }
+    {
+        let x = (display.width() as i32 - splash.width() as i32)/2;
+        let y = (display.height() as i32 - splash.height() as i32)/2;
+        splash.draw(display, x, y);
     }
 
     {
@@ -474,25 +460,153 @@ fn splash() -> Result<()> {
 
     display.sync();
 
-    let cur_w = display.width();
-    let cur_h = display.height();
+    let mut console = Console::new(display);
+    console.bg = bg;
 
+    console
+}
+
+fn splash() -> Result<()> {
+    let uefi = unsafe { &mut *::UEFI };
+
+    let mut display = {
+        let output = Output::one()?;
+
+        /*
+        let mut max_i = 0;
+        let mut max_w = 0;
+        let mut max_h = 0;
+
+        for i in 0..output.0.Mode.MaxMode {
+            let mut mode_ptr = ::core::ptr::null_mut();
+            let mut mode_size = 0;
+            (output.0.QueryMode)(output.0, i, &mut mode_size, &mut mode_ptr)?;
+
+            let mode = unsafe { &mut *mode_ptr };
+            let w = mode.HorizontalResolution;
+            let h = mode.VerticalResolution;
+            if w >= max_w && h >= max_h {
+                max_i = i;
+                max_w = w;
+                max_h = h;
+            }
+        }
+
+        (output.0.SetMode)(output.0, max_i);
+        */
+
+        Display::new(output)
+    };
+
+    let mut splash = image::Image::new(0, 0);
     {
-        let mut console = Console::new(&mut display);
+        let mut console = console(&mut display, &splash);
 
-        console.bg = Color::rgb(0x41, 0x3e, 0x3c);
+        let _ = write!(console, "Loading Splash...");
+        if let Ok(data) = load("res\\splash.bmp") {
+            if let Ok(image) = image::bmp::parse(&data) {
+                splash = image;
 
-        let _ = (uefi.ConsoleOut.SetCursorPosition)(uefi.ConsoleOut, 0, 0);
+                let x = (console.display.width() as i32 - splash.width() as i32)/2;
+                let y = (console.display.height() as i32 - splash.height() as i32)/2;
+                splash.draw(console.display, x, y);
 
-        let _ = writeln!(console, "Current: {}x{}", cur_w, cur_h);
-        let _ = writeln!(console, "Max: {}x{}", max_w, max_h);
-        let _ = writeln!(console, "Press any key to return to menu");
+                console.display.sync();
+            }
+        }
+        let _ = writeln!(console, " Done");
     }
 
-    let _ = wait_key();
+    {
+        let mut console = console(&mut display, &splash);
 
-    display.set(Color::rgb(0, 0, 0));
-    display.sync();
+        let res: ::core::result::Result<String, String> = Ok(format!("TEST")); // EcFlash::new(1).map(|mut ec| ec.project());
+        match res {
+            Ok(sys_project) => {
+                #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+                enum ValidateKind {
+                    Found,
+                    Mismatch,
+                    NotFound,
+                    Error(Error)
+                }
+
+                let validate = |console: &mut Console, name: &str, path: &str| -> ValidateKind {
+                    let _ = write!(console, "{}: Loading", name);
+
+                    let res = load(path);
+
+                    console.x = (name.len() as i32 + 2) * 8;
+                    let _ = write!(console, "       ");
+                    console.x = (name.len() as i32 + 2) * 8;
+
+                    let ret = match res {
+                        Ok(data) => if EcFile::new(data.clone()).project() == sys_project {
+                            ValidateKind::Found
+                        } else {
+                            ValidateKind::Mismatch
+                        },
+                        Err(err) => if err == Error::NotFound {
+                            ValidateKind::NotFound
+                        } else {
+                            ValidateKind::Error(err)
+                        }
+                    };
+
+                    let _ = writeln!(console, "{:?}", ret);
+
+                    ret
+                };
+
+                let has_bios = validate(&mut console, "BIOS Update", "res\\firmware\\bios.rom");
+                let has_ec = validate(&mut console, "EC Update", "res\\firmware\\ec.rom");
+
+                if has_bios == ValidateKind::Found || has_ec == ValidateKind::Found {
+                    let _ = writeln!(console, "Press enter to commence flashing");
+                    let c = wait_key()?;
+                    if c == '\n' || c == '\r' {
+                        if has_bios == ValidateKind::Found {
+                            let _ = write!(console, "Flashing BIOS");
+                            let res = bios();
+                            console.display.sync();
+                            match res {
+                                Ok(()) => {
+                                    let _ = writeln!(console, ": Success");
+                                },
+                                Err(err) => {
+                                    let _ = writeln!(console, ": Failure: {:?}", err);
+                                }
+                            }
+                        }
+
+                        if has_ec == ValidateKind::Found {
+                            let _ = write!(console, "Flashing EC");
+                            let res = ec();
+                            console.display.sync();
+                            match res {
+                                Ok(()) => {
+                                    let _ = writeln!(console, ": Success");
+                                },
+                                Err(err) => {
+                                    let _ = writeln!(console, ": Failure: {:?}", err);
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    let _ = writeln!(console, "No updates found.");
+                }
+            },
+            Err(err) => {
+                let _ = writeln!(console, "System EC: Error: {}", err);
+            }
+        };
+
+        let _ = writeln!(console, "Press any key to exit");
+        wait_key()?;
+    };
+
+    (uefi.ConsoleOut.ClearScreen)(uefi.ConsoleOut)?;
 
     Ok(())
 }
