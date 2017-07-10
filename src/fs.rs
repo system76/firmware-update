@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 use core::{mem, slice};
 use uefi::fs::{File as InnerFile, FileInfo, SimpleFileSystem, FILE_MODE_READ};
-use uefi::guid::{Guid, EFI_FILE_SYSTEM_GUID};
+use uefi::guid::{Guid, FILE_SYSTEM_GUID};
 use uefi::status::Result;
 
 use proto::Protocol;
@@ -10,7 +10,7 @@ pub struct FileSystem(pub &'static mut SimpleFileSystem);
 
 impl Protocol<SimpleFileSystem> for FileSystem {
     fn guid() -> Guid {
-        EFI_FILE_SYSTEM_GUID
+        FILE_SYSTEM_GUID
     }
 
     fn new(inner: &'static mut SimpleFileSystem) -> Self {

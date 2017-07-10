@@ -2,7 +2,7 @@ use alloc::boxed::Box;
 use core::ops::Try;
 use orbclient::{Color, Renderer};
 use uefi::graphics::{GraphicsOutput, GraphicsBltOp, GraphicsBltPixel};
-use uefi::guid::{Guid, EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID};
+use uefi::guid::{Guid, GRAPHICS_OUTPUT_PROTOCOL_GUID};
 
 use proto::Protocol;
 
@@ -10,7 +10,7 @@ pub struct Output(pub &'static mut GraphicsOutput);
 
 impl Protocol<GraphicsOutput> for Output {
     fn guid() -> Guid {
-        EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID
+        GRAPHICS_OUTPUT_PROTOCOL_GUID
     }
 
     fn new(inner: &'static mut GraphicsOutput) -> Self {

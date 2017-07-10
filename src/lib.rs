@@ -16,13 +16,14 @@ extern crate plain;
 extern crate uefi;
 extern crate uefi_alloc;
 
-use alloc::boxed::Box;
+use alloc::string::String;
 use alloc::vec::Vec;
 use core::{char, mem, ptr, slice};
 use core::fmt::Write;
+use core::ops::Try;
 use ecflash::{Ec, EcFile, EcFlash};
 use orbclient::{Color, Renderer};
-use uefi::guid::GuidKind;
+use uefi::guid::{GuidKind, NULL_GUID, GLOBAL_VARIABLE_GUID};
 use uefi::status::{Error, Result, Status};
 
 use console::Console;
@@ -49,13 +50,32 @@ pub mod proto;
 pub mod rt;
 pub mod shell;
 
-fn wstr(string: &str) -> Box<[u16]> {
+fn wstr(string: &str) -> Vec<u16> {
     let mut wstring = vec![];
+
     for c in string.chars() {
         wstring.push(c as u16);
     }
     wstring.push(0);
-    wstring.into_boxed_slice()
+
+    wstring
+}
+
+fn nstr(wstring: *const u16) -> String {
+    let mut string = String::new();
+
+    let mut i = 0;
+    loop {
+        let w = unsafe { *wstring.offset(i) };
+        i += 1;
+        if w == 0 {
+            break;
+        }
+        let c = unsafe { char::from_u32_unchecked(w as u32) };
+        string.push(c);
+    }
+
+    string
 }
 
 fn load(path: &str) -> Result<Vec<u8>> {
@@ -163,6 +183,85 @@ fn bios() -> Result<()> {
         println!("Flashed BIOS successfully");
     } else {
         println!("Cancelled BIOS flashing");
+    }
+
+    Ok(())
+}
+
+fn boot() -> Result<()> {
+    let uefi = unsafe { &mut *::UEFI };
+
+    let boot_current = {
+        let name = wstr("BootCurrent");
+        let mut data = [0; 2];
+        let mut data_size = data.len();
+        (uefi.RuntimeServices.GetVariable)(name.as_ptr(), &GLOBAL_VARIABLE_GUID, ptr::null_mut(), &mut data_size, data.as_mut_ptr())?;
+        if data_size != 2 {
+            return Err(Error::LoadError);
+        }
+        (data[0] as u16) | ((data[1] as u16) << 8)
+    };
+
+    println!("BootCurrent: {:>04X}", boot_current);
+
+    let boot_order = {
+        let name = wstr("BootOrder");
+        let mut data = [0; 4096];
+        let mut data_size = data.len();
+        (uefi.RuntimeServices.GetVariable)(name.as_ptr(), &GLOBAL_VARIABLE_GUID, ptr::null_mut(), &mut data_size, data.as_mut_ptr())?;
+
+        let mut order = vec![];
+        for chunk in data[..data_size].chunks(2) {
+            if chunk.len() == 2 {
+                order.push((chunk[0] as u16) | (chunk[1] as u16) << 8);
+            }
+        }
+        order
+    };
+
+    print!("BootOrder: ");
+    for i in 0..boot_order.len() {
+        if i > 0 {
+            print!(",");
+        }
+        print!("{:>04X}", boot_order[i]);
+    }
+    println!("");
+
+    for &num in boot_order.iter() {
+        let name = format!("Boot{:>04X}", num);
+
+        let (attributes, description) = {
+            let name = wstr(&name);
+            let mut data = [0; 4096];
+            let mut data_size = data.len();
+            (uefi.RuntimeServices.GetVariable)(name.as_ptr(), &GLOBAL_VARIABLE_GUID, ptr::null_mut(), &mut data_size, data.as_mut_ptr())?;
+            if data_size < 6 {
+                return Err(Error::LoadError);
+            }
+
+            let attributes =
+                (data[0] as u32) |
+                (data[1] as u32) << 8 |
+                (data[2] as u32) << 16 |
+                (data[3] as u32) << 24;
+
+            let description = nstr(data[6..].as_ptr() as *const u16);
+
+            (attributes, description)
+        };
+
+        println!("{}: {:>08X}: {}", name, attributes, description);
+    }
+
+    Ok(())
+}
+
+fn config() -> Result<()> {
+    let uefi = unsafe { &mut *::UEFI };
+
+    for table in uefi.config_tables().iter() {
+        println!("{}: {:?}", table.VendorGuid, table.VendorGuid.kind());
     }
 
     Ok(())
@@ -398,6 +497,29 @@ fn splash() -> Result<()> {
     Ok(())
 }
 
+fn vars() -> Result<()> {
+    let uefi = unsafe { &mut *::UEFI };
+
+    let mut name = [0; 4096];
+    let mut guid = NULL_GUID;
+    loop {
+        let name_ptr = name.as_mut_ptr();
+        let mut name_size = name.len();
+
+        match (uefi.RuntimeServices.GetNextVariableName)(&mut name_size, name_ptr, &mut guid).into_result() {
+            Ok(_) => {
+                println!("{}: {}", guid, nstr(name_ptr));
+            },
+            Err(err) => match err {
+                Error::NotFound => break,
+                _ => return Err(err)
+            }
+        }
+    }
+
+    Ok(())
+}
+
 fn main() {
     let uefi = unsafe { &mut *::UEFI };
 
@@ -407,10 +529,13 @@ fn main() {
 
     loop {
         print!("1 => bios");
-        print!(", 2 => dmi");
-        print!(", 3 => ec");
-        print!(", 4 => mouse");
-        print!(", 5 => splash");
+        print!(", 2 => boot");
+        print!(", 3 => config");
+        print!(", 4 => dmi");
+        print!(", 5 => ec");
+        print!(", 6 => mouse");
+        print!(", 7 => splash");
+        print!(", 8 => vars");
         println!(", 0 => exit");
 
 
@@ -420,10 +545,13 @@ fn main() {
 
         let res = match c {
             '1' => bios(),
-            '2' => dmi(),
-            '3' => ec(),
-            '4' => mouse(),
-            '5' => splash(),
+            '2' => boot(),
+            '3' => config(),
+            '4' => dmi(),
+            '5' => ec(),
+            '6' => mouse(),
+            '7' => splash(),
+            '8' => vars(),
             '0' => return,
             _ => {
                 println!("Invalid selection '{}'", c);
