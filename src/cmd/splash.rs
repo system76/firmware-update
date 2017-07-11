@@ -74,7 +74,7 @@ pub fn main() -> Result<()> {
             }
         }
 
-        (output.0.SetMode)(output.0, max_i);
+        let _ = (output.0.SetMode)(output.0, max_i);
 
         Display::new(output)
     };
