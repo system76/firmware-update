@@ -101,7 +101,7 @@ pub fn main() -> Result<()> {
     {
         let mut console = console(&mut display, &splash);
 
-        match EcFlash::new(1).map(|mut ec| ec.project()) {
+        match EcFlash::new(true).map(|mut ec| ec.project()) {
             Ok(sys_project) => {
                 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
                 enum ValidateKind {

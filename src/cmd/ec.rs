@@ -12,7 +12,7 @@ pub fn main() -> Result<()> {
 
     println!("Verifying EC");
 
-    let (e_p, e_v, e_s) = match EcFlash::new(1) {
+    let (e_p, e_v, e_s) = match EcFlash::new(true) {
         Ok(mut ec) => {
             (ec.project(), ec.version(), ec.size())
         },
