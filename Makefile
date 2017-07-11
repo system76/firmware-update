@@ -18,17 +18,19 @@ qemu: build/boot.img
 		-monitor stdio -bios /usr/share/ovmf/OVMF.fd $<
 
 build/boot.img: build/efi.img
-	dd if=/dev/zero of=$@ bs=512 count=93750
-	parted $@ -s -a minimal mklabel gpt
-	parted $@ -s -a minimal mkpart EFI FAT16 2048s 93716s
-	parted $@ -s -a minimal toggle 1 boot
-	dd if=$< of=$@ bs=512 count=91669 seek=2048 conv=notrunc
+	dd if=/dev/zero of=$@.tmp bs=512 count=100352
+	parted $@.tmp -s -a minimal mklabel gpt
+	parted $@.tmp -s -a minimal mkpart EFI FAT16 2048s 93716s
+	parted $@.tmp -s -a minimal toggle 1 boot
+	dd if=$< of=$@.tmp bs=512 count=98304 seek=2048 conv=notrunc
+	mv $@.tmp $@
 
 build/efi.img: build/iso/efi/boot/bootx64.efi res/*
-	dd if=/dev/zero of=$@ bs=1024 count=91669
-	mformat -i $@ -h 32 -t 32 -n 32 -c 1
-	mcopy -i $@ -s build/iso/efi ::
-	mcopy -i $@ -s res ::
+	dd if=/dev/zero of=$@.tmp bs=512 count=98304
+	mkfs.vfat $@.tmp
+	mcopy -i $@.tmp -s build/iso/efi ::
+	mcopy -i $@.tmp -s res ::
+	mv $@.tmp $@
 
 build/boot.iso: build/iso/efi/boot/bootx64.efi
 	mkisofs -o $@ build/iso
