@@ -1,14 +1,12 @@
 use ecflash::{Ec, EcFlash, EcFile};
 use uefi::status::{Error, Result};
 
-use fs::{find, load};
+use exec::shell;
+use fs::load;
 use io::wait_key;
-use shell::shell;
 
 pub fn main() -> Result<()> {
     let uefi = unsafe { &mut *::UEFI };
-
-    let (fs, _) = find("\\res\\firmware.nsh")?;
 
     (uefi.ConsoleOut.ClearScreen)(uefi.ConsoleOut)?;
 
@@ -51,7 +49,7 @@ pub fn main() -> Result<()> {
     let c = wait_key()?;
 
     if c == '\r' || c == '\n' {
-        let status = shell(&format!("fs{}:\\res\\firmware.nsh ec flash", fs))?;
+        let status = shell("\\res\\firmware.nsh ec flash")?;
         if status != 0 {
             println!("Failed to flash EC: {}", status);
             return Err(Error::DeviceError);

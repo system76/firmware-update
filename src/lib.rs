@@ -29,6 +29,7 @@ mod macros;
 pub mod cmd;
 pub mod console;
 pub mod display;
+pub mod exec;
 pub mod externs;
 pub mod fs;
 pub mod image;
