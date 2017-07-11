@@ -2,9 +2,10 @@ use alloc::vec::Vec;
 use core::{mem, slice};
 use uefi::fs::{File as InnerFile, FileInfo, SimpleFileSystem, FILE_MODE_READ};
 use uefi::guid::{Guid, FILE_SYSTEM_GUID};
-use uefi::status::Result;
+use uefi::status::{Error, Result};
 
 use proto::Protocol;
+use string::wstr;
 
 pub struct FileSystem(pub &'static mut SimpleFileSystem);
 
@@ -96,4 +97,31 @@ impl Dir {
             Err(err) => Err(err)
         }
     }
+}
+
+pub fn find(path: &str) -> Result<(usize, File)> {
+    let wpath = wstr(path);
+
+    for (i, mut fs) in FileSystem::all().iter_mut().enumerate() {
+        let mut root = fs.root()?;
+        match root.open(&wpath) {
+            Ok(file) => {
+                return Ok((i, file));
+            },
+            Err(err) => if err != Error::NotFound {
+                return Err(err);
+            }
+        }
+    }
+
+    Err(Error::NotFound)
+}
+
+pub fn load(path: &str) -> Result<Vec<u8>> {
+    let (_i, mut file) = find(path)?;
+
+    let mut data = vec![];
+    let _count = file.read_to_end(&mut data)?;
+
+    Ok(data)
 }

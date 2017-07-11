@@ -1,11 +1,9 @@
-use core::fmt::Write;
 use core::ops::Try;
 use uefi;
 use uefi_alloc;
 
 use uefi::status::Result;
 
-use io;
 use main;
 
 fn set_max_mode(output: &mut uefi::text::TextOutput) -> Result<()> {
@@ -37,8 +35,6 @@ pub extern "win64" fn _start(handle: uefi::Handle, uefi: &'static mut uefi::syst
     unsafe {
         ::HANDLE = handle;
         ::UEFI = uefi;
-
-        io::STDOUT = Some(uefi.ConsoleOut as *mut Write);
 
         if let Err(err) = set_max_mode(uefi.ConsoleOut).into_result() {
             println!("Failed to set max mode: {:?}", err);
