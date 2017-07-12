@@ -6,8 +6,6 @@ use io::wait_key;
 pub fn main() -> Result<()> {
     let uefi = unsafe { &mut *::UEFI };
 
-    (uefi.ConsoleOut.ClearScreen)(uefi.ConsoleOut)?;
-
     let status = shell("\\res\\firmware.nsh bios verify")?;
     if status != 0 {
         println!("Failed to verify BIOS: {}", status);

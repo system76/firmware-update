@@ -8,8 +8,6 @@ use io::wait_key;
 pub fn main() -> Result<()> {
     let uefi = unsafe { &mut *::UEFI };
 
-    (uefi.ConsoleOut.ClearScreen)(uefi.ConsoleOut)?;
-
     println!("Verifying EC");
 
     let (e_p, e_v, e_s) = match EcFlash::new(true) {

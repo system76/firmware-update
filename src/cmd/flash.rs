@@ -189,7 +189,5 @@ pub fn main() -> Result<()> {
     display.set(Color::rgb(0, 0, 0));
     display.sync();
 
-    (uefi.ConsoleOut.ClearScreen)(uefi.ConsoleOut)?;
-
     Ok(())
 }
