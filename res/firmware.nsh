@@ -1,6 +1,6 @@
 @echo -off
 
-set BASEDIR \res\firmware
+set BASEDIR \system76-fu\firmware
 
 if exist "fs0:%BASEDIR%" then
     fs0:
