@@ -42,7 +42,7 @@ pub fn exec(args: &[&str]) -> Result<usize> {
 
 pub fn shell(cmd: &str) -> Result<usize> {
     exec(&[
-        "res\\shell.efi",
+        "\\system76-fu\\res\\shell.efi",
         "-nointerrupt",
         "-nomap",
         "-nostartup",

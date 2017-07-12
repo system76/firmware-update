@@ -84,7 +84,7 @@ pub fn main() -> Result<()> {
         let mut console = console(&mut display, &splash);
 
         let _ = write!(console, "Loading Splash...");
-        if let Ok(data) = load("res\\splash.bmp") {
+        if let Ok(data) = load("\\system76-fu\\res\\splash.bmp") {
             if let Ok(image) = image::bmp::parse(&data) {
                 splash = image;
 
@@ -138,8 +138,8 @@ pub fn main() -> Result<()> {
                     ret
                 };
 
-                let has_bios = validate(&mut console, "BIOS Update", "res\\firmware\\bios.rom");
-                let has_ec = validate(&mut console, "EC Update", "res\\firmware\\ec.rom");
+                let has_bios = validate(&mut console, "BIOS Update", "\\system76-fu\\res\\firmware\\bios.rom");
+                let has_ec = validate(&mut console, "EC Update", "\\system76-fu\\res\\firmware\\ec.rom");
 
                 if has_bios == ValidateKind::Found || has_ec == ValidateKind::Found {
                     let _ = writeln!(console, "Press enter to commence flashing");
