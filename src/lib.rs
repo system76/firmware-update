@@ -3,6 +3,7 @@
 #![feature(asm)]
 #![feature(compiler_builtins_lib)]
 #![feature(const_fn)]
+#![feature(global_allocator)]
 #![feature(lang_items)]
 #![feature(try_trait)]
 
@@ -17,8 +18,10 @@ extern crate uefi;
 extern crate uefi_alloc;
 
 use core::ptr;
-
 use text::pipe;
+
+#[global_allocator]
+static ALLOCATOR: uefi_alloc::Allocator = uefi_alloc::Allocator;
 
 pub static mut HANDLE: uefi::Handle = uefi::Handle(0);
 pub static mut UEFI: *mut uefi::system::SystemTable = 0 as *mut uefi::system::SystemTable;
