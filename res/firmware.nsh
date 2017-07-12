@@ -42,6 +42,11 @@ if exist "fs9:%BASEDIR%" then
     fs9:
 endif
 
+if not exist "%BASEDIR%" then
+    echo "Did not find %BASEDIR%"
+    exit 1
+endif
+
 cd "%BASEDIR%"
 
 if "%1" == "bios" then
