@@ -2,4 +2,3 @@ build
 prefix
 Cargo.lock
 target
-xargo

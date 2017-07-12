@@ -10,10 +10,6 @@
 	path = orbclient
 	url = https://github.com/redox-os/orbclient.git
 	branch = no_std
-[submodule "rust"]
-	path = rust
-	url = https://github.com/system76/rust.git
-	branch = efi
 [submodule "uefi"]
 	path = uefi
 	url = https://github.com/redox-os/uefi.git
