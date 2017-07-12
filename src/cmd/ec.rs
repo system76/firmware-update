@@ -27,7 +27,7 @@ pub fn main() -> Result<()> {
     println!("Flash Size: {} KB", e_s/1024);
 
     let (f_p, f_v, f_s) = {
-        let mut file = EcFile::new(load("res\\firmware\\ec.rom")?);
+        let mut file = EcFile::new(load("\\system76-fu\\firmware\\ec.rom")?);
         (file.project(), file.version(), file.size())
     };
 

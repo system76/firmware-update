@@ -138,8 +138,8 @@ pub fn main() -> Result<()> {
                     ret
                 };
 
-                let has_bios = validate(&mut console, "BIOS Update", "\\system76-fu\\res\\firmware\\bios.rom");
-                let has_ec = validate(&mut console, "EC Update", "\\system76-fu\\res\\firmware\\ec.rom");
+                let has_bios = validate(&mut console, "BIOS Update", "\\system76-fu\\firmware\\bios.rom");
+                let has_ec = validate(&mut console, "EC Update", "\\system76-fu\\firmware\\ec.rom");
 
                 if has_bios == ValidateKind::Found || has_ec == ValidateKind::Found {
                     let _ = writeln!(console, "Press enter to commence flashing");
