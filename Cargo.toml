@@ -1,9 +1,9 @@
 [package]
-name = "firmware_update"
+name = "system76_fu"
 version = "0.1.0"
 
 [lib]
-name = "system76-fu"
+name = "system76_fu"
 path = "src/lib.rs"
 crate-type = ["staticlib"]
 
