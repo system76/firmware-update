@@ -8,9 +8,15 @@ export XARGO_HOME=$(PWD)/build/xargo
 CARGO=xargo
 CARGOFLAGS=--target $(TARGET) --release -- -C soft-float
 
-.phony: all binutils qemu
-
 all: build/boot.img
+
+clean:
+	$(CARGO) clean
+	rm -rf build
+
+update:
+	git submodule update --init --recursive --remote
+	cargo update
 
 qemu: build/boot.img
 	qemu-system-x86_64 -enable-kvm -cpu kvm64 -m 1024 -net none -vga cirrus \
@@ -68,10 +74,6 @@ build/boot.o: build/boot.a
 build/boot.a: Cargo.toml src/* src/*/*
 	mkdir -p build
 	$(CARGO) rustc --lib $(CARGOFLAGS) -C lto --emit link=$@
-
-clean:
-	$(CARGO) clean
-	rm -rf build
 
 $(LD):
 	rm -rf prefix

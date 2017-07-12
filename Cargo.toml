@@ -3,7 +3,7 @@ name = "firmware_update"
 version = "0.1.0"
 
 [lib]
-name = "firmware_update"
+name = "system76-fu"
 path = "src/lib.rs"
 crate-type = ["staticlib"]
 
