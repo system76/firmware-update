@@ -13,7 +13,7 @@ use proto::Protocol;
 
 #[repr(C)]
 #[allow(non_snake_case)]
-pub struct TextDisplay {
+pub struct TextDisplay<'a> {
     pub Reset: extern "win64" fn(&mut TextDisplay, bool) -> Status,
     pub OutputString: extern "win64" fn(&mut TextDisplay, *const u16) -> Status,
     pub TestString: extern "win64" fn(&mut TextDisplay, *const u16) -> Status,
@@ -26,9 +26,11 @@ pub struct TextDisplay {
     pub Mode: &'static TextOutputMode,
 
     pub mode: Box<TextOutputMode>,
+    pub off_x: i32,
+    pub off_y: i32,
     pub cols: usize,
     pub rows: usize,
-    pub display: Display,
+    pub display: &'a mut Display,
 }
 
 extern "win64" fn reset(_output: &mut TextDisplay, _extra: bool) -> Status {
@@ -83,8 +85,8 @@ extern "win64" fn enable_cursor(output: &mut TextDisplay, enable: bool) -> Statu
     Status(0)
 }
 
-impl TextDisplay {
-    pub fn new(display: Display) -> TextDisplay {
+impl<'a> TextDisplay<'a> {
+    pub fn new(display: &'a mut Display) -> TextDisplay<'a> {
         let mode = Box::new(TextOutputMode {
             MaxMode: 0,
             Mode: 0,
@@ -110,6 +112,8 @@ impl TextDisplay {
             Mode: unsafe { mem::transmute(&*mode.deref()) },
 
             mode: mode,
+            off_x: 0,
+            off_y: 0,
             cols: cols,
             rows: rows,
             display: display,
@@ -139,6 +143,11 @@ impl TextDisplay {
         }
 
         match c {
+            '\x08' => if self.mode.CursorColumn > 0 {
+                let (x, y) = self.pos();
+                self.display.rect(x, y, 8, 16, bg);
+                self.mode.CursorColumn -= 1;
+            },
             '\r'=> {
                 self.mode.CursorColumn = 0;
             },
@@ -146,8 +155,7 @@ impl TextDisplay {
                 self.mode.CursorRow += 1;
             },
             _ => {
-                let x = self.mode.CursorColumn * 8;
-                let y = self.mode.CursorRow * 16;
+                let (x, y) = self.pos();
                 self.display.rect(x, y, 8, 16, bg);
                 self.display.char(x, y, c, fg);
 
@@ -158,33 +166,45 @@ impl TextDisplay {
             }
         }
     }
+
+    pub fn pos(&self) -> (i32, i32) {
+        (
+            self.mode.CursorColumn * 8 + self.off_x,
+            self.mode.CursorRow * 16 + self.off_y,
+        )
+    }
+
+    pub fn pipe<T, F: FnMut() -> Result<T>>(&mut self, mut f: F) -> Result<T> {
+        let uefi = unsafe { &mut *::UEFI };
+
+        let stdout = self as *mut _;
+        let mut stdout_handle = Handle(0);
+        (uefi.BootServices.InstallProtocolInterface)(&mut stdout_handle, &SIMPLE_TEXT_OUTPUT_GUID, InterfaceType::Native, stdout as usize)?;
+
+        let old_stdout_handle = uefi.ConsoleOutHandle;
+        let old_stdout = uefi.ConsoleOut as *mut _;
+        let old_stderr_handle = uefi.ConsoleErrorHandle;
+        let old_stderr = uefi.ConsoleError as *mut _;
+
+        uefi.ConsoleOutHandle = stdout_handle;
+        uefi.ConsoleOut = unsafe { mem::transmute(&mut *stdout) };
+        uefi.ConsoleErrorHandle = stdout_handle;
+        uefi.ConsoleError = unsafe { mem::transmute(&mut *stdout) };
+
+        let res = f();
+
+        uefi.ConsoleOutHandle = old_stdout_handle;
+        uefi.ConsoleOut = unsafe { mem::transmute(&mut *old_stdout) };
+        uefi.ConsoleErrorHandle = old_stderr_handle;
+        uefi.ConsoleError = unsafe { mem::transmute(&mut *old_stderr) };
+
+        let _ = (uefi.BootServices.UninstallProtocolInterface)(stdout_handle, &SIMPLE_TEXT_OUTPUT_GUID, stdout as usize);
+
+        res
+    }
 }
 
-pub fn pipe<T, F: FnMut() -> Result<T>>(mut f: F) -> Result<T> {
-    let uefi = unsafe { &mut *::UEFI };
-
-    let mut stdout = TextDisplay::new(Display::new(Output::one()?));
-    let mut stdout_handle = Handle(0);
-    (uefi.BootServices.InstallProtocolInterface)(&mut stdout_handle, &SIMPLE_TEXT_OUTPUT_GUID, InterfaceType::Native, (&mut stdout) as *mut _ as usize)?;
-
-    let old_stdout_handle = uefi.ConsoleOutHandle;
-    let old_stdout = uefi.ConsoleOut as *mut _;
-    let old_stderr_handle = uefi.ConsoleErrorHandle;
-    let old_stderr = uefi.ConsoleError as *mut _;
-
-    uefi.ConsoleOutHandle = stdout_handle;
-    uefi.ConsoleOut = unsafe { mem::transmute(&mut stdout) };
-    uefi.ConsoleErrorHandle = stdout_handle;
-    uefi.ConsoleError = unsafe { mem::transmute(&mut stdout) };
-
-    let res = f();
-
-    uefi.ConsoleOutHandle = old_stdout_handle;
-    uefi.ConsoleOut = unsafe { mem::transmute(&mut *old_stdout) };
-    uefi.ConsoleErrorHandle = old_stderr_handle;
-    uefi.ConsoleError = unsafe { mem::transmute(&mut *old_stderr) };
-
-    let _ = (uefi.BootServices.UninstallProtocolInterface)(stdout_handle, &SIMPLE_TEXT_OUTPUT_GUID, (&mut stdout) as *mut _ as usize);
-
-    res
+pub fn pipe<T, F: FnMut() -> Result<T>>(f: F) -> Result<T> {
+    let mut display = Display::new(Output::one()?);
+    TextDisplay::new(&mut display).pipe(f)
 }

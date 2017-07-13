@@ -5,8 +5,6 @@ use fs::find;
 use io::wait_key;
 
 pub fn main() -> Result<()> {
-    let uefi = unsafe { &mut *::UEFI };
-
     find("\\system76-fu\\res\\firmware.nsh")?;
 
     let status = shell("\\system76-fu\\res\\firmware.nsh bios verify")?;

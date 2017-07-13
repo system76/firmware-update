@@ -53,6 +53,10 @@ fn main() {
 
     let _ = (uefi.ConsoleOut.SetAttribute)(uefi.ConsoleOut, 0x0F);
 
+    if let Err(err) = cmd::flash::main() {
+        println!("Flashing error: {:?}", err);
+    }
+
     if let Err(err) = pipe(cmd::menu) {
         println!("{:?}", err);
     }

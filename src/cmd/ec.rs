@@ -6,8 +6,6 @@ use fs::{find, load};
 use io::wait_key;
 
 pub fn main() -> Result<()> {
-    let uefi = unsafe { &mut *::UEFI };
-
     find("\\system76-fu\\res\\firmware.nsh")?;
 
     println!("Verifying EC");
