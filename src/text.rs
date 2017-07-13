@@ -144,8 +144,6 @@ impl<'a> TextDisplay<'a> {
             }
 
             self.display.rect(self.off_x, self.off_y + (self.rows as i32 - 1) * 16, self.cols as u32 * 8, 16, color);
-
-            self.display.blit(0, self.off_y, w, self.rows as u32 * 16);
         }
     }
 
@@ -202,11 +200,12 @@ impl<'a> TextDisplay<'a> {
         let (x, y) = self.pos();
 
         if scrolled {
-            self.display.sync();
+            let (cx, cw) = (0, self.display.width() as i32);
+            let (cy, ch) = (self.off_y, self.rows as u32 * 16);
+            self.display.blit(cx, cy, cw as u32, ch as u32);
         } else if x != sx || y != sy {
             let (cx, cw) = (0, self.display.width() as i32);
             let (cy, ch) = (sy, y + 16 - sy);
-
             self.display.blit(cx, cy, cw as u32, ch as u32);
         }
     }
