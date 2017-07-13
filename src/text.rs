@@ -152,7 +152,8 @@ impl<'a> TextDisplay<'a> {
         let fg = Color::rgb(255, 255, 255);
 
         let mut scrolled = false;
-        let (sx, sy) = self.pos();
+        let mut changed = false;
+        let (_sx, sy) = self.pos();
 
         let mut i = 0;
         loop {
@@ -179,6 +180,7 @@ impl<'a> TextDisplay<'a> {
                     let (x, y) = self.pos();
                     self.display.rect(x, y, 8, 16, bg);
                     self.mode.CursorColumn -= 1;
+                    changed = true;
                 },
                 '\r'=> {
                     self.mode.CursorColumn = 0;
@@ -191,19 +193,19 @@ impl<'a> TextDisplay<'a> {
                     self.display.rect(x, y, 8, 16, bg);
                     self.display.char(x, y, c, fg);
                     self.mode.CursorColumn += 1;
+                    changed = true;
                 }
             }
 
             i += 1;
         }
 
-        let (x, y) = self.pos();
-
+        let (_x, y) = self.pos();
         if scrolled {
             let (cx, cw) = (0, self.display.width() as i32);
             let (cy, ch) = (self.off_y, self.rows as u32 * 16);
             self.display.blit(cx, cy, cw as u32, ch as u32);
-        } else if x != sx || y != sy {
+        } else if changed {
             let (cx, cw) = (0, self.display.width() as i32);
             let (cy, ch) = (sy, y + 16 - sy);
             self.display.blit(cx, cy, cw as u32, ch as u32);
