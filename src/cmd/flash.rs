@@ -154,7 +154,7 @@ pub fn main() -> Result<()> {
         }
 
         {
-            let prompt = "Dot not disconnect your power adapter";
+            let prompt = "Do not disconnect your power adapter";
             let mut x = (display.width() as i32 - prompt.len() as i32 * 8)/2;
             let y = display.height() as i32 - 32;
             for c in prompt.chars() {
