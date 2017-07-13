@@ -146,24 +146,8 @@ impl<'a> TextDisplay<'a> {
         }
     }
 
-    pub fn set_cursor_pos(&mut self, column: i32, row: i32) {
-        let bg = Color::rgb(0, 0, 0);
-
-        let mut scrolled = false;
-        while row < self.mode.CursorRow {
-            self.scroll(bg);
-            self.mode.CursorRow -= 1;
-            scrolled = true;
-        }
-
+    pub fn set_cursor_pos(&mut self, column: i32, _row: i32) {
         self.mode.CursorColumn = column;
-        self.mode.CursorRow = row;
-
-        if scrolled {
-            let (cx, cw) = (0, self.display.width() as i32);
-            let (cy, ch) = (self.off_y, self.rows as u32 * 16);
-            self.display.blit(cx, cy, cw as u32, ch as u32);
-        }
     }
 
     pub fn write(&mut self, string: *const u16) {

@@ -139,7 +139,7 @@ pub fn main() -> Result<()> {
 
         {
             let x = (display.width() as i32 - splash.width() as i32)/2;
-            let y = 16; //(display.height() as i32 - splash.height() as i32)/2;
+            let y = 16;
             splash.draw(&mut display, x, y);
         }
 
