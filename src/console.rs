@@ -71,7 +71,7 @@ impl<'a> Write for Console<'a> {
 
             let (cy, ch) = (sy, self.y + 16 - sy);
 
-            self.display.blit(cx as usize, cy as usize, cw as usize, ch as usize);
+            self.display.blit(cx, cy, cw as u32, ch as u32);
         }
 
         Ok(())

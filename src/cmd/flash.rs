@@ -168,9 +168,9 @@ pub fn main() -> Result<()> {
 
     {
         let cols = 80;
-        let rows = 30;
         let off_x = (display.width() as i32 - cols as i32 * 8)/2;
         let off_y = 16 + splash.height() as i32 + 16;
+        let rows = (display.height() as i32 - 64 - off_y - 1) as usize/16;
         display.rect(off_x, off_y, cols as u32 * 8, rows as u32 * 16, Color::rgb(0, 0, 0));
         display.sync();
 

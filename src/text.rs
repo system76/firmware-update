@@ -124,7 +124,8 @@ impl<'a> TextDisplay<'a> {
         // Clears are ignored
         //let bg = Color::rgb(0, 0, 0);
         //self.display.rect(self.off_x, self.off_y, self.cols * 8, self.rows * 16, bg);
-        //self.display.blit(0, self.off_y as usize, w as usize, self.rows as usize * 16);
+        //self.display.blit(0, self.off_y, w, self.rows * 16);
+        self.display.sync();
     }
 
     pub fn scroll(&mut self, color: Color) {
@@ -135,16 +136,17 @@ impl<'a> TextDisplay<'a> {
             let src = (self.off_y + 16) * w as i32;
             let len = (self.rows - 1) * 16 * w as usize;
             unsafe {
+                let scale = self.display.scale() as isize;
                 let data_ptr = self.display.data_mut().as_mut_ptr() as *mut u32;
                 ::display::fast_copy(
-                    data_ptr.offset(dst as isize) as *mut u8,
-                    data_ptr.offset(src as isize) as *const u8,
-                    len * 4);
+                    data_ptr.offset(dst as isize * scale * scale) as *mut u8,
+                    data_ptr.offset(src as isize * scale * scale) as *const u8,
+                    len * (scale * scale) as usize * 4);
             }
 
             self.display.rect(self.off_x, self.off_y + (self.rows as i32 - 1) * 16, self.cols as u32 * 8, 16, color);
 
-            self.display.blit(0, self.off_y as usize, w as usize, self.rows as usize * 16);
+            self.display.blit(0, self.off_y, w, self.rows as u32 * 16);
         }
     }
 
@@ -180,7 +182,7 @@ impl<'a> TextDisplay<'a> {
                 self.display.char(x, y, c, fg);
 
                 let w = self.display.width();
-                self.display.blit(0, y as usize, w as usize, 16);
+                self.display.blit(0, y, w, 16);
 
                 self.mode.CursorColumn += 1;
             }
