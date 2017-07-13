@@ -123,8 +123,29 @@ impl<'a> TextDisplay<'a> {
     pub fn clear(&mut self) {
         // Clears are ignored
         //let bg = Color::rgb(0, 0, 0);
-        //self.display.set(bg);
-        //self.display.sync();
+        //self.display.rect(self.off_x, self.off_y, self.cols * 8, self.rows * 16, bg);
+        //self.display.blit(0, self.off_y as usize, w as usize, self.rows as usize * 16);
+    }
+
+    pub fn scroll(&mut self, color: Color) {
+        if self.rows > 0 {
+            let w = self.display.width();
+
+            let dst = self.off_y * w as i32;
+            let src = (self.off_y + 16) * w as i32;
+            let len = (self.rows - 1) * 16 * w as usize;
+            unsafe {
+                let data_ptr = self.display.data_mut().as_mut_ptr() as *mut u32;
+                ::display::fast_copy(
+                    data_ptr.offset(dst as isize) as *mut u8,
+                    data_ptr.offset(src as isize) as *const u8,
+                    len * 4);
+            }
+
+            self.display.rect(self.off_x, self.off_y + (self.rows as i32 - 1) * 16, self.cols as u32 * 8, 16, color);
+
+            self.display.blit(0, self.off_y as usize, w as usize, self.rows as usize * 16);
+        }
     }
 
     pub fn char(&mut self, c: char) {
@@ -137,8 +158,7 @@ impl<'a> TextDisplay<'a> {
         }
 
         while self.mode.CursorRow as usize >= self.rows {
-            self.display.scroll(16, bg);
-            self.display.sync();
+            self.scroll(bg);
             self.mode.CursorRow -= 1;
         }
 
