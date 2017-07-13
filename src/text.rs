@@ -38,15 +38,7 @@ extern "win64" fn reset(_output: &mut TextDisplay, _extra: bool) -> Status {
 }
 
 extern "win64" fn output_string(output: &mut TextDisplay, string: *const u16) -> Status {
-    let mut i = 0;
-    loop {
-        let w = unsafe { *string.offset(i) };
-        if w == 0 {
-            break;
-        }
-        output.char(unsafe { char::from_u32_unchecked(w as u32) });
-        i += 1;
-    }
+    output.write(string);
     Status(0)
 }
 
@@ -120,6 +112,13 @@ impl<'a> TextDisplay<'a> {
         }
     }
 
+    pub fn pos(&self) -> (i32, i32) {
+        (
+            self.mode.CursorColumn * 8 + self.off_x,
+            self.mode.CursorRow * 16 + self.off_y,
+        )
+    }
+
     pub fn clear(&mut self) {
         // Clears are ignored
         //let bg = Color::rgb(0, 0, 0);
@@ -150,50 +149,70 @@ impl<'a> TextDisplay<'a> {
         }
     }
 
-    pub fn char(&mut self, c: char) {
+    pub fn write(&mut self, string: *const u16) {
         let bg = Color::rgb(0, 0, 0);
         let fg = Color::rgb(255, 255, 255);
 
-        if self.mode.CursorColumn as usize >= self.cols {
-            self.mode.CursorColumn = 0;
-            self.mode.CursorRow += 1;
-        }
+        let mut scrolled = false;
+        let (sx, sy) = self.pos();
 
-        while self.mode.CursorRow as usize >= self.rows {
-            self.scroll(bg);
-            self.mode.CursorRow -= 1;
-        }
-
-        match c {
-            '\x08' => if self.mode.CursorColumn > 0 {
-                let (x, y) = self.pos();
-                self.display.rect(x, y, 8, 16, bg);
-                self.mode.CursorColumn -= 1;
-            },
-            '\r'=> {
-                self.mode.CursorColumn = 0;
-            },
-            '\n' => {
-                self.mode.CursorRow += 1;
-            },
-            _ => {
-                let (x, y) = self.pos();
-                self.display.rect(x, y, 8, 16, bg);
-                self.display.char(x, y, c, fg);
-
-                let w = self.display.width();
-                self.display.blit(0, y, w, 16);
-
-                self.mode.CursorColumn += 1;
+        let mut i = 0;
+        loop {
+            let w = unsafe { *string.offset(i) };
+            if w == 0 {
+                break;
             }
-        }
-    }
 
-    pub fn pos(&self) -> (i32, i32) {
-        (
-            self.mode.CursorColumn * 8 + self.off_x,
-            self.mode.CursorRow * 16 + self.off_y,
-        )
+            let c = unsafe { char::from_u32_unchecked(w as u32) };
+
+            if self.mode.CursorColumn as usize >= self.cols {
+                self.mode.CursorColumn = 0;
+                self.mode.CursorRow += 1;
+            }
+
+            while self.mode.CursorRow as usize >= self.rows {
+                self.scroll(bg);
+                self.mode.CursorRow -= 1;
+                scrolled = true;
+            }
+
+            match c {
+                '\x08' => if self.mode.CursorColumn > 0 {
+                    let (x, y) = self.pos();
+                    self.display.rect(x, y, 8, 16, bg);
+                    self.mode.CursorColumn -= 1;
+                },
+                '\r'=> {
+                    self.mode.CursorColumn = 0;
+                },
+                '\n' => {
+                    self.mode.CursorRow += 1;
+                },
+                _ => {
+                    let (x, y) = self.pos();
+                    self.display.rect(x, y, 8, 16, bg);
+                    self.display.char(x, y, c, fg);
+
+                    let w = self.display.width();
+                    self.display.blit(0, y, w, 16);
+
+                    self.mode.CursorColumn += 1;
+                }
+            }
+
+            i += 1;
+        }
+
+        let (x, y) = self.pos();
+
+        if scrolled {
+            self.display.sync();
+        } else if x != sx || y != sy {
+            let (cx, cw) = (0, self.display.width() as i32);
+            let (cy, ch) = (sy, y + 16 - sy);
+
+            self.display.blit(cx, cy, cw as u32, ch as u32);
+        }
     }
 
     pub fn pipe<T, F: FnMut() -> Result<T>>(&mut self, mut f: F) -> Result<T> {

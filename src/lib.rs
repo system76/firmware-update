@@ -30,7 +30,6 @@ pub static mut UEFI: *mut uefi::system::SystemTable = 0 as *mut uefi::system::Sy
 mod macros;
 
 pub mod cmd;
-pub mod console;
 pub mod display;
 pub mod exec;
 pub mod externs;
