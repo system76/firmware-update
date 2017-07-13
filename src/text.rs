@@ -67,8 +67,7 @@ extern "win64" fn clear_screen(output: &mut TextDisplay) -> Status {
 }
 
 extern "win64" fn set_cursor_position(output: &mut TextDisplay, column: usize, row: usize) -> Status {
-    output.mode.CursorColumn = column as i32;
-    output.mode.CursorRow = row as i32;
+    output.set_cursor_pos(column as i32, row as i32);
     Status(0)
 }
 
@@ -147,6 +146,26 @@ impl<'a> TextDisplay<'a> {
         }
     }
 
+    pub fn set_cursor_pos(&mut self, column: i32, row: i32) {
+        let bg = Color::rgb(0, 0, 0);
+
+        let mut scrolled = false;
+        while row < self.mode.CursorRow {
+            self.scroll(bg);
+            self.mode.CursorRow -= 1;
+            scrolled = true;
+        }
+
+        self.mode.CursorColumn = column;
+        self.mode.CursorRow = row;
+
+        if scrolled {
+            let (cx, cw) = (0, self.display.width() as i32);
+            let (cy, ch) = (self.off_y, self.rows as u32 * 16);
+            self.display.blit(cx, cy, cw as u32, ch as u32);
+        }
+    }
+
     pub fn write(&mut self, string: *const u16) {
         let bg = Color::rgb(0, 0, 0);
         let fg = Color::rgb(255, 255, 255);
@@ -200,12 +219,12 @@ impl<'a> TextDisplay<'a> {
             i += 1;
         }
 
-        let (_x, y) = self.pos();
         if scrolled {
             let (cx, cw) = (0, self.display.width() as i32);
             let (cy, ch) = (self.off_y, self.rows as u32 * 16);
             self.display.blit(cx, cy, cw as u32, ch as u32);
         } else if changed {
+            let (_x, y) = self.pos();
             let (cx, cw) = (0, self.display.width() as i32);
             let (cy, ch) = (sy, y + 16 - sy);
             self.display.blit(cx, cy, cw as u32, ch as u32);
