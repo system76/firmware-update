@@ -192,10 +192,6 @@ impl<'a> TextDisplay<'a> {
                     let (x, y) = self.pos();
                     self.display.rect(x, y, 8, 16, bg);
                     self.display.char(x, y, c, fg);
-
-                    let w = self.display.width();
-                    self.display.blit(0, y, w, 16);
-
                     self.mode.CursorColumn += 1;
                 }
             }
