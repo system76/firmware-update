@@ -5,9 +5,9 @@ use fs::find;
 use io::wait_key;
 
 pub fn main() -> Result<()> {
-    find("\\system76-fu\\res\\firmware.nsh")?;
+    find("\\system76-firmware-update\\res\\firmware.nsh")?;
 
-    let status = shell("\\system76-fu\\res\\firmware.nsh bios verify")?;
+    let status = shell("\\system76-firmware-update\\res\\firmware.nsh bios verify")?;
     if status != 0 {
         println!("Failed to verify BIOS: {}", status);
         return Err(Error::DeviceError);
@@ -17,7 +17,7 @@ pub fn main() -> Result<()> {
     let c = wait_key()?;
 
     if c == '\r' || c == '\n' {
-        let status = shell("\\system76-fu\\res\\firmware.nsh bios flash")?;
+        let status = shell("\\system76-firmware-update\\res\\firmware.nsh bios flash")?;
         if status != 0 {
             println!("Failed to flash BIOS: {}", status);
             return Err(Error::DeviceError);

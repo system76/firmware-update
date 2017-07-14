@@ -34,8 +34,8 @@ build/efi.img: build/iso/efi/boot/bootx64.efi res/*
 	dd if=/dev/zero of=$@.tmp bs=512 count=98304
 	mkfs.vfat $@.tmp
 	mcopy -i $@.tmp -s build/iso/efi ::
-	mmd -i $@.tmp system76-fu
-	mcopy -i $@.tmp -s res ::system76-fu
+	mmd -i $@.tmp system76-firmware-update
+	mcopy -i $@.tmp -s res ::system76-firmware-update
 	mv $@.tmp $@
 
 build/boot.iso: build/iso/efi/boot/bootx64.efi

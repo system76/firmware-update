@@ -6,7 +6,7 @@ use fs::{find, load};
 use io::wait_key;
 
 pub fn main() -> Result<()> {
-    find("\\system76-fu\\res\\firmware.nsh")?;
+    find("\\system76-firmware-update\\res\\firmware.nsh")?;
 
     println!("Verifying EC");
 
@@ -25,7 +25,7 @@ pub fn main() -> Result<()> {
     println!("Flash Size: {} KB", e_s/1024);
 
     let (f_p, f_v, f_s) = {
-        let mut file = EcFile::new(load("\\system76-fu\\firmware\\ec.rom")?);
+        let mut file = EcFile::new(load("\\system76-firmware-update\\firmware\\ec.rom")?);
         (file.project(), file.version(), file.size())
     };
 
@@ -47,7 +47,7 @@ pub fn main() -> Result<()> {
     let c = wait_key()?;
 
     if c == '\r' || c == '\n' {
-        let status = shell("\\system76-fu\\res\\firmware.nsh ec flash")?;
+        let status = shell("\\system76-firmware-update\\res\\firmware.nsh ec flash")?;
         if status != 0 {
             println!("Failed to flash EC: {}", status);
             return Err(Error::DeviceError);
