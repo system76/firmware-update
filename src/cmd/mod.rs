@@ -2,11 +2,9 @@ use uefi::status::Result;
 
 use io::wait_key;
 
-pub mod bios;
 pub mod boot;
 pub mod config;
 pub mod dmi;
-pub mod ec;
 pub mod flash;
 pub mod mouse;
 pub mod vars;
@@ -14,13 +12,11 @@ pub mod vars;
 pub fn menu() -> Result<()> {
     loop {
         print!("1 => flash");
-        print!(", 2 => bios");
-        print!(", 3 => boot");
-        print!(", 4 => config");
-        print!(", 5 => dmi");
-        print!(", 6 => ec");
-        print!(", 7 => mouse");
-        print!(", 8 => vars");
+        print!(", 2 => boot");
+        print!(", 3 => config");
+        print!(", 4 => dmi");
+        print!(", 5 => mouse");
+        print!(", 6 => vars");
         println!(", 0 => exit");
 
 
@@ -30,13 +26,11 @@ pub fn menu() -> Result<()> {
 
         let res = match c {
             '1' => self::flash::main(),
-            '2' => self::bios::main(),
-            '3' => self::boot::main(),
-            '4' => self::config::main(),
-            '5' => self::dmi::main(),
-            '6' => self::ec::main(),
-            '7' => self::mouse::main(),
-            '8' => self::vars::main(),
+            '2' => self::boot::main(),
+            '3' => self::config::main(),
+            '4' => self::dmi::main(),
+            '5' => self::mouse::main(),
+            '6' => self::vars::main(),
             '0' => return Ok(()),
             _ => {
                 println!("Invalid selection '{}'", c);

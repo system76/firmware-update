@@ -5,6 +5,7 @@
 #![feature(const_fn)]
 #![feature(global_allocator)]
 #![feature(lang_items)]
+#![feature(never_type)]
 #![feature(try_trait)]
 
 #[macro_use]

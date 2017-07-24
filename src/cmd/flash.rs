@@ -1,15 +1,128 @@
+use core::ptr;
 use ecflash::{Ec, EcFile, EcFlash};
 use orbclient::{Color, Renderer};
-use uefi::status::{Error, Result};
+use uefi::reset::ResetType;
+use uefi::status::{Error, Result, Status};
 
 use display::{Display, Output};
-use fs::load;
+use exec::shell;
+use fs::{find, load};
 use image::{self, Image};
 use io::wait_key;
 use proto::Protocol;
 use text::TextDisplay;
 
-fn inner() -> Result<()> {
+fn bios() -> Result<()> {
+    find("\\system76-firmware-update\\res\\firmware.nsh")?;
+
+    let status = shell("\\system76-firmware-update\\res\\firmware.nsh bios verify")?;
+    if status != 0 {
+        println!("Failed to verify BIOS: {}", status);
+        return Err(Error::DeviceError);
+    }
+
+    let status = shell("\\system76-firmware-update\\res\\firmware.nsh bios flash")?;
+    if status != 0 {
+        println!("Failed to flash BIOS: {}", status);
+        return Err(Error::DeviceError);
+    }
+
+    println!("Flashed BIOS successfully");
+
+    Ok(())
+}
+
+fn ec() -> Result<()> {
+    find("\\system76-firmware-update\\res\\firmware.nsh")?;
+
+    println!("Verifying EC");
+
+    let (e_p, e_v, e_s) = match EcFlash::new(true) {
+        Ok(mut ec) => {
+            (ec.project(), ec.version(), ec.size())
+        },
+        Err(err) => {
+            println!("EC Error: {}", err);
+            return Err(Error::NotFound);
+        }
+    };
+
+    let (f_p, f_v, f_s) = {
+        let mut file = EcFile::new(load("\\system76-firmware-update\\firmware\\ec.rom")?);
+        (file.project(), file.version(), file.size())
+    };
+
+    if e_p != f_p {
+        println!("EC Project Mismatch");
+        return Err(Error::DeviceError);
+    }
+
+    if e_s != f_s {
+        println!("EC Size Mismatch");
+        return Err(Error::DeviceError);
+    }
+
+    if e_v == f_v {
+        println!("EC up to date");
+    } else {
+        let status = shell("\\system76-firmware-update\\res\\firmware.nsh ec flash")?;
+        if status != 0 {
+            println!("Failed to flash EC: {}", status);
+            return Err(Error::DeviceError);
+        }
+
+        println!("Flashed EC successfully");
+    }
+
+    Ok(())
+}
+
+fn ec2() -> Result<()> {
+    find("\\system76-firmware-update\\res\\firmware.nsh")?;
+
+    println!("Verifying EC2");
+
+    let (e_p, e_v, e_s) = match EcFlash::new(false) {
+        Ok(mut ec) => {
+            (ec.project(), ec.version(), ec.size())
+        },
+        Err(err) => {
+            println!("EC2 Error: {}", err);
+            return Err(Error::NotFound);
+        }
+    };
+
+    let (f_p, f_v, f_s) = {
+        let mut file = EcFile::new(load("\\system76-firmware-update\\firmware\\ec2.rom")?);
+        (file.project(), file.version(), file.size())
+    };
+
+    if e_p != f_p {
+        println!("EC2 Project Mismatch");
+        return Err(Error::DeviceError);
+    }
+
+    if e_s != f_s {
+        println!("EC2 Size Mismatch");
+        return Err(Error::DeviceError);
+    }
+
+    if e_v == f_v {
+        println!("EC2 up to date");
+    } else {
+        let status = shell("\\system76-firmware-update\\res\\firmware.nsh ec2 flash")?;
+        if status != 0 {
+            println!("Failed to flash EC2: {}", status);
+            return Err(Error::DeviceError);
+        }
+
+        println!("Flashed EC2 successfully");
+    }
+
+    Ok(())
+}
+
+fn inner() -> Result<!> {
     match EcFlash::new(true).map(|mut ec| ec.project()) {
         Ok(sys_project) => {
             #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -51,13 +164,14 @@ fn inner() -> Result<()> {
 
             let has_bios = validate("BIOS Update", "\\system76-firmware-update\\firmware\\bios.rom");
             let has_ec = validate("EC Update", "\\system76-firmware-update\\firmware\\ec.rom");
+            let has_ec2 = validate("EC2 Update", "\\system76-firmware-update\\firmware\\ec2.rom");
 
             if has_bios == ValidateKind::Found || has_ec == ValidateKind::Found {
                 println!("Press enter to commence flashing");
                 let c = wait_key()?;
                 if c == '\n' || c == '\r' {
                     if has_bios == ValidateKind::Found {
-                        match super::bios::main() {
+                        match bios() {
                             Ok(()) => {
                                 println!("Flashing BIOS: Success");
                             },
@@ -68,12 +182,23 @@ fn inner() -> Result<()> {
                     }
 
                     if has_ec == ValidateKind::Found {
-                        match super::ec::main() {
+                        match ec() {
                             Ok(()) => {
                                 println!("Flashing EC: Success");
                             },
                             Err(err) => {
                                 println!("Flashing EC: Failure: {:?}", err);
+                            }
+                        }
+                    }
+
+                    if has_ec2 == ValidateKind::Found {
+                        match ec2() {
+                            Ok(()) => {
+                                println!("Flashing EC2: Success");
+                            },
+                            Err(err) => {
+                                println!("Flashing EC2: Failure: {:?}", err);
                             }
                         }
                     }
@@ -90,7 +215,9 @@ fn inner() -> Result<()> {
     println!("Press any key to exit");
     wait_key()?;
 
-    Ok(())
+    unsafe {
+        ((&mut *::UEFI).RuntimeServices.ResetSystem)(ResetType::Cold, Status(0), 0, ptr::null());
+    }
 }
 
 pub fn main() -> Result<()> {
@@ -181,9 +308,4 @@ pub fn main() -> Result<()> {
         text.rows = rows;
         text.pipe(inner)?;
     }
-
-    display.set(Color::rgb(0, 0, 0));
-    display.sync();
-
-    Ok(())
 }
