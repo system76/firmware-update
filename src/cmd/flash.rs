@@ -123,94 +123,96 @@ fn ec2() -> Result<()> {
 }
 
 fn inner() -> Result<!> {
-    match EcFlash::new(true).map(|mut ec| ec.project()) {
-        Ok(sys_project) => {
-            #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-            enum ValidateKind {
-                Found,
-                Mismatch,
-                NotFound,
-                Error(Error)
-            }
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    enum ValidateKind {
+        Found,
+        Mismatch,
+        NotFound,
+        Error(Error)
+    }
 
-            let validate = |name: &str, path: &str| -> ValidateKind {
-                let loading = "Loading";
+    let validate = |name: &str, path: &str, ec_master: bool| -> ValidateKind {
+        let loading = "Loading";
 
-                print!("{}: {}", name, loading);
+        print!("{}: {}", name, loading);
 
-                let res = load(path);
+        let res = load(path);
 
-                for _c in loading.chars() {
-                    print!("\x08");
-                }
-
-                let ret = match res {
-                    Ok(data) => if EcFile::new(data).project() == sys_project {
-                        ValidateKind::Found
-                    } else {
-                        ValidateKind::Mismatch
-                    },
-                    Err(err) => if err == Error::NotFound {
-                        ValidateKind::NotFound
-                    } else {
-                        ValidateKind::Error(err)
-                    }
-                };
-
-                println!("{:?}", ret);
-
-                ret
-            };
-
-            let has_bios = validate("BIOS Update", "\\system76-firmware-update\\firmware\\bios.rom");
-            let has_ec = validate("EC Update", "\\system76-firmware-update\\firmware\\ec.rom");
-            let has_ec2 = validate("EC2 Update", "\\system76-firmware-update\\firmware\\ec2.rom");
-
-            if has_bios == ValidateKind::Found || has_ec == ValidateKind::Found {
-                println!("Press enter to commence flashing");
-                let c = wait_key()?;
-                if c == '\n' || c == '\r' {
-                    if has_bios == ValidateKind::Found {
-                        match bios() {
-                            Ok(()) => {
-                                println!("Flashing BIOS: Success");
-                            },
-                            Err(err) => {
-                                println!("Flashing BIOS: Failure: {:?}", err);
-                            }
-                        }
-                    }
-
-                    if has_ec == ValidateKind::Found {
-                        match ec() {
-                            Ok(()) => {
-                                println!("Flashing EC: Success");
-                            },
-                            Err(err) => {
-                                println!("Flashing EC: Failure: {:?}", err);
-                            }
-                        }
-                    }
-
-                    if has_ec2 == ValidateKind::Found {
-                        match ec2() {
-                            Ok(()) => {
-                                println!("Flashing EC2: Success");
-                            },
-                            Err(err) => {
-                                println!("Flashing EC2: Failure: {:?}", err);
-                            }
-                        }
-                    }
-                }
-            } else {
-                println!("No updates found.");
-            }
-        },
-        Err(err) => {
-            println!("System EC: Error: {}", err);
+        for _c in loading.chars() {
+            print!("\x08");
         }
+
+        let ret = match res {
+            Ok(data) => {
+                match EcFlash::new(ec_master).map(|mut ec| ec.project()) {
+                    Ok(sys_project) => {
+                        if EcFile::new(data).project() == sys_project {
+                            ValidateKind::Found
+                        } else {
+                            ValidateKind::Mismatch
+                        }
+                    },
+                    Err(_err) => {
+                        ValidateKind::Mismatch
+                    }
+                }
+            },
+            Err(err) => if err == Error::NotFound {
+                ValidateKind::NotFound
+            } else {
+                ValidateKind::Error(err)
+            }
+        };
+
+        println!("{:?}", ret);
+
+        ret
     };
+
+    let has_bios = validate("BIOS Update", "\\system76-firmware-update\\firmware\\bios.rom", true);
+    let has_ec = validate("EC Update", "\\system76-firmware-update\\firmware\\ec.rom", true);
+    let has_ec2 = validate("EC2 Update", "\\system76-firmware-update\\firmware\\ec2.rom", false);
+
+    if has_bios == ValidateKind::Found || has_ec == ValidateKind::Found {
+        println!("Press enter to commence flashing");
+        let c = wait_key()?;
+        if c == '\n' || c == '\r' {
+            if has_bios == ValidateKind::Found {
+                match bios() {
+                    Ok(()) => {
+                        println!("Flashing BIOS: Success");
+                    },
+                    Err(err) => {
+                        println!("Flashing BIOS: Failure: {:?}", err);
+                    }
+                }
+            }
+
+            if has_ec == ValidateKind::Found {
+                match ec() {
+                    Ok(()) => {
+                        println!("Flashing EC: Success");
+                    },
+                    Err(err) => {
+                        println!("Flashing EC: Failure: {:?}", err);
+                    }
+                }
+            }
+
+            if has_ec2 == ValidateKind::Found {
+                match ec2() {
+                    Ok(()) => {
+                        println!("Flashing EC2: Success");
+                    },
+                    Err(err) => {
+                        println!("Flashing EC2: Failure: {:?}", err);
+                    }
+                }
+            }
+        }
+    } else {
+        println!("No updates found.");
+    }
 
     println!("Press any key to exit");
     wait_key()?;
