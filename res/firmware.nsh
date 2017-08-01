@@ -51,13 +51,11 @@ cd "%BASEDIR%"
 
 if "%1" == "bios" then
     if "%2" == "flash" then
-        echo "Flashing BIOS"
         afuefi.efi bios.rom /B /P /N
         exit %lasterror%
     endif
 
     if "%2" == "verify" then
-        echo "Verifying BIOS"
         afuefi.efi bios.rom /D
         exit %lasterror%
     endif
@@ -68,7 +66,6 @@ endif
 
 if "%1" == "ec" then
     if "%2" == "flash" then
-        echo "Flashing EC"
         uecflash.efi ec.rom /AD /F2 /P
         exit %lasterror%
     endif
@@ -79,7 +76,6 @@ endif
 
 if "%1" == "ec2" then
     if "%2" == "flash" then
-        echo "Flashing EC2"
         uecflash.efi ec2.rom /AD /O2 /P
         exit %lasterror%
     endif
