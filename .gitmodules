@@ -1,7 +1,3 @@
-[submodule "binutils-gdb"]
-	path = binutils-gdb
-	url = https://github.com/redox-os/binutils-gdb.git
-	branch = master
 [submodule "dmi"]
 	path = dmi
 	url = https://github.com/redox-os/dmi.git

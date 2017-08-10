@@ -75,10 +75,23 @@ build/boot.a: Cargo.lock Cargo.toml src/* src/*/*
 	mkdir -p build
 	$(CARGO) rustc --lib $(CARGOFLAGS) -C lto --emit link=$@
 
-$(LD):
+BINUTILS=2.28.1
+
+build/binutils-$(BINUTILS).tar.xz:
+	mkdir -p build
+	wget "https://ftp.gnu.org/gnu/binutils/binutils-$(BINUTILS).tar.xz" -O "$@.partial"
+	sha384sum -c binutils.sha384
+	mv "$@.partial" "$@"
+
+build/binutils-$(BINUTILS): build/binutils-$(BINUTILS).tar.xz
+	mkdir -p "$@.partial"
+	tar --extract --verbose --file "$<" --directory "$@.partial" --strip-components=1
+	mv "$@.partial" "$@"
+
+$(LD): build/binutils-$(BINUTILS)
 	rm -rf prefix
-	mkdir -p prefix/build
-	cd prefix/build && \
-	../../binutils-gdb/configure --target=x86_64-efi-pe --disable-werror --prefix="$(PREFIX)" && \
+	mkdir -p build/prefix
+	cd build/prefix && \
+	../../$</configure --target=x86_64-efi-pe --disable-werror --prefix="$(PREFIX)" && \
 	make all-ld -j `nproc` && \
 	make install-ld -j `nproc`
