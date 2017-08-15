@@ -51,10 +51,10 @@ cd "%BASEDIR%"
 
 if "%1" == "bios" then
     if "%2" == "flash" then
-        if exist bios.nsh
+        if exist bios.nsh then
             bios.nsh
         else
-            afuefi.efi bios.rom /B /N /P
+            afuefi.efi bios.rom /B /N /P /Q
         endif
         exit %lasterror%
     endif
