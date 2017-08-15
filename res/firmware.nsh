@@ -60,7 +60,7 @@ if "%1" == "bios" then
     endif
 
     if "%2" == "verify" then
-        afuefi.efi bios.rom /D
+        afuefi.efi bios.rom /D /Q
         exit %lasterror%
     endif
 
