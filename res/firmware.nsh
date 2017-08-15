@@ -51,7 +51,7 @@ cd "%BASEDIR%"
 
 if "%1" == "bios" then
     if "%2" == "flash" then
-        afuefi.efi bios.rom /B /L /N /P
+        afuefi.efi bios.rom /B /N /P
         exit %lasterror%
     endif
 
