@@ -13,7 +13,7 @@ features = ["mem"]
 
 [dependencies]
 dmi = { path = "dmi" }
-ecflash = { git = "https://github.com/system76/ecflash.git" }
+ecflash = { path = "ecflash" }
 orbclient = { path = "orbclient" }
 plain = "0.1"
 uefi = { path = "uefi" }

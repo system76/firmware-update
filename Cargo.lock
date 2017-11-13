@@ -11,7 +11,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "compiler_builtins"
 version = "0.1.0"
-source = "git+https://github.com/rust-lang-nursery/compiler-builtins#1be2858df7810b0cea8e794144d465dad1e6b9d7"
+source = "git+https://github.com/rust-lang-nursery/compiler-builtins#bb2c81b700440f3b1d8a9544d3d33f5454a730f7"
 
 [[package]]
 name = "csv"
@@ -32,7 +32,6 @@ dependencies = [
 [[package]]
 name = "ecflash"
 version = "0.1.0"
-source = "git+https://github.com/system76/ecflash.git#73f78e2a629d291a2dfc089b4fca88e4c9aed5f1"
 
 [[package]]
 name = "fuchsia-zircon"
@@ -214,7 +213,7 @@ version = "0.1.0"
 dependencies = [
  "compiler_builtins 0.1.0 (git+https://github.com/rust-lang-nursery/compiler-builtins)",
  "dmi 0.1.0",
- "ecflash 0.1.0 (git+https://github.com/system76/ecflash.git)",
+ "ecflash 0.1.0",
  "orbclient 0.3.8",
  "plain 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "uefi 0.1.0",
@@ -255,7 +254,6 @@ dependencies = [
 "checksum byteorder 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)" = "0fc10e8cc6b2580fda3f36eb6dc5316657f812a3df879a44a66fc9f0fdbc4855"
 "checksum compiler_builtins 0.1.0 (git+https://github.com/rust-lang-nursery/compiler-builtins)" = "<none>"
 "checksum csv 0.14.7 (registry+https://github.com/rust-lang/crates.io-index)" = "266c1815d7ca63a5bd86284043faf91e8c95e943e55ce05dc0ae08e952de18bc"
-"checksum ecflash 0.1.0 (git+https://github.com/system76/ecflash.git)" = "<none>"
 "checksum fuchsia-zircon 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "f6c0581a4e363262e52b87f59ee2afe3415361c6ec35e665924eb08afe8ff159"
 "checksum fuchsia-zircon-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "43f3795b4bae048dc6123a6b972cadde2e676f9ded08aef6bb77f5f157684a82"
 "checksum libc 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)" = "5ba3df4dcb460b9dfbd070d41c94c19209620c191b0340b929ce748a2bcd42d2"

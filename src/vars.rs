@@ -18,18 +18,40 @@ fn set(name: &str, data: &[u8]) -> Result<usize> {
     let uefi = unsafe { &mut *::UEFI };
 
     let wname = wstr(name);
+    let access = 1 | 2 | 4;
     let data_size = data.len();
-    (uefi.RuntimeServices.SetVariable)(wname.as_ptr(), &GLOBAL_VARIABLE_GUID, 0, data_size, data.as_ptr())?;
+    (uefi.RuntimeServices.SetVariable)(wname.as_ptr(), &GLOBAL_VARIABLE_GUID, access, data_size, data.as_ptr())?;
     Ok(data_size)
 }
 
 pub fn get_boot_current() -> Result<u16> {
     let mut data = [0; 2];
     let count = get("BootCurrent", &mut data)?;
-    if count != 2 {
-        Err(Error::LoadError)
-    } else {
+    if count == 2 {
         Ok((data[0] as u16) | ((data[1] as u16) << 8))
+    } else {
+        Err(Error::LoadError)
+    }
+}
+
+pub fn get_boot_next() -> Result<u16> {
+    let mut data = [0; 2];
+    let count = get("BootNext", &mut data)?;
+    if count == 2 {
+        Ok((data[0] as u16) | ((data[1] as u16) << 8))
+    } else {
+        Err(Error::LoadError)
+    }
+}
+
+pub fn set_boot_next(num_opt: Option<u16>) -> Result<usize> {
+    if let Some(num) = num_opt {
+        set("BootNext", &[
+            num as u8,
+            (num >> 8) as u8
+        ])
+    } else {
+        set("BootNext", &[])
     }
 }
 

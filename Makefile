@@ -36,6 +36,7 @@ build/efi.img: build/iso/efi/boot/bootx64.efi res/*
 	mcopy -i $@.tmp -s build/iso/efi ::
 	mmd -i $@.tmp system76-firmware-update
 	mcopy -i $@.tmp -s res ::system76-firmware-update
+	mcopy -i $@.tmp -s firmware ::system76-firmware-update
 	mv $@.tmp $@
 
 build/boot.iso: build/iso/efi/boot/bootx64.efi

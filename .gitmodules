@@ -14,3 +14,6 @@
 	path = uefi_alloc
 	url = https://github.com/redox-os/uefi_alloc.git
 	branch = master
+[submodule "ecflash"]
+	path = ecflash
+	url = https://github.com/system76/ecflash.git
