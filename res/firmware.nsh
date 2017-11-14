@@ -106,5 +106,23 @@ if "%1" == "me" then
     exit 1
 endif
 
+if "%1" == "me_clean" then
+    if "%2" == "flash" then
+        if exist meset.tag then
+            rm meset.tag
+            fpt.efi -F "%BASEDIR%\me_clean.rom" -P "%BASEDIR%\fparts.txt"
+            exit %lasterror%
+        else
+            echo > meset.tag
+            meset.efi
+            stall 10000000
+            exit 1
+        endif
+    endif
+
+    echo "me_clean: unknown subcommand '%2'"
+    exit 1
+endif
+
 echo "unknown command '%1'"
 exit 1

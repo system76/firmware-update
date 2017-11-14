@@ -27,7 +27,7 @@ impl Component for MeComponent {
 
     fn path(&self) -> &str {
         if self.clean {
-            "\\system76-firmware-update\\firmware\\meclean.rom"
+            "\\system76-firmware-update\\firmware\\me_clean.rom"
         } else {
             "\\system76-firmware-update\\firmware\\me.rom"
         }
@@ -47,7 +47,7 @@ impl Component for MeComponent {
         find("\\system76-firmware-update\\res\\firmware.nsh")?;
 
         let status = if self.clean {
-            shell("\\system76-firmware-update\\res\\firmware.nsh meclean flash")?
+            shell("\\system76-firmware-update\\res\\firmware.nsh me_clean flash")?
         } else {
             shell("\\system76-firmware-update\\res\\firmware.nsh me flash")?
         };
