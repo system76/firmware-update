@@ -31,12 +31,12 @@ enum ValidateKind {
 
 fn components_validations() -> (Vec<Box<Component>>, Vec<ValidateKind>) {
     let components: Vec<Box<Component>> = vec![
-        Box::new(MeComponent::new()),
+        Box::new(MeComponent::new(false)),
         Box::new(BiosComponent::new()),
         Box::new(EcComponent::new(true)),
         Box::new(EcComponent::new(false)),
     ];
-    
+
     let validations: Vec<ValidateKind> = components.iter().map(|component| {
         let loading = "Loading";
 
@@ -70,19 +70,19 @@ fn components_validations() -> (Vec<Box<Component>>, Vec<ValidateKind>) {
 
         ret
     }).collect();
-    
+
     (components, validations)
 }
 
 fn inner() -> Result<()> {
     let option = get_boot_current()?;
     println!("Booting from item {:>04X}", option);
-    
+
     set_boot_next(Some(option))?;
     println!("Set boot override to {:>04X}", option);
-    
+
     let (components, validations) = components_validations();
-        
+
     if validations.iter().any(|v| *v != ValidateKind::Found && *v != ValidateKind::NotFound) {
         println!("! Errors were found !");
     } else if ! validations.iter().any(|v| *v == ValidateKind::Found) {
@@ -92,7 +92,7 @@ fn inner() -> Result<()> {
         let c = wait_key()?;
         if c == '\n' || c == '\r' {
             let mut success = true;
-        
+
             for (component, validation) in components.iter().zip(validations.iter()) {
                 if *validation == ValidateKind::Found {
                     match component.flash() {
@@ -107,7 +107,7 @@ fn inner() -> Result<()> {
                     }
                 }
             }
-            
+
 
             if success {
                 println!("* All updates applied successfully *");
@@ -118,16 +118,16 @@ fn inner() -> Result<()> {
             println!("! Not applying updates !");
         }
     }
-    
+
     if let Ok(next) = get_boot_next() {
         println!("Found boot override {:>04X}", next);
-        
+
         set_boot_next(None)?;
         println!("Removed boot override");
     } else {
         println!("Already removed boot override");
     }
-    
+
     if get_boot_item(option).is_ok() {
         println!("Found boot option {:>04X}", option);
 

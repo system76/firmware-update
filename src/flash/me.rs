@@ -2,34 +2,55 @@ use uefi::status::{Error, Result};
 
 use exec::shell;
 use flash::Component;
-use fs::find;
+use fs::{find, load};
 
-pub struct MeComponent;
+pub struct MeComponent {
+    clean: bool
+}
 
 impl MeComponent {
-    pub fn new() -> MeComponent {
-        MeComponent
+    pub fn new(clean: bool) -> MeComponent {
+        MeComponent {
+            clean: clean
+        }
     }
 }
 
 impl Component for MeComponent {
     fn name(&self) -> &str {
-        "ME"
+        if self.clean {
+            "MECLEAN"
+        } else {
+            "ME"
+        }
     }
-    
+
     fn path(&self) -> &str {
-        "\\system76-firmware-update\\firmware\\me.rom"
+        if self.clean {
+            "\\system76-firmware-update\\firmware\\meclean.rom"
+        } else {
+            "\\system76-firmware-update\\firmware\\me.rom"
+        }
     }
-    
+
     fn validate(&self) -> Result<bool> {
-        //TODO
-        Ok(true)
+        //TODO: Better validation
+        let data = load(self.path())?;
+        if data.len() == 2048 * 1024 {
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     }
-    
+
     fn flash(&self) -> Result<()> {
         find("\\system76-firmware-update\\res\\firmware.nsh")?;
 
-        let status = shell("\\system76-firmware-update\\res\\firmware.nsh me flash")?;
+        let status = if self.clean {
+            shell("\\system76-firmware-update\\res\\firmware.nsh meclean flash")?
+        } else {
+            shell("\\system76-firmware-update\\res\\firmware.nsh me flash")?
+        };
         if status != 0 {
             println!("{} Flash Error: {}", self.name(), status);
             return Err(Error::DeviceError);
