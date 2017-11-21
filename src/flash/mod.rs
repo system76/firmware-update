@@ -5,6 +5,7 @@ use uefi::status::{Error, Result};
 
 use display::{Display, Output};
 use fs::load;
+use hw::EcMem;
 use image::{self, Image};
 use io::wait_key;
 use proto::Protocol;
@@ -144,6 +145,8 @@ fn inner() -> Result<()> {
 }
 
 pub fn main() -> Result<()> {
+    let uefi = unsafe { &mut *::UEFI };
+
     let mut display = {
         let output = Output::one()?;
 
@@ -194,7 +197,7 @@ pub fn main() -> Result<()> {
         }
 
         {
-            let prompt = "Firmware Updater";
+            let prompt = concat!("Firmware Updater ", env!("CARGO_PKG_VERSION"));
             let mut x = (display.width() as i32 - prompt.len() as i32 * 8)/2;
             let y = display.height() as i32 - 64;
             for c in prompt.chars() {
@@ -208,12 +211,32 @@ pub fn main() -> Result<()> {
             let mut x = (display.width() as i32 - prompt.len() as i32 * 8)/2;
             let y = display.height() as i32 - 32;
             for c in prompt.chars() {
-                display.char(x, y, c, Color::rgb(0xff, 0, 0));
+                display.char(x, y, c, Color::rgb(0xff, 0xff, 0xff));
                 x += 8;
             }
         }
 
         display.sync();
+    }
+
+    let ec_mem = unsafe { EcMem::new() };
+
+    if ! unsafe { ec_mem.adp() } {
+        {
+            let prompt = "Connect your power adapter!";
+            let mut x = (display.width() as i32 - prompt.len() as i32 * 8)/2;
+            let y = (display.height() as i32 - 16)/2;
+            for c in prompt.chars() {
+                display.char(x, y, c, Color::rgb(0xff, 0xff, 0xff));
+                x += 8;
+            }
+        }
+
+        display.sync();
+
+        while ! unsafe { ec_mem.adp() } {
+            let _ = (uefi.BootServices.Stall)(1000);
+        }
     }
 
     {

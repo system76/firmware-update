@@ -3,6 +3,7 @@
 #![feature(asm)]
 #![feature(compiler_builtins_lib)]
 #![feature(const_fn)]
+#![feature(core_intrinsics)]
 #![feature(global_allocator)]
 #![feature(lang_items)]
 #![feature(try_trait)]
@@ -32,9 +33,9 @@ mod macros;
 
 pub mod display;
 pub mod exec;
-pub mod externs;
 pub mod flash;
 pub mod fs;
+pub mod hw;
 pub mod image;
 pub mod io;
 pub mod loaded_image;

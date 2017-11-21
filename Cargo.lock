@@ -11,7 +11,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "compiler_builtins"
 version = "0.1.0"
-source = "git+https://github.com/rust-lang-nursery/compiler-builtins#bb2c81b700440f3b1d8a9544d3d33f5454a730f7"
+source = "git+https://github.com/rust-lang-nursery/compiler-builtins#02b3734a5ba6de984eb5a02c50860cc014e58d56"
 
 [[package]]
 name = "csv"
@@ -209,7 +209,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "system76_firmware_update"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "compiler_builtins 0.1.0 (git+https://github.com/rust-lang-nursery/compiler-builtins)",
  "dmi 0.1.0",
