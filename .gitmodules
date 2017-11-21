@@ -17,3 +17,4 @@
 [submodule "ecflash"]
 	path = ecflash
 	url = https://github.com/system76/ecflash.git
+	branch = master
