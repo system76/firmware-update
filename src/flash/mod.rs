@@ -41,6 +41,11 @@ fn components_validations() -> (Vec<Box<Component>>, Vec<ValidateKind>) {
     let validations: Vec<ValidateKind> = components.iter().map(|component| {
         let loading = "Loading";
 
+        let current_version = component.version();
+        if ! current_version.is_empty() {
+            println!("{}: Currently {}", component.name(), current_version);
+        }
+
         print!("{}: {}", component.name(), loading);
 
         let ret =  match component.validate() {

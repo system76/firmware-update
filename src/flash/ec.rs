@@ -1,4 +1,4 @@
-use alloc::vec::Vec;
+use alloc::{String, Vec};
 use ecflash::{Ec, EcFile, EcFlash};
 use uefi::status::{Error, Result};
 
@@ -7,16 +7,29 @@ use flash::Component;
 use fs::{find, load};
 
 pub struct EcComponent {
-    master: bool
+    master: bool,
+    model: String,
+    version: String,
 }
 
 impl EcComponent {
     pub fn new(master: bool) -> EcComponent {
+        let mut model = String::new();
+        let mut version = String::new();
+
+        if let Ok(mut ec) = EcFlash::new(master) {
+            model = ec.project();
+            version = ec.version();
+        }
+
+
         EcComponent {
-            master: master
+            master: master,
+            model: model,
+            version: version,
         }
     }
-    
+
     pub fn validate_data(&self, data: Vec<u8>) -> bool {
         match EcFlash::new(self.master).map(|mut ec| ec.project()) {
             Ok(project) => {
@@ -41,7 +54,7 @@ impl Component for EcComponent {
             "EC2"
         }
     }
-    
+
     fn path(&self) -> &str {
         if self.master {
             "\\system76-firmware-update\\firmware\\ec.rom"
@@ -49,12 +62,20 @@ impl Component for EcComponent {
             "\\system76-firmware-update\\firmware\\ec2.rom"
         }
     }
-    
+
+    fn model(&self) -> &str {
+        &self.model
+    }
+
+    fn version(&self) -> &str {
+        &self.version
+    }
+
     fn validate(&self) -> Result<bool> {
         let data = load(self.path())?;
         Ok(self.validate_data(data))
     }
-    
+
     fn flash(&self) -> Result<()> {
         find("\\system76-firmware-update\\res\\firmware.nsh")?;
 

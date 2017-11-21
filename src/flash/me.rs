@@ -33,6 +33,14 @@ impl Component for MeComponent {
         }
     }
 
+    fn model(&self) -> &str {
+        ""
+    }
+
+    fn version(&self) -> &str {
+        ""
+    }
+
     fn validate(&self) -> Result<bool> {
         //TODO: Better validation
         let data = load(self.path())?;
