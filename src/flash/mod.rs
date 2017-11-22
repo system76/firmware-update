@@ -15,7 +15,7 @@ use vars::{get_boot_current, get_boot_next, set_boot_next, get_boot_item, set_bo
 pub use self::bios::BiosComponent;
 pub use self::component::Component;
 pub use self::ec::EcComponent;
-//pub use self::me::MeComponent;
+pub use self::me::MeComponent;
 
 mod bios;
 mod component;
@@ -32,7 +32,7 @@ enum ValidateKind {
 
 fn components_validations() -> (Vec<Box<Component>>, Vec<ValidateKind>) {
     let components: Vec<Box<Component>> = vec![
-        //Box::new(MeComponent::new(false)),
+        Box::new(MeComponent::new(false)),
         Box::new(BiosComponent::new()),
         Box::new(EcComponent::new(true)),
         Box::new(EcComponent::new(false)),
