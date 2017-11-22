@@ -1,7 +1,9 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
+use core::ptr;
 use orbclient::{Color, Renderer};
-use uefi::status::{Error, Result};
+use uefi::reset::ResetType;
+use uefi::status::{Error, Result, Status};
 
 use display::{Display, Output};
 use fs::load;
@@ -81,6 +83,8 @@ fn components_validations() -> (Vec<Box<Component>>, Vec<ValidateKind>) {
 }
 
 fn inner() -> Result<()> {
+    let mut shutdown = false;
+
     let option = get_boot_current()?;
     println!("Booting from item {:>04X}", option);
 
@@ -117,6 +121,7 @@ fn inner() -> Result<()> {
 
             if success {
                 println!("* All updates applied successfully *");
+                shutdown = true;
             } else {
                 println!("! Failed to apply updates !");
             }
@@ -143,8 +148,17 @@ fn inner() -> Result<()> {
         println!("Already removed boot option {:>04X}", option);
     }
 
-    println!("Press any key to restart...");
-    wait_key()?;
+    if shutdown {
+        println!("Press any key to shutdown...");
+        wait_key()?;
+
+        unsafe {
+            ((&mut *::UEFI).RuntimeServices.ResetSystem)(ResetType::Shutdown, Status(0), 0, ptr::null());
+        }
+    } else {
+        println!("Press any key to restart...");
+        wait_key()?;
+    }
 
     Ok(())
 }
