@@ -66,18 +66,14 @@ impl Component for BiosComponent {
     }
 
     fn validate(&self) -> Result<bool> {
+        find("\\system76-firmware-update\\res\\firmware.nsh")?;
+
         let status = shell("\\system76-firmware-update\\res\\firmware.nsh bios verify > nul")?;
         Ok(status == 0)
     }
 
     fn flash(&self) -> Result<()> {
         find("\\system76-firmware-update\\res\\firmware.nsh")?;
-
-        let status = shell("\\system76-firmware-update\\res\\firmware.nsh bios verify")?;
-        if status != 0 {
-            println!("{} Verify Error: {}", self.name(), status);
-            return Err(Error::DeviceError);
-        }
 
         let status = shell("\\system76-firmware-update\\res\\firmware.nsh bios flash")?;
         if status != 0 {
