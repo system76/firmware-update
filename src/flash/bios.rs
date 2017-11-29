@@ -5,12 +5,12 @@ use plain::Plain;
 use uefi::status::{Error, Result};
 
 use exec::shell;
-use flash::{Component, EcComponent};
+use flash::Component;
 use fs::find;
 use hw;
+use null;
 
 pub struct BiosComponent {
-    ec: EcComponent,
     model: String,
     version: String,
 }
@@ -43,7 +43,6 @@ impl BiosComponent {
         }
 
         BiosComponent {
-            ec: EcComponent::new(true),
             model: model,
             version: version,
         }
@@ -68,16 +67,10 @@ impl Component for BiosComponent {
     }
 
     fn validate(&self) -> Result<bool> {
-        let (_i, mut file) = find(self.path())?;
-
-        let mut data = vec![0; 128 * 1024];
-        let count = file.read(&mut data)?;
-
-        if count == data.len() {
-            Ok(self.ec.validate_data(data))
-        } else {
-            Ok(false)
-        }
+        let status = null::pipe(|| -> Result<usize> {
+            shell("\\system76-firmware-update\\res\\firmware.nsh bios verify")
+        })?;
+        Ok(status == 0)
     }
 
     fn flash(&self) -> Result<()> {

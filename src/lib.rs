@@ -39,6 +39,7 @@ pub mod hw;
 pub mod image;
 pub mod io;
 pub mod loaded_image;
+pub mod null;
 pub mod panic;
 pub mod pointer;
 pub mod proto;
