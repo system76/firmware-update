@@ -8,7 +8,6 @@ use exec::shell;
 use flash::Component;
 use fs::find;
 use hw;
-use null;
 
 pub struct BiosComponent {
     model: String,
@@ -67,9 +66,7 @@ impl Component for BiosComponent {
     }
 
     fn validate(&self) -> Result<bool> {
-        let status = null::pipe(|| -> Result<usize> {
-            shell("\\system76-firmware-update\\res\\firmware.nsh bios verify")
-        })?;
+        let status = shell("\\system76-firmware-update\\res\\firmware.nsh bios verify > nul")?;
         Ok(status == 0)
     }
 

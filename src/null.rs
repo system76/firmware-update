@@ -7,8 +7,6 @@ use uefi::guid::SIMPLE_TEXT_OUTPUT_GUID;
 use uefi::status::{Result, Status};
 use uefi::text::TextOutputMode;
 
-use proto::Protocol;
-
 #[repr(C)]
 #[allow(non_snake_case)]
 pub struct NullDisplay {
@@ -38,7 +36,7 @@ extern "win64" fn test_string(_output: &mut NullDisplay, _string: *const u16) ->
     Status(0)
 }
 
-extern "win64" fn query_mode(output: &mut NullDisplay, _mode: usize, columns: &mut usize, rows: &mut usize) -> Status {
+extern "win64" fn query_mode(_output: &mut NullDisplay, _mode: usize, columns: &mut usize, rows: &mut usize) -> Status {
     *columns = 80;
     *rows = 30;
     Status(0)
@@ -53,7 +51,7 @@ extern "win64" fn set_attribute(output: &mut NullDisplay, attribute: usize) -> S
     Status(0)
 }
 
-extern "win64" fn clear_screen(output: &mut NullDisplay) -> Status {
+extern "win64" fn clear_screen(_output: &mut NullDisplay) -> Status {
     Status(0)
 }
 
