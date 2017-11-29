@@ -85,9 +85,9 @@ impl Component for EcComponent {
             "\\system76-firmware-update\\res\\firmware.nsh ec2 flash"
         };
 
-        let (e_p, _e_v, e_s) = match EcFlash::new(self.master) {
+        let (e_p, _e_v) = match EcFlash::new(self.master) {
             Ok(mut ec) => {
-                (ec.project(), ec.version(), ec.size())
+                (ec.project(), ec.version())
             },
             Err(err) => {
                 println!("{} Open Error: {}", self.name(), err);
@@ -95,18 +95,13 @@ impl Component for EcComponent {
             }
         };
 
-        let (f_p, _f_v, f_s) = {
+        let (f_p, _f_v) = {
             let mut file = EcFile::new(load(self.path())?);
-            (file.project(), file.version(), file.size())
+            (file.project(), file.version())
         };
 
         if e_p != f_p {
             println!("{} Project Mismatch", self.name());
-            return Err(Error::DeviceError);
-        }
-
-        if e_s != f_s {
-            println!("{} Size Mismatch", self.name());
             return Err(Error::DeviceError);
         }
 
