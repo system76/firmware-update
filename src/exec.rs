@@ -6,47 +6,49 @@ use loaded_image::LoadedImage;
 use proto::Protocol;
 use string::wstr;
 
-pub fn exec(args: &[&str]) -> Result<usize> {
+pub fn exec_data(data: &[u8], name: &str, args: &[&str]) -> Result<usize> {
     let handle = unsafe { ::HANDLE };
     let uefi = unsafe { &mut *::UEFI };
 
-    if args.len() == 0 {
-        return Err(Error::NotFound);
-    }
+    let mut image_handle = Handle(0);
+    (uefi.BootServices.LoadImage)(false, handle, 0, data.as_ptr(), data.len(), &mut image_handle)?;
 
-    let mut cmdline = format!("\"{}\"", args[0]);
-    for arg in args.iter().skip(1) {
+    let mut cmdline = format!("\"{}\"", name);
+    for arg in args.iter() {
         cmdline.push_str(" \"");
         cmdline.push_str(arg);
         cmdline.push_str("\"");
     }
+    cmdline.push('\0');
 
     let wcmdline = wstr(&cmdline);
 
-    let data = load(args[0])?;
-
-    let mut shell_handle = Handle(0);
-    (uefi.BootServices.LoadImage)(false, handle, 0, data.as_ptr(), data.len(), &mut shell_handle)?;
-
-    if let Ok(loaded_image) = LoadedImage::handle_protocol(shell_handle) {
+    if let Ok(loaded_image) = LoadedImage::handle_protocol(image_handle) {
         loaded_image.0.LoadOptionsSize = (wcmdline.len() as u32) * 2;
         loaded_image.0.LoadOptions = wcmdline.as_ptr();
     }
 
     let mut exit_size = 0;
     let mut exit_ptr = ::core::ptr::null_mut();
-    let ret = (uefi.BootServices.StartImage)(shell_handle, &mut exit_size, &mut exit_ptr)?;
+    let ret = (uefi.BootServices.StartImage)(image_handle, &mut exit_size, &mut exit_ptr)?;
 
     Ok(ret)
 }
 
+pub fn exec_path(path: &str, args: &[&str]) -> Result<usize> {
+    let data = load(path)?;
+    exec_data(&data, path, args)
+}
+
 pub fn shell(cmd: &str) -> Result<usize> {
-    exec(&[
+    exec_path(
         "\\system76-firmware-update\\res\\shell.efi",
-        "-nointerrupt",
-        "-nomap",
-        "-nostartup",
-        "-noversion",
-        cmd
-    ])
+        &[
+            "-nointerrupt",
+            "-nomap",
+            "-nostartup",
+            "-noversion",
+            cmd
+        ]
+    )
 }
