@@ -1,5 +1,5 @@
 use uefi::Handle;
-use uefi::status::{Error, Result};
+use uefi::status::Result;
 
 use fs::load;
 use loaded_image::LoadedImage;
