@@ -54,7 +54,7 @@ if "%1" == "bios" then
         if exist bios.nsh then
             bios.nsh
         else
-            afuefi.efi bios.rom /B /N /P /Q
+            afuefi.efi bios.rom /B /N /P
         endif
         exit %lasterror%
     endif
