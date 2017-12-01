@@ -101,6 +101,8 @@ fn inner() -> Result<()> {
         println!("Press enter to commence flashing...");
         let c = wait_key()?;
         if c == '\n' || c == '\r' {
+            shutdown = true;
+
             let mut success = true;
 
             for (component, validation) in components.iter().zip(validations.iter()) {
@@ -121,7 +123,6 @@ fn inner() -> Result<()> {
 
             if success {
                 println!("* All updates applied successfully *");
-                shutdown = true;
             } else {
                 println!("! Failed to apply updates !");
             }
