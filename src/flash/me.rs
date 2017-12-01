@@ -9,9 +9,9 @@ pub struct MeComponent {
 }
 
 impl MeComponent {
-    pub fn new(clean: bool) -> MeComponent {
+    pub fn new() -> MeComponent {
         MeComponent {
-            clean: clean
+            clean: find("\\system76-firmware-update\\firmware\\me_clean.rom").is_ok()
         }
     }
 }

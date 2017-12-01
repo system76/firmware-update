@@ -34,7 +34,7 @@ enum ValidateKind {
 
 fn components_validations() -> (Vec<Box<Component>>, Vec<ValidateKind>) {
     let components: Vec<Box<Component>> = vec![
-        Box::new(MeComponent::new(false)),
+        Box::new(MeComponent::new()),
         Box::new(BiosComponent::new()),
         Box::new(EcComponent::new(true)),
         Box::new(EcComponent::new(false)),
