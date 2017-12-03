@@ -6,7 +6,7 @@ use uefi::reset::ResetType;
 use uefi::status::{Error, Result, Status};
 
 use display::{Display, Output};
-use fs::load;
+use fs::{find, load};
 use hw::EcMem;
 use image::{self, Image};
 use io::wait_key;
@@ -17,12 +17,14 @@ use vars::{get_boot_current, get_boot_next, set_boot_next, get_boot_item, set_bo
 pub use self::bios::BiosComponent;
 pub use self::component::Component;
 pub use self::ec::EcComponent;
-pub use self::me::MeComponent;
 
 mod bios;
 mod component;
 mod ec;
-mod me;
+
+fn ac_connected() -> bool {
+    unsafe { EcMem::new().adp() }
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum ValidateKind {
@@ -34,7 +36,6 @@ enum ValidateKind {
 
 fn components_validations() -> (Vec<Box<Component>>, Vec<ValidateKind>) {
     let components: Vec<Box<Component>> = vec![
-        Box::new(MeComponent::new()),
         Box::new(BiosComponent::new()),
         Box::new(EcComponent::new(true)),
         Box::new(EcComponent::new(false)),
@@ -98,8 +99,14 @@ fn inner() -> Result<()> {
     } else if ! validations.iter().any(|v| *v == ValidateKind::Found) {
         println!("* No updates were found *");
     } else {
-        println!("Press enter to commence flashing...");
-        let c = wait_key()?;
+        // Skip enter if in manufacturing mode
+        let c = if find("\\system76-firmware-update\\firmware\\meset.tag").is_ok() {
+            '\n'
+        } else {
+            println!("Press enter to commence flashing, the system may reboot...");
+            wait_key()?
+        };
+
         if c == '\n' || c == '\r' {
             shutdown = true;
 
@@ -239,9 +246,7 @@ pub fn main() -> Result<()> {
         display.sync();
     }
 
-    let ec_mem = unsafe { EcMem::new() };
-
-    if ! unsafe { ec_mem.adp() } {
+    if ! ac_connected() {
         {
             let prompt = "Connect your power adapter!";
             let mut x = (display.width() as i32 - prompt.len() as i32 * 8)/2;
@@ -254,7 +259,7 @@ pub fn main() -> Result<()> {
 
         display.sync();
 
-        while ! unsafe { ec_mem.adp() } {
+        while ! ac_connected() {
             let _ = (uefi.BootServices.Stall)(1000);
         }
     }

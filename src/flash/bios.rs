@@ -6,7 +6,7 @@ use uefi::status::{Error, Result};
 
 use exec::shell;
 use flash::Component;
-use fs::find;
+use fs::{find, load};
 use hw;
 
 pub struct BiosComponent {
@@ -54,7 +54,7 @@ impl Component for BiosComponent {
     }
 
     fn path(&self) -> &str {
-        "\\system76-firmware-update\\firmware\\bios.rom"
+        "\\system76-firmware-update\\firmware\\firmware.rom"
     }
 
     fn model(&self) -> &str {
@@ -66,10 +66,8 @@ impl Component for BiosComponent {
     }
 
     fn validate(&self) -> Result<bool> {
-        find("\\system76-firmware-update\\res\\firmware.nsh")?;
-
-        let status = shell("\\system76-firmware-update\\res\\firmware.nsh bios verify > nul")?;
-        Ok(status == 0)
+        let data = load(self.path())?;
+        Ok(data.len() == 8 * 1024 * 1024)
     }
 
     fn flash(&self) -> Result<()> {

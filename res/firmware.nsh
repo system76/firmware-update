@@ -51,17 +51,16 @@ cd "%BASEDIR%"
 
 if "%1" == "bios" then
     if "%2" == "flash" then
-        if exist bios.nsh then
-            bios.nsh
+        if exist meset.tag then
+            rm meset.tag
+            fpt.efi -P "%BASEDIR%\fparts.txt" -F "%BASEDIR%\firmware.rom"
+            exit %lasterror%
         else
-            afuefi.efi bios.rom /B /N /P
+            echo > meset.tag
+            meset.efi
+            stall 10000000
+            exit 1
         endif
-        exit %lasterror%
-    endif
-
-    if "%2" == "verify" then
-        afuefi.efi bios.rom /D /Q
-        exit %lasterror%
     endif
 
     echo "bios: unknown subcommand '%2'"
@@ -85,42 +84,6 @@ if "%1" == "ec2" then
     endif
 
     echo "ec2: unknown subcommand '%2'"
-    exit 1
-endif
-
-if "%1" == "me" then
-    if "%2" == "flash" then
-        if exist meset.tag then
-            rm meset.tag
-            fpt.efi -F "%BASEDIR%\me.rom" -P "%BASEDIR%\fparts.txt"
-            exit %lasterror%
-        else
-            echo > meset.tag
-            meset.efi
-            stall 10000000
-            exit 1
-        endif
-    endif
-
-    echo "me: unknown subcommand '%2'"
-    exit 1
-endif
-
-if "%1" == "me_clean" then
-    if "%2" == "flash" then
-        if exist meset.tag then
-            rm meset.tag
-            fpt.efi -F "%BASEDIR%\me_clean.rom" -P "%BASEDIR%\fparts.txt"
-            exit %lasterror%
-        else
-            echo > meset.tag
-            meset.efi
-            stall 10000000
-            exit 1
-        endif
-    endif
-
-    echo "me_clean: unknown subcommand '%2'"
     exit 1
 endif
 
