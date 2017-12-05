@@ -63,7 +63,7 @@ build/boot.efi: build/boot.o $(LD)
 		--stack 0,0 \
 		--pic-executable \
 		--entry _start \
-                --no-insert-timestamp \
+		--no-insert-timestamp \
 		$< -o $@
 
 build/boot.o: build/boot.a
