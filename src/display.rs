@@ -24,7 +24,8 @@ pub struct Display {
     scale: u32,
     w: u32,
     h: u32,
-    data: Box<[Color]>
+    data: Box<[Color]>,
+    font: &'static [u8],
 }
 
 impl Display {
@@ -41,7 +42,8 @@ impl Display {
             scale: scale,
             w: w,
             h: h,
-            data: vec![Color::rgb(0, 0, 0); w as usize * h as usize].into_boxed_slice()
+            data: vec![Color::rgb(0, 0, 0); w as usize * h as usize].into_boxed_slice(),
+            font: include_bytes!("../orbclient/res/unifont.font"),
         }
     }
 
@@ -181,6 +183,27 @@ impl Renderer for Display {
 
     fn pixel(&mut self, x: i32, y: i32, color: Color) {
         self.rect(x, y, 1, 1, color);
+    }
+
+    /// Draw a character, using the loaded font
+    fn char(&mut self, x: i32, y: i32, c: char, color: Color) {
+        let mut offset = (c as usize) * 16;
+        for row in 0..16 {
+            let row_data;
+            if offset < self.font.len() {
+                row_data = self.font[offset];
+            } else {
+                row_data = 0;
+            }
+
+            for col in 0..8 {
+                let pixel = (row_data >> (7 - col)) & 1;
+                if pixel > 0 {
+                    self.pixel(x + col as i32, y + row as i32, color);
+                }
+            }
+            offset += 1;
+        }
     }
 
     fn rect(&mut self, x: i32, y: i32, w: u32, h: u32, color: Color) {
