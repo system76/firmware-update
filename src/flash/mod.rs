@@ -12,7 +12,12 @@ use image::{self, Image};
 use io::wait_key;
 use proto::Protocol;
 use text::TextDisplay;
-use vars::{get_boot_current, get_boot_next, set_boot_next, get_boot_item, set_boot_item};
+use vars::{
+    get_boot_current,
+    get_boot_next, set_boot_next,
+    get_boot_item, set_boot_item,
+    get_os_indications, set_os_indications,
+    get_os_indications_supported};
 
 pub use self::bios::BiosComponent;
 pub use self::component::Component;
@@ -129,6 +134,16 @@ fn inner() -> Result<()> {
 
 
             if success {
+                let supported = get_os_indications_supported().unwrap_or(0);
+                if supported & 1 == 1 {
+                    println!("Booting into BIOS setup on next boot");
+                    let mut indications = get_os_indications().unwrap_or(0);
+                    indications |= 1;
+                    set_os_indications(Some(indications))?;
+                } else {
+                    println!("Cannot boot into BIOS setup automatically");
+                }
+
                 println!("* All updates applied successfully *");
             } else {
                 println!("! Failed to apply updates !");
