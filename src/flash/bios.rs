@@ -4,8 +4,7 @@ use dmi;
 use plain::Plain;
 use uefi::status::{Error, Result};
 
-use exec::shell;
-use flash::Component;
+use flash::{FIRMWAREDIR, FIRMWARENSH, FIRMWAREROM, shell, Component};
 use fs::{find, load};
 use hw;
 
@@ -54,7 +53,7 @@ impl Component for BiosComponent {
     }
 
     fn path(&self) -> &str {
-        "\\system76-firmware-update\\firmware\\firmware.rom"
+        FIRMWAREROM
     }
 
     fn model(&self) -> &str {
@@ -71,9 +70,11 @@ impl Component for BiosComponent {
     }
 
     fn flash(&self) -> Result<()> {
-        find("\\system76-firmware-update\\res\\firmware.nsh")?;
+        find(FIRMWARENSH)?;
 
-        let status = shell("\\system76-firmware-update\\res\\firmware.nsh bios flash")?;
+        let cmd = format!("{} {} bios flash", FIRMWARENSH, FIRMWAREDIR);
+
+        let status = shell(&cmd)?;
         if status != 0 {
             println!("{} Flash Error: {}", self.name(), status);
             return Err(Error::DeviceError);

@@ -39,16 +39,3 @@ pub fn exec_path(path: &str, args: &[&str]) -> Result<usize> {
     let data = load(path)?;
     exec_data(&data, path, args)
 }
-
-pub fn shell(cmd: &str) -> Result<usize> {
-    exec_path(
-        "\\system76-firmware-update\\res\\shell.efi",
-        &[
-            "-nointerrupt",
-            "-nomap",
-            "-nostartup",
-            "-noversion",
-            cmd
-        ]
-    )
-}

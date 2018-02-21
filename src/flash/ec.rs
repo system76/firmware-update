@@ -2,8 +2,7 @@ use alloc::{String, Vec};
 use ecflash::{Ec, EcFile, EcFlash};
 use uefi::status::{Error, Result};
 
-use exec::shell;
-use flash::Component;
+use flash::{ECROM, EC2ROM, FIRMWAREDIR, FIRMWARENSH, shell, Component};
 use fs::{find, load};
 
 pub struct EcComponent {
@@ -57,9 +56,9 @@ impl Component for EcComponent {
 
     fn path(&self) -> &str {
         if self.master {
-            "\\system76-firmware-update\\firmware\\ec.rom"
+            ECROM
         } else {
-            "\\system76-firmware-update\\firmware\\ec2.rom"
+            EC2ROM
         }
     }
 
@@ -77,12 +76,12 @@ impl Component for EcComponent {
     }
 
     fn flash(&self) -> Result<()> {
-        find("\\system76-firmware-update\\res\\firmware.nsh")?;
+        find(FIRMWARENSH)?;
 
         let cmd = if self.master {
-            "\\system76-firmware-update\\res\\firmware.nsh ec flash"
+            format!("{} {} ec flash", FIRMWARENSH, FIRMWAREDIR)
         } else {
-            "\\system76-firmware-update\\res\\firmware.nsh ec2 flash"
+            format!("{} {} ec2 flash", FIRMWARENSH, FIRMWAREDIR)
         };
 
         let (e_p, _e_v) = match EcFlash::new(self.master) {
@@ -107,7 +106,7 @@ impl Component for EcComponent {
 
         // We could check e_v vs f_v to verify version, and not flash if up to date
         // Instead, we rely on the Linux side to determine when it is appropriate to flash
-        let status = shell(cmd)?;
+        let status = shell(&cmd)?;
         if status != 0 {
             println!("{} Flash Error: {}", self.name(), status);
             return Err(Error::DeviceError);

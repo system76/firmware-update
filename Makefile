@@ -1,3 +1,7 @@
+export BASEDIR?=system76-firmware-update
+
+BUILD=build/$(BASEDIR)
+
 TARGET=x86_64-efi-pe
 
 PREFIX=$(PWD)/prefix
@@ -8,7 +12,7 @@ export XARGO_HOME=$(PWD)/build/xargo
 CARGO=xargo
 CARGOFLAGS=--target $(TARGET) --release -- -C soft-float
 
-all: build/boot.img
+all: $(BUILD)/boot.img
 
 clean:
 	$(CARGO) clean
@@ -18,11 +22,10 @@ update:
 	git submodule update --init --recursive --remote
 	cargo update
 
-qemu: build/boot.img
-	qemu-system-x86_64 -enable-kvm -cpu kvm64 -m 1024 -net none -vga cirrus \
-		-monitor stdio -bios /usr/share/ovmf/OVMF.fd $<
+qemu: $(BUILD)/boot.img
+	kvm -m 1024 -net none -vga std -bios /usr/share/ovmf/OVMF.fd $<
 
-build/boot.img: build/efi.img
+$(BUILD)/boot.img: $(BUILD)/efi.img
 	dd if=/dev/zero of=$@.tmp bs=512 count=100352
 	parted $@.tmp -s -a minimal mklabel gpt
 	parted $@.tmp -s -a minimal mkpart EFI FAT16 2048s 93716s
@@ -30,22 +33,17 @@ build/boot.img: build/efi.img
 	dd if=$< of=$@.tmp bs=512 count=98304 seek=2048 conv=notrunc
 	mv $@.tmp $@
 
-build/efi.img: build/iso/efi/boot/bootx64.efi res/*
+$(BUILD)/efi.img: $(BUILD)/boot.efi res/*
 	dd if=/dev/zero of=$@.tmp bs=512 count=98304
 	mkfs.vfat $@.tmp
-	mcopy -i $@.tmp -s build/iso/efi ::
-	mmd -i $@.tmp system76-firmware-update
-	mcopy -i $@.tmp -s res ::system76-firmware-update
+	mmd -i $@.tmp efi
+	mmd -i $@.tmp efi/boot
+	mcopy -i $@.tmp $< ::efi/boot/bootx64.efi
+	mmd -i $@.tmp $(BASEDIR)
+	mcopy -i $@.tmp -s res ::$(BASEDIR)
 	mv $@.tmp $@
 
-build/boot.iso: build/iso/efi/boot/bootx64.efi
-	mkisofs -o $@ build/iso
-
-build/iso/efi/boot/bootx64.efi: build/boot.efi
-	mkdir -p `dirname $@`
-	cp $< $@
-
-build/boot.efi: build/boot.o $(LD)
+$(BUILD)/boot.efi: $(BUILD)/boot.o $(LD)
 	$(LD) \
 		--oformat pei-x86-64 \
 		--dll \
@@ -66,14 +64,14 @@ build/boot.efi: build/boot.o $(LD)
 		--no-insert-timestamp \
 		$< -o $@
 
-build/boot.o: build/boot.a
-	rm -rf build/boot
-	mkdir build/boot
-	cd build/boot && ar x ../boot.a
-	ld -r build/boot/*.o -o $@
+$(BUILD)/boot.o: $(BUILD)/boot.a
+	rm -rf $(BUILD)/boot
+	mkdir $(BUILD)/boot
+	cd $(BUILD)/boot && ar x ../boot.a
+	ld -r $(BUILD)/boot/*.o -o $@
 
-build/boot.a: Cargo.lock Cargo.toml src/* src/*/*
-	mkdir -p build
+$(BUILD)/boot.a: Cargo.lock Cargo.toml src/* src/*/*
+	mkdir -p $(BUILD)
 	$(CARGO) rustc --lib $(CARGOFLAGS) -C lto --emit link=$@
 
 BINUTILS=2.28.1

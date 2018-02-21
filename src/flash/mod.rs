@@ -6,6 +6,7 @@ use uefi::reset::ResetType;
 use uefi::status::{Error, Result, Status};
 
 use display::{Display, Output};
+use exec::exec_path;
 use fs::{find, load};
 use hw::EcMem;
 use image::{self, Image};
@@ -26,6 +27,28 @@ pub use self::ec::EcComponent;
 mod bios;
 mod component;
 mod ec;
+
+static ECROM: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\ec.rom");
+static EC2ROM: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\ec2.rom");
+static FIRMWAREDIR: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware");
+static FIRMWARENSH: &'static str = concat!("\\", env!("BASEDIR"), "\\res\\firmware.nsh");
+static FIRMWAREROM: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\firmware.rom");
+static MESETTAG: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\meset.tag");
+static SHELLEFI: &'static str = concat!("\\", env!("BASEDIR"), "\\res\\shell.efi");
+static SPLASHBMP: &'static str = concat!("\\", env!("BASEDIR"), "\\res\\splash.bmp");
+
+fn shell(cmd: &str) -> Result<usize> {
+    exec_path(
+        SHELLEFI,
+        &[
+            "-nointerrupt",
+            "-nomap",
+            "-nostartup",
+            "-noversion",
+            cmd
+        ]
+    )
+}
 
 fn ac_connected() -> bool {
     unsafe { EcMem::new().adp() }
@@ -105,7 +128,7 @@ fn inner() -> Result<()> {
         println!("* No updates were found *");
     } else {
         // Skip enter if in manufacturing mode
-        let c = if find("\\system76-firmware-update\\firmware\\meset.tag").is_ok() {
+        let c = if find(MESETTAG).is_ok() {
             '\n'
         } else {
             println!("Press enter to commence flashing, the system may reboot...");
@@ -219,7 +242,7 @@ pub fn main() -> Result<()> {
     let mut splash = Image::new(0, 0);
     {
         println!("Loading Splash...");
-        if let Ok(data) = load("\\system76-firmware-update\\res\\splash.bmp") {
+        if let Ok(data) = load(SPLASHBMP) {
             if let Ok(image) = image::bmp::parse(&data) {
                 splash = image;
             }

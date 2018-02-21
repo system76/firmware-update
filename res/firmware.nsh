@@ -1,59 +1,57 @@
 @echo -off
 
-set BASEDIR \system76-firmware-update\firmware
-
-if exist "fs0:%BASEDIR%" then
+if exist "fs0:%1" then
     fs0:
 endif
 
-if exist "fs1:%BASEDIR%" then
+if exist "fs1:%1" then
     fs1:
 endif
 
-if exist "fs2:%BASEDIR%" then
+if exist "fs2:%1" then
     fs2:
 endif
 
-if exist "fs3:%BASEDIR%" then
+if exist "fs3:%1" then
     fs3:
 endif
 
-if exist "fs4:%BASEDIR%" then
+if exist "fs4:%1" then
     fs4:
 endif
 
-if exist "fs5:%BASEDIR%" then
+if exist "fs5:%1" then
     fs5:
 endif
 
-if exist "fs6:%BASEDIR%" then
+if exist "fs6:%1" then
     fs6:
 endif
 
-if exist "fs7:%BASEDIR%" then
+if exist "fs7:%1" then
     fs7:
 endif
 
-if exist "fs8:%BASEDIR%" then
+if exist "fs8:%1" then
     fs8:
 endif
 
-if exist "fs9:%BASEDIR%" then
+if exist "fs9:%1" then
     fs9:
 endif
 
-if not exist "%BASEDIR%" then
-    echo "Did not find %BASEDIR%"
+if not exist "%1" then
+    echo "Did not find %1"
     exit 1
 endif
 
-cd "%BASEDIR%"
+cd "%1"
 
-if "%1" == "bios" then
-    if "%2" == "flash" then
+if "%2" == "bios" then
+    if "%3" == "flash" then
         if exist meset.tag then
             rm meset.tag
-            fpt.efi -P "%BASEDIR%\fparts.txt" -F "%BASEDIR%\firmware.rom"
+            fpt.efi -P "%1\fparts.txt" -F "%1\firmware.rom"
             exit %lasterror%
         else
             echo > meset.tag
@@ -63,29 +61,29 @@ if "%1" == "bios" then
         endif
     endif
 
-    echo "bios: unknown subcommand '%2'"
+    echo "bios: unknown subcommand '%3'"
     exit 1
 endif
 
-if "%1" == "ec" then
-    if "%2" == "flash" then
+if "%2" == "ec" then
+    if "%3" == "flash" then
         uecflash.efi ec.rom /AD /F2 /P
         exit %lasterror%
     endif
 
-    echo "ec: unknown subcommand '%2'"
+    echo "ec: unknown subcommand '%3'"
     exit 1
 endif
 
-if "%1" == "ec2" then
-    if "%2" == "flash" then
+if "%2" == "ec2" then
+    if "%3" == "flash" then
         uecflash.efi ec2.rom /AD /O2 /P
         exit %lasterror%
     endif
 
-    echo "ec2: unknown subcommand '%2'"
+    echo "ec2: unknown subcommand '%3'"
     exit 1
 endif
 
-echo "unknown command '%1'"
+echo "unknown command '%2'"
 exit 1
