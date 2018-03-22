@@ -55,6 +55,11 @@ if "%2" == "bios" then
             exit %lasterror%
         else
             echo > meset.tag
+            if not exist meset.tag then
+                echo "failed to create meset.tag"
+                exit 1
+            endif
+
             meset.efi
             stall 10000000
             exit 1
