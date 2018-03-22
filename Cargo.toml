@@ -1,6 +1,6 @@
 [package]
 name = "system76_firmware_update"
-version = "0.2.0"
+version = "0.2.1"
 
 [lib]
 name = "system76_firmware_update"
