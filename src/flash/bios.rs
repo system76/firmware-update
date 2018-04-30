@@ -66,7 +66,7 @@ impl Component for BiosComponent {
 
     fn validate(&self) -> Result<bool> {
         let data = load(self.path())?;
-        Ok(data.len() == 8 * 1024 * 1024)
+        Ok(data.len() == 8 * 1024 * 1024 || data.len() == 16 * 1024 * 1024)
     }
 
     fn flash(&self) -> Result<()> {
