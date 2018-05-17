@@ -15,7 +15,7 @@ features = ["mem"]
 dmi = { path = "dmi" }
 ecflash = { path = "ecflash" }
 orbclient = { path = "orbclient" }
-plain = "0.1"
+plain = "0.2.3"
 uefi = { path = "uefi" }
 uefi_alloc = { path = "uefi_alloc" }
 x86 = "0.7"
