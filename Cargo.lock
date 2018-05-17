@@ -29,7 +29,7 @@ dependencies = [
 
 [[package]]
 name = "dmi"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "plain 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -216,7 +216,7 @@ name = "system76_firmware_update"
 version = "0.2.1"
 dependencies = [
  "compiler_builtins 0.1.0 (git+https://github.com/rust-lang-nursery/compiler-builtins)",
- "dmi 0.1.0",
+ "dmi 0.1.1",
  "ecflash 0.1.0",
  "orbclient 0.3.8",
  "plain 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
