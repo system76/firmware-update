@@ -1,7 +1,9 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
+use core::ops::Try;
 use core::ptr;
 use orbclient::{Color, Renderer};
+use uefi::guid;
 use uefi::reset::ResetType;
 use uefi::status::{Error, Result, Status};
 
@@ -12,6 +14,7 @@ use hw::EcMem;
 use image::{self, Image};
 use io::wait_key;
 use proto::Protocol;
+use string::{nstr, wstr};
 use text::TextDisplay;
 use vars::{
     get_boot_current,
@@ -111,6 +114,45 @@ fn components_validations() -> (Vec<Box<Component>>, Vec<ValidateKind>) {
     (components, validations)
 }
 
+
+fn reset_dmi() -> Result<()> {
+    let uefi = unsafe { &mut *::UEFI };
+
+    let mut vars = vec![];
+
+    let mut name = [0; 1024];
+    let mut guid = guid::NULL_GUID;
+    loop {
+        let mut size = 1024;
+        let status = (uefi.RuntimeServices.GetNextVariableName)(&mut size, name.as_mut_ptr(), &mut guid);
+        if let Err(err) = status.into_result() {
+            match err {
+                Error::NotFound => break,
+                _ => return Err(err),
+            }
+        }
+        let name_str = nstr(name.as_mut_ptr());
+        if name_str.starts_with("DmiVar") {
+            vars.push((name_str, guid.clone()));
+        }
+    }
+
+    for (name, guid) in vars {
+        println!("{}: Deleting", name);
+
+        let wname = wstr(&name);
+        let mut attributes = 0;
+        let mut data = [0; 65536];
+        let mut data_size = data.len();
+        (uefi.RuntimeServices.GetVariable)(wname.as_ptr(), &guid, &mut attributes, &mut data_size, data.as_mut_ptr())?;
+
+        let empty = [];
+        (uefi.RuntimeServices.SetVariable)(wname.as_ptr(), &guid, attributes, 0, empty.as_ptr())?;
+    }
+
+    Ok(())
+}
+
 fn inner() -> Result<()> {
     let mut shutdown = false;
 
@@ -157,6 +199,10 @@ fn inner() -> Result<()> {
 
 
             if success {
+                if let Err(err) = reset_dmi() {
+                    println!("Failed to reset DMI: {:?}", err);
+                }
+
                 let supported = get_os_indications_supported().unwrap_or(0);
                 if supported & 1 == 1 {
                     println!("Booting into BIOS setup on next boot");
