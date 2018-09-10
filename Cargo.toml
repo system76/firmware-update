@@ -1,6 +1,6 @@
 [package]
 name = "system76_firmware_update"
-version = "0.2.1"
+version = "1.0.0"
 
 [lib]
 name = "system76_firmware_update"
@@ -9,6 +9,7 @@ crate-type = ["staticlib"]
 
 [dependencies.compiler_builtins]
 git = "https://github.com/rust-lang-nursery/compiler-builtins"
+rev = "28daccd9159d33fac5e36394e4f9618db8870dc0"
 features = ["mem"]
 
 [dependencies]

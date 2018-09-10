@@ -49,20 +49,25 @@ cd "%1"
 
 if "%2" == "bios" then
     if "%3" == "flash" then
-        if exist meset.tag then
-            rm meset.tag
-            fpt.efi -P "%1\fparts.txt" -F "%1\firmware.rom"
+        if exist efiflash.efi then
+            efiflash.efi firmware.rom /NR
             exit %lasterror%
         else
-            echo > meset.tag
-            if not exist meset.tag then
-                echo "failed to create meset.tag"
+            if exist meset.tag then
+                rm meset.tag
+                fpt.efi -P "%1\fparts.txt" -F "%1\firmware.rom"
+                exit %lasterror%
+            else
+                echo > meset.tag
+                if not exist meset.tag then
+                    echo "failed to create meset.tag"
+                    exit 1
+                endif
+
+                meset.efi
+                stall 10000000
                 exit 1
             endif
-
-            meset.efi
-            stall 10000000
-            exit 1
         endif
     endif
 
