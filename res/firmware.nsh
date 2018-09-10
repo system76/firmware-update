@@ -49,14 +49,9 @@ cd "%1"
 
 if "%2" == "bios" then
     if "%3" == "flash" then
-        if exist efiflash.efi then
-            efiflash.efi firmware.rom /NR
-            exit %lasterror%
-        else
+        if exist meset.efi then
             if exist meset.tag then
                 rm meset.tag
-                fpt.efi -P "%1\fparts.txt" -F "%1\firmware.rom"
-                exit %lasterror%
             else
                 echo > meset.tag
                 if not exist meset.tag then
@@ -67,6 +62,21 @@ if "%2" == "bios" then
                 meset.efi
                 stall 10000000
                 exit 1
+            endif
+        endif
+
+        if exist fpt.efi then
+            if exist fparts.txt then
+                fpt.efi -P "%1\fparts.txt" -F "%1\firmware.rom"
+                exit %lasterror%
+            else
+                fpt.efi -F "%1\firmware.rom"
+                exit %lasterror%
+            endif
+        else
+            if exist efiflash.efi then
+                efiflash.efi firmware.rom /NR
+                exit %lasterror%
             endif
         endif
     endif
