@@ -66,13 +66,8 @@ if "%2" == "bios" then
         endif
 
         if exist fpt.efi then
-            if exist fparts.txt then
-                fpt.efi -P "%1\fparts.txt" -F "%1\firmware.rom"
-                exit %lasterror%
-            else
-                fpt.efi -F "%1\firmware.rom"
-                exit %lasterror%
-            endif
+            fpt.efi -P "%1\fparts.txt" -F "%1\firmware.rom"
+            exit %lasterror%
         else
             if exist efiflash.efi then
                 efiflash.efi firmware.rom /NR
