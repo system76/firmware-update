@@ -2,6 +2,7 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::ops::Try;
 use core::ptr;
+use ecflash::EcFlash;
 use orbclient::{Color, Renderer};
 use uefi::guid;
 use uefi::reset::ResetType;
@@ -54,7 +55,11 @@ fn shell(cmd: &str) -> Result<usize> {
 }
 
 fn ac_connected() -> bool {
-    unsafe { EcMem::new().adp() }
+    if let Ok(_ec) = EcFlash::new(true) {
+        unsafe { EcMem::new().adp() }
+    } else {
+        true
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
