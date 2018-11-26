@@ -70,7 +70,7 @@ if "%2" == "bios" then
             exit %lasterror%
         else
             if exist efiflash.efi then
-                efiflash.efi firmware.rom /NR
+                efiflash.efi firmware.rom /C /NR
                 exit %lasterror%
             endif
         endif
