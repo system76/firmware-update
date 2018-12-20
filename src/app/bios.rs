@@ -3,7 +3,7 @@ use plain::Plain;
 use std::fs::{find, load};
 use uefi::status::{Error, Result};
 
-use super::{FIRMWAREDIR, FIRMWARENSH, FIRMWAREROM, shell, Component};
+use super::{FIRMWAREDIR, FIRMWARENSH, FIRMWAREROM, UEFIFLASH, shell, Component};
 
 pub struct BiosComponent {
     model: String,
@@ -66,7 +66,8 @@ impl Component for BiosComponent {
         Ok(
             data.len() == 8 * 1024 * 1024 ||
             data.len() == 16 * 1024 * 1024 ||
-            data.len() == 32 * 1024 * 1024
+            data.len() == 32 * 1024 * 1024 ||
+            find(UEFIFLASH).is_ok() // meerkat bios fix
         )
     }
 
