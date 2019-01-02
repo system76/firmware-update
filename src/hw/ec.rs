@@ -1,15 +1,13 @@
 use super::{Io, Mmio};
 
-const EC_ADDRESS: usize = 0xFF700100;
-
 #[repr(packed)]
 pub struct EcMem {
     bytes: [Mmio<u8>; 0x100]
 }
 
 impl EcMem {
-    pub unsafe fn new() -> &'static mut EcMem {
-        &mut *(EC_ADDRESS as *mut EcMem)
+    pub unsafe fn new(address: usize) -> &'static mut EcMem {
+        &mut *(address as *mut EcMem)
     }
 
     pub unsafe fn read(&self, i: u8) -> u8 {

@@ -2,7 +2,7 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::ops::Try;
 use core::ptr;
-use ecflash::EcFlash;
+use ecflash::{Ec, EcFlash};
 use orbclient::{Color, Renderer};
 use uefi::guid;
 use uefi::reset::ResetType;
@@ -55,8 +55,15 @@ fn shell(cmd: &str) -> Result<usize> {
 }
 
 fn ac_connected() -> bool {
-    if let Ok(_ec) = EcFlash::new(true) {
-        unsafe { EcMem::new().adp() }
+    if let Ok(mut ec) = EcFlash::new(true) {
+        // The galp3-c uses a different address, derived from inspecting the ACPI tables
+        let address = if ec.project() == "N130ZU" {
+            0xFF500100
+        } else {
+            0xFF700100
+        };
+
+        unsafe { EcMem::new(address).adp() }
     } else {
         true
     }
