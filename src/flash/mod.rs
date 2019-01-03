@@ -56,13 +56,11 @@ fn shell(cmd: &str) -> Result<usize> {
 
 fn ac_connected() -> bool {
     if let Ok(mut ec) = EcFlash::new(true) {
-        // The galp3-c uses a different address, derived from inspecting the ACPI tables
-        let address = if ec.project() == "N130ZU" {
-            0xFF500100
-        } else {
-            0xFF700100
+        // Insyde models use a different address, derived from inspecting the ACPI tables
+        let address = match ec.project().as_str() {
+            "N130ZU" | "N150ZU" => 0xFF500100,
+            _ => 0xFF700100,
         };
-
         unsafe { EcMem::new(address).adp() }
     } else {
         true
@@ -174,6 +172,12 @@ fn inner() -> Result<()> {
     set_boot_next(Some(option))?;
     println!("Set boot override to {:>04X}", option);
 
+    if ! ac_connected() {
+        println!("Connect AC adapter and press any key to reboot...");
+        wait_key()?;
+        return Ok(());
+    }
+
     let (components, validations) = components_validations();
 
     if validations.iter().any(|v| *v != ValidateKind::Found && *v != ValidateKind::NotFound) {
@@ -268,8 +272,6 @@ fn inner() -> Result<()> {
 }
 
 pub fn main() -> Result<()> {
-    let uefi = unsafe { &mut *::UEFI };
-
     let mut display = {
         let output = Output::one()?;
 
@@ -340,24 +342,6 @@ pub fn main() -> Result<()> {
         }
 
         display.sync();
-    }
-
-    if ! ac_connected() {
-        {
-            let prompt = "Connect your power adapter!";
-            let mut x = (display.width() as i32 - prompt.len() as i32 * 8)/2;
-            let y = (display.height() as i32 - 16)/2;
-            for c in prompt.chars() {
-                display.char(x, y, c, Color::rgb(0xff, 0xff, 0xff));
-                x += 8;
-            }
-        }
-
-        display.sync();
-
-        while ! ac_connected() {
-            let _ = (uefi.BootServices.Stall)(1000);
-        }
     }
 
     {
