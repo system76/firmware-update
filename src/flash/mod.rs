@@ -2,7 +2,7 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::ops::Try;
 use core::ptr;
-use ecflash::{Ec, EcFlash};
+use ecflash::EcFlash;
 use orbclient::{Color, Renderer};
 use uefi::guid;
 use uefi::reset::ResetType;
@@ -11,7 +11,6 @@ use uefi::status::{Error, Result, Status};
 use display::{Display, Output};
 use exec::exec_path;
 use fs::{find, load};
-use hw::EcMem;
 use image::{self, Image};
 use io::wait_key;
 use proto::Protocol;
@@ -56,14 +55,8 @@ fn shell(cmd: &str) -> Result<usize> {
 
 fn ac_connected() -> bool {
     if let Ok(mut ec) = EcFlash::new(true) {
-        // The galp3-c uses a different address, derived from inspecting the ACPI tables
-        let address = if ec.project() == "N130ZU" {
-            0xFF500100
-        } else {
-            0xFF700100
-        };
-
-        unsafe { EcMem::new(address).adp() }
+        let adp = unsafe { ec.get_param(0x10).unwrap_or(0) };
+        (adp & 0x01) == 0x01
     } else {
         true
     }
