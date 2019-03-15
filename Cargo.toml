@@ -12,7 +12,6 @@ crate-type = ["staticlib"]
 ecflash = { path = "ecflash" }
 plain = "0.2.3"
 redox_dmi = "0.1.1"
-redox_hwio = "0.1.0"
 redox_uefi = "0.1.0"
 redox_uefi_std = "0.1.0"
 x86 = "0.7"
