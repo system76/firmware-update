@@ -14,7 +14,6 @@ plain = "0.2.3"
 redox_dmi = "0.1.1"
 redox_uefi = "0.1.0"
 redox_uefi_std = "0.1.0"
-x86 = "0.7"
 
 [dependencies.orbclient]
 git = "https://gitlab.redox-os.org/redox-os/orbclient.git"
