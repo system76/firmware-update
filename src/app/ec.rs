@@ -1,9 +1,8 @@
-use alloc::{String, Vec};
 use ecflash::{Ec, EcFile, EcFlash};
+use std::fs::{find, load};
 use uefi::status::{Error, Result};
 
-use flash::{ECROM, EC2ROM, FIRMWAREDIR, FIRMWARENSH, shell, Component};
-use fs::{find, load};
+use super::{ECROM, EC2ROM, FIRMWAREDIR, FIRMWARENSH, shell, Component};
 
 pub struct EcComponent {
     master: bool,

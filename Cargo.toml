@@ -1,22 +1,27 @@
 [package]
 name = "system76_firmware_update"
 version = "1.0.0"
+edition = "2018"
 
 [lib]
 name = "system76_firmware_update"
 path = "src/lib.rs"
 crate-type = ["staticlib"]
 
-[dependencies.compiler_builtins]
-git = "https://github.com/rust-lang-nursery/compiler-builtins"
-rev = "28daccd9159d33fac5e36394e4f9618db8870dc0"
-features = ["mem"]
-
 [dependencies]
-dmi = { path = "dmi" }
 ecflash = { path = "ecflash" }
-orbclient = { path = "orbclient" }
 plain = "0.2.3"
-uefi = { path = "uefi" }
-uefi_alloc = { path = "uefi_alloc" }
+redox_dmi = "0.1.1"
+redox_hwio = "0.1.0"
+redox_uefi = "0.1.0"
+redox_uefi_std = "0.1.0"
 x86 = "0.7"
+
+[dependencies.orbclient]
+git = "https://gitlab.redox-os.org/redox-os/orbclient.git"
+branch = "no_std"
+features = ["no_std"]
+
+[package.metadata.cargo-xbuild]
+memcpy = true
+sysroot_path = "build/xbuild"

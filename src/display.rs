@@ -1,11 +1,9 @@
-use alloc::boxed::Box;
-use core::cmp;
+use core::cell::Cell;
 use core::ops::Try;
-use orbclient::{Color, Renderer};
+use orbclient::{Color, Mode, Renderer};
+use std::proto::Protocol;
 use uefi::graphics::{GraphicsOutput, GraphicsBltOp, GraphicsBltPixel};
 use uefi::guid::{Guid, GRAPHICS_OUTPUT_PROTOCOL_GUID};
-
-use proto::Protocol;
 
 pub struct Output(pub &'static mut GraphicsOutput);
 
@@ -21,52 +19,26 @@ impl Protocol<GraphicsOutput> for Output {
 
 pub struct Display {
     output: Output,
-    scale: u32,
     w: u32,
     h: u32,
     data: Box<[Color]>,
-    font: &'static [u8],
+    mode: Cell<Mode>,
 }
 
 impl Display {
     pub fn new(output: Output) -> Self {
         let w = output.0.Mode.Info.HorizontalResolution;
         let h = output.0.Mode.Info.VerticalResolution;
-        let scale = if h > 1440 {
-            2
-        } else {
-            1
-        };
         Self {
             output: output,
-            scale: scale,
             w: w,
             h: h,
             data: vec![Color::rgb(0, 0, 0); w as usize * h as usize].into_boxed_slice(),
-            font: include_bytes!("../orbclient/res/unifont.font"),
+            mode: Cell::new(Mode::Blend),
         }
     }
 
-    pub fn scale(&self) -> u32 {
-        self.scale
-    }
-
-    pub fn scroll(&mut self, rows: usize, color: Color) {
-        let scale = self.scale as usize;
-        self.inner_scroll(rows * scale, color);
-    }
-
     pub fn blit(&mut self, x: i32, y: i32, w: u32, h: u32) -> bool {
-        let scale = self.scale;
-        self.inner_blit(
-            x * scale as i32,
-            y * scale as i32,
-            w * scale,
-            h * scale
-        )
-    }
-
-    fn inner_blit(&mut self, x: i32, y: i32, w: u32, h: u32) -> bool {
         let status = (self.output.0.Blt)(
             self.output.0,
             self.data.as_mut_ptr() as *mut GraphicsBltPixel,
@@ -82,7 +54,7 @@ impl Display {
         status.into_result().is_ok()
     }
 
-    fn inner_scroll(&mut self, rows: usize, color: Color) {
+    pub fn scroll(&mut self, rows: usize, color: Color) {
         let width = self.w as usize;
         let height = self.h as usize;
         if rows > 0 && rows < height {
@@ -91,86 +63,25 @@ impl Display {
             unsafe {
                 let data_ptr = self.data.as_mut_ptr() as *mut u32;
                 fast_copy(data_ptr as *mut u8, data_ptr.offset(off1 as isize) as *const u8, off2 as usize * 4);
-                fast_set32(data_ptr.offset(off2 as isize), color.0, off1 as usize);
-            }
-        }
-    }
-
-    fn inner_pixel(&mut self, x: i32, y: i32, color: Color) {
-        let w = self.w;
-        let h = self.h;
-
-        if x >= 0 && y >= 0 && x < w as i32 && y < h as i32 {
-            let new = color.0;
-
-            let alpha = (new >> 24) & 0xFF;
-            if alpha > 0 {
-                let old = &mut self.data[y as usize * w as usize + x as usize];
-                if alpha >= 255 {
-                    old.0 = new;
-                } else {
-                    let n_r = (((new >> 16) & 0xFF) * alpha) >> 8;
-                    let n_g = (((new >> 8) & 0xFF) * alpha) >> 8;
-                    let n_b = ((new & 0xFF) * alpha) >> 8;
-
-                    let n_alpha = 255 - alpha;
-                    let o_a = (((old.0 >> 24) & 0xFF) * n_alpha) >> 8;
-                    let o_r = (((old.0 >> 16) & 0xFF) * n_alpha) >> 8;
-                    let o_g = (((old.0 >> 8) & 0xFF) * n_alpha) >> 8;
-                    let o_b = ((old.0 & 0xFF) * n_alpha) >> 8;
-
-                    old.0 = ((o_a << 24) | (o_r << 16) | (o_g << 8) | o_b) + ((alpha << 24) | (n_r << 16) | (n_g << 8) | n_b);
-                }
-            }
-        }
-    }
-
-    fn inner_rect(&mut self, x: i32, y: i32, w: u32, h: u32, color: Color) {
-        let self_w = self.w;
-        let self_h = self.h;
-
-        let start_y = cmp::max(0, cmp::min(self_h as i32 - 1, y));
-        let end_y = cmp::max(start_y, cmp::min(self_h as i32, y + h as i32));
-
-        let start_x = cmp::max(0, cmp::min(self_w as i32 - 1, x));
-        let len = cmp::max(start_x, cmp::min(self_w as i32, x + w as i32)) - start_x;
-
-        let alpha = (color.0 >> 24) & 0xFF;
-        if alpha > 0 {
-            if alpha >= 255 {
-                for y in start_y..end_y {
-                    unsafe {
-                        fast_set32(self.data.as_mut_ptr().offset((y * self_w as i32 + start_x) as isize) as *mut u32, color.0, len as usize);
-                    }
-                }
-            } else {
-                for y in start_y..end_y {
-                    for x in start_x..start_x + len {
-                        self.inner_pixel(x, y, color);
-                    }
-                }
+                fast_set32(data_ptr.offset(off2 as isize), color.data, off1 as usize);
             }
         }
     }
 }
 
 impl Renderer for Display {
-    /// Get the width of the image in pixels
     fn width(&self) -> u32 {
-        self.w/self.scale
+        self.w
     }
 
-    /// Get the height of the image in pixels
     fn height(&self) -> u32 {
-        self.h/self.scale
+        self.h
     }
 
-    /// Return a reference to a slice of colors making up the image
     fn data(&self) -> &[Color] {
         &self.data
     }
 
-    /// Return a mutable reference to a slice of colors making up the image
     fn data_mut(&mut self) -> &mut [Color] {
         &mut self.data
     }
@@ -181,34 +92,78 @@ impl Renderer for Display {
         self.blit(0, 0, w, h)
     }
 
+    fn mode(&self) -> &Cell<Mode> {
+        &self.mode
+    }
+}
+
+pub struct ScaledDisplay<'a> {
+    display: &'a mut Display,
+    scale: u32,
+}
+
+impl<'a> ScaledDisplay<'a> {
+    pub fn new(display: &'a mut Display) -> Self {
+        let scale = if display.height() > 1440 {
+            2
+        } else {
+            1
+        };
+
+        Self {
+            display,
+            scale,
+        }
+    }
+
+    pub fn scale(&self) -> u32 {
+        self.scale
+    }
+
+    pub fn scroll(&mut self, rows: usize, color: Color) {
+        let scale = self.scale as usize;
+        self.display.scroll(rows * scale, color);
+    }
+
+    pub fn blit(&mut self, x: i32, y: i32, w: u32, h: u32) -> bool {
+        let scale = self.scale;
+        self.display.blit(
+            x * scale as i32,
+            y * scale as i32,
+            w * scale,
+            h * scale
+        )
+    }
+}
+
+impl<'a> Renderer for ScaledDisplay<'a> {
+    fn width(&self) -> u32 {
+        self.display.width()/self.scale
+    }
+
+    fn height(&self) -> u32 {
+        self.display.height()/self.scale
+    }
+
+    fn data(&self) -> &[Color] {
+        unreachable!()
+    }
+
+    fn data_mut(&mut self) -> &mut [Color] {
+        unreachable!()
+    }
+
+    fn sync(&mut self) -> bool {
+        self.display.sync()
+    }
+
     fn pixel(&mut self, x: i32, y: i32, color: Color) {
         self.rect(x, y, 1, 1, color);
     }
 
-    /// Draw a character, using the loaded font
-    fn char(&mut self, x: i32, y: i32, c: char, color: Color) {
-        let mut offset = (c as usize) * 16;
-        for row in 0..16 {
-            let row_data;
-            if offset < self.font.len() {
-                row_data = self.font[offset];
-            } else {
-                row_data = 0;
-            }
-
-            for col in 0..8 {
-                let pixel = (row_data >> (7 - col)) & 1;
-                if pixel > 0 {
-                    self.pixel(x + col as i32, y + row as i32, color);
-                }
-            }
-            offset += 1;
-        }
-    }
-
     fn rect(&mut self, x: i32, y: i32, w: u32, h: u32, color: Color) {
         let scale = self.scale;
-        self.inner_rect(
+        self.display.rect(
             x * scale as i32,
             y * scale as i32,
             w * scale,
@@ -221,6 +176,10 @@ impl Renderer for Display {
         let w = self.width();
         let h = self.height();
         self.rect(0, 0, w, h, color);
+    }
+
+    fn mode(&self) -> &Cell<Mode> {
+        self.display.mode()
     }
 }
 

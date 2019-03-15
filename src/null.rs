@@ -1,4 +1,3 @@
-use alloc::boxed::Box;
 use core::mem;
 use core::ops::Deref;
 use uefi::Handle;
@@ -94,7 +93,7 @@ impl NullDisplay {
     }
 
     pub fn pipe<T, F: FnMut() -> Result<T>>(&mut self, mut f: F) -> Result<T> {
-        let uefi = unsafe { &mut *::UEFI };
+        let uefi = unsafe { std::system_table_mut() };
 
         let stdout = self as *mut _;
         let mut stdout_handle = Handle(0);

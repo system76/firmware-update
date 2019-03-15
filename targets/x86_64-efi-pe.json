@@ -11,12 +11,13 @@
     "env": "pe",
     "vendor": "unknown",
     "target-family": "none",
-    "pre-link-args": ["-m64", "-nostdlib", "-static"],
+    "pre-link-args": {
+        "ld": ["-m64", "-nostdlib", "-static"]
+    },
     "features": "-mmx,-sse,-sse2,-sse3,-ssse3,-sse4.1,-sse4.2,-3dnow,-3dnowa,-avx,-avx2,+soft-float",
     "dynamic-linking": false,
     "executables": false,
     "relocation-model": "pic",
-    "code-model": "default",
     "disable-redzone": true,
     "eliminate-frame-pointer": false,
     "exe-suffix": "",

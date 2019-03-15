@@ -1,8 +1,7 @@
-use alloc::boxed::Box;
-use alloc::string::{String, ToString};
+use core::cell::Cell;
 use core::cmp;
 
-use orbclient::{Color, Renderer};
+use orbclient::{Color, Mode, Renderer};
 
 pub mod bmp;
 
@@ -22,7 +21,7 @@ impl<'a> ImageRoi<'a> {
         let last_offset = cmp::min(((self.y + self.h) * stride + self.x) as usize, self.image.data.len());
         while offset < last_offset {
             let next_offset = offset + stride as usize;
-            renderer.image(x, y, self.w, 1, &self.image.data[offset..]);
+            renderer.image_legacy(x, y, self.w, 1, &self.image.data[offset..]);
             offset = next_offset;
             y += 1;
         }
@@ -33,7 +32,8 @@ impl<'a> ImageRoi<'a> {
 pub struct Image {
     w: u32,
     h: u32,
-    data: Box<[Color]>
+    data: Box<[Color]>,
+    mode: Cell<Mode>,
 }
 
 impl Image {
@@ -57,6 +57,7 @@ impl Image {
             w: width,
             h: height,
             data: data,
+            mode: Cell::new(Mode::Blend),
         })
     }
 
@@ -88,7 +89,7 @@ impl Image {
 
     /// Draw the image on a window
     pub fn draw<R: Renderer>(&self, renderer: &mut R, x: i32, y: i32) {
-        renderer.image(x, y, self.w, self.h, &self.data);
+        renderer.image_legacy(x, y, self.w, self.h, &self.data);
     }
 }
 
@@ -115,5 +116,9 @@ impl Renderer for Image {
 
     fn sync(&mut self) -> bool {
         true
+    }
+
+    fn mode(&self) -> &Cell<Mode> {
+        &self.mode
     }
 }

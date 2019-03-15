@@ -1,6 +1,3 @@
-use alloc::string::{String, ToString};
-use alloc::vec::Vec;
-
 use super::Image;
 
 pub fn parse(file_data: &[u8]) -> Result<Image, String> {

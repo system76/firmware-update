@@ -1,27 +1,26 @@
-use alloc::boxed::Box;
-use alloc::vec::Vec;
+use core::{char, ptr};
 use core::ops::Try;
-use core::ptr;
 use ecflash::EcFlash;
 use orbclient::{Color, Renderer};
-use uefi::guid;
-use uefi::reset::ResetType;
-use uefi::status::{Error, Result, Status};
-
-use display::{Display, Output};
-use exec::exec_path;
-use fs::{find, load};
-use image::{self, Image};
-use io::wait_key;
-use proto::Protocol;
-use string::{nstr, wstr};
-use text::TextDisplay;
-use vars::{
+use std::exec::exec_path;
+use std::ffi::{nstr, wstr};
+use std::fs::{find, load};
+use std::proto::Protocol;
+use std::vars::{
     get_boot_current,
     get_boot_next, set_boot_next,
     get_boot_item, set_boot_item,
     get_os_indications, set_os_indications,
-    get_os_indications_supported};
+    get_os_indications_supported
+};
+use uefi::guid;
+use uefi::reset::ResetType;
+use uefi::status::{Error, Result, Status};
+
+use crate::display::{Display, ScaledDisplay, Output};
+use crate::image::{self, Image};
+use crate::key::raw_key;
+use crate::text::TextDisplay;
 
 pub use self::bios::BiosComponent;
 pub use self::component::Component;
@@ -121,7 +120,7 @@ fn components_validations() -> (Vec<Box<Component>>, Vec<ValidateKind>) {
 
 
 fn reset_dmi() -> Result<()> {
-    let uefi = unsafe { &mut *::UEFI };
+    let uefi = std::system_table();
 
     let mut vars = vec![];
 
@@ -179,7 +178,8 @@ fn inner() -> Result<()> {
             '\n'
         } else {
             println!("Press enter to commence flashing, the system may reboot...");
-            wait_key()?
+            let k = raw_key()?;
+            unsafe { char::from_u32_unchecked(k.UnicodeChar as u32) }
         };
 
         if c == '\n' || c == '\r' {
@@ -247,21 +247,19 @@ fn inner() -> Result<()> {
 
     if shutdown {
         println!("Press any key to shutdown...");
-        wait_key()?;
+        raw_key()?;
 
-        unsafe {
-            ((&mut *::UEFI).RuntimeServices.ResetSystem)(ResetType::Shutdown, Status(0), 0, ptr::null());
-        }
+        (std::system_table().RuntimeServices.ResetSystem)(ResetType::Shutdown, Status(0), 0, ptr::null());
     } else {
         println!("Press any key to restart...");
-        wait_key()?;
+        raw_key()?;
     }
 
     Ok(())
 }
 
 pub fn main() -> Result<()> {
-    let uefi = unsafe { &mut *::UEFI };
+    let uefi = std::system_table();
 
     let mut display = {
         let output = Output::one()?;
@@ -289,6 +287,8 @@ pub fn main() -> Result<()> {
 
         Display::new(output)
     };
+
+    let mut display = ScaledDisplay::new(&mut display);
 
     let mut splash = Image::new(0, 0);
     {
@@ -361,7 +361,7 @@ pub fn main() -> Result<()> {
         display.rect(off_x, off_y, cols as u32 * 8, rows as u32 * 16, Color::rgb(0, 0, 0));
         display.sync();
 
-        let mut text = TextDisplay::new(&mut display);
+        let mut text = TextDisplay::new(display);
         text.off_x = off_x;
         text.off_y = off_y;
         text.cols = cols;

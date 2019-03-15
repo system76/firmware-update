@@ -1,12 +1,9 @@
-use alloc::String;
-use alloc::string::ToString;
 use dmi;
 use plain::Plain;
+use std::fs::{find, load};
 use uefi::status::{Error, Result};
 
-use flash::{FIRMWAREDIR, FIRMWARENSH, FIRMWAREROM, shell, Component};
-use fs::{find, load};
-use hw;
+use super::{FIRMWAREDIR, FIRMWARENSH, FIRMWAREROM, shell, Component};
 
 pub struct BiosComponent {
     model: String,
@@ -18,7 +15,7 @@ impl BiosComponent {
         let mut model = String::new();
         let mut version = String::new();
 
-        for table in hw::dmi() {
+        for table in crate::dmi::dmi() {
             match table.header.kind {
                 0 => if let Ok(info) = dmi::BiosInfo::from_bytes(&table.data) {
                     let index = info.version;

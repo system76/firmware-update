@@ -4,18 +4,14 @@ BUILD=build/$(BASEDIR)
 
 TARGET=x86_64-efi-pe
 
-PREFIX=$(PWD)/prefix
+PREFIX=$(CURDIR)/prefix
 export LD=$(PREFIX)/bin/$(TARGET)-ld
-export RUST_TARGET_PATH=$(PWD)/targets
-export XARGO_HOME=$(PWD)/build/xargo
-
-CARGO=xargo
-CARGOFLAGS=--target $(TARGET) --release -- -C soft-float
+export RUST_TARGET_PATH=$(CURDIR)/targets
 
 all: $(BUILD)/boot.img
 
 clean:
-	$(CARGO) clean
+	cargo clean
 	rm -rf build
 
 update:
@@ -23,7 +19,7 @@ update:
 	cargo update
 
 qemu: $(BUILD)/boot.img
-	kvm -m 1024 -net none -vga std -bios /usr/share/ovmf/OVMF.fd $<
+	kvm -m 1024 -net none -vga std -bios /usr/share/OVMF/OVMF_CODE.fd $<
 
 $(BUILD)/boot.img: $(BUILD)/efi.img
 	dd if=/dev/zero of=$@.tmp bs=512 count=100352
@@ -72,7 +68,14 @@ $(BUILD)/boot.o: $(BUILD)/boot.a
 
 $(BUILD)/boot.a: Cargo.lock Cargo.toml src/* src/*/*
 	mkdir -p $(BUILD)
-	$(CARGO) rustc --lib $(CARGOFLAGS) -C lto --emit link=$@
+	cargo xrustc \
+		--lib \
+		--target $(TARGET) \
+		--release \
+		-- \
+		-C soft-float \
+		-C lto \
+		--emit link=$@
 
 BINUTILS=2.28.1
 

@@ -1,15 +1,14 @@
-use alloc::boxed::Box;
 use core::{char, mem};
 use core::ops::Deref;
 use orbclient::{Color, Renderer};
+use std::proto::Protocol;
 use uefi::Handle;
 use uefi::boot::InterfaceType;
 use uefi::guid::SIMPLE_TEXT_OUTPUT_GUID;
 use uefi::status::{Result, Status};
 use uefi::text::TextOutputMode;
 
-use display::{Display, Output};
-use proto::Protocol;
+use crate::display::{Display, ScaledDisplay, Output};
 
 #[repr(C)]
 #[allow(non_snake_case)]
@@ -30,7 +29,7 @@ pub struct TextDisplay<'a> {
     pub off_y: i32,
     pub cols: usize,
     pub rows: usize,
-    pub display: &'a mut Display,
+    pub display: ScaledDisplay<'a>,
 }
 
 extern "win64" fn reset(_output: &mut TextDisplay, _extra: bool) -> Status {
@@ -77,7 +76,7 @@ extern "win64" fn enable_cursor(output: &mut TextDisplay, enable: bool) -> Statu
 }
 
 impl<'a> TextDisplay<'a> {
-    pub fn new(display: &'a mut Display) -> TextDisplay<'a> {
+    pub fn new(display: ScaledDisplay<'a>) -> TextDisplay<'a> {
         let mode = Box::new(TextOutputMode {
             MaxMode: 0,
             Mode: 0,
@@ -102,12 +101,12 @@ impl<'a> TextDisplay<'a> {
             EnableCursor: enable_cursor,
             Mode: unsafe { mem::transmute(&*mode.deref()) },
 
-            mode: mode,
+            mode,
             off_x: 0,
             off_y: 0,
-            cols: cols,
-            rows: rows,
-            display: display,
+            cols,
+            rows,
+            display,
         }
     }
 
@@ -136,7 +135,7 @@ impl<'a> TextDisplay<'a> {
             unsafe {
                 let scale = self.display.scale() as isize;
                 let data_ptr = self.display.data_mut().as_mut_ptr() as *mut u32;
-                ::display::fast_copy(
+                crate::display::fast_copy(
                     data_ptr.offset(dst as isize * scale * scale) as *mut u8,
                     data_ptr.offset(src as isize * scale * scale) as *const u8,
                     len * (scale * scale) as usize * 4);
@@ -216,7 +215,7 @@ impl<'a> TextDisplay<'a> {
     }
 
     pub fn pipe<T, F: FnMut() -> Result<T>>(&mut self, mut f: F) -> Result<T> {
-        let uefi = unsafe { &mut *::UEFI };
+        let uefi = unsafe { std::system_table_mut() };
 
         let stdout = self as *mut _;
         let mut stdout_handle = Handle(0);
@@ -247,5 +246,5 @@ impl<'a> TextDisplay<'a> {
 
 pub fn pipe<T, F: FnMut() -> Result<T>>(f: F) -> Result<T> {
     let mut display = Display::new(Output::one()?);
-    TextDisplay::new(&mut display).pipe(f)
+    TextDisplay::new(ScaledDisplay::new(&mut display)).pipe(f)
 }

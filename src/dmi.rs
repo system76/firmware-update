@@ -1,12 +1,8 @@
-use alloc::Vec;
 use core::slice;
-use dmi;
 use uefi::guid::GuidKind;
 
 pub fn dmi() -> Vec<dmi::Table> {
-    let uefi = unsafe { &*::UEFI };
-
-    for table in uefi.config_tables() {
+    for table in std::system_table().config_tables() {
         let data_opt = match table.VendorGuid.kind() {
             GuidKind::Smbios => unsafe {
                 let smbios = &*(table.VendorTable as *const dmi::Smbios);
