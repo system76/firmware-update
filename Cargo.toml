@@ -9,11 +9,11 @@ path = "src/lib.rs"
 crate-type = ["staticlib"]
 
 [dependencies]
-ecflash = { path = "ecflash" }
 plain = "0.2.3"
 redox_dmi = "0.1.1"
 redox_uefi = "0.1.0"
 redox_uefi_std = "0.1.0"
+system76_ecflash = "0.1.0"
 
 [dependencies.orbclient]
 git = "https://gitlab.redox-os.org/redox-os/orbclient.git"
