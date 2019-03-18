@@ -1,5 +1,5 @@
 TARGET?=x86_64-efi-pe
-export BASEDIR?=system76_firmware_update
+export BASEDIR?=system76-firmware-update
 
 export LD=ld
 export RUST_TARGET_PATH=$(CURDIR)/targets
