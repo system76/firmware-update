@@ -1,12 +1,9 @@
-export BASEDIR?=system76-firmware-update
+TARGET?=x86_64-efi-pe
+export BASEDIR?=system76_firmware_update
 
-BUILD=build/$(BASEDIR)
-
-TARGET=x86_64-efi-pe
-
-PREFIX=$(CURDIR)/prefix
-export LD=$(PREFIX)/bin/$(TARGET)-ld
+export LD=ld
 export RUST_TARGET_PATH=$(CURDIR)/targets
+BUILD=build/$(TARGET)
 
 all: $(BUILD)/boot.img
 
@@ -39,8 +36,9 @@ $(BUILD)/efi.img: $(BUILD)/boot.efi res/*
 	mcopy -i $@.tmp -s res ::$(BASEDIR)
 	mv $@.tmp $@
 
-$(BUILD)/boot.efi: $(BUILD)/boot.o $(LD)
+$(BUILD)/boot.efi: $(BUILD)/boot.o
 	$(LD) \
+		-m i386pep \
 		--oformat pei-x86-64 \
 		--dll \
 		--image-base 0 \
@@ -76,24 +74,3 @@ $(BUILD)/boot.a: Cargo.lock Cargo.toml src/* src/*/*
 		-C soft-float \
 		-C lto \
 		--emit link=$@
-
-BINUTILS=2.28.1
-
-prefix/binutils-$(BINUTILS).tar.xz:
-	mkdir -p "`dirname $@`"
-	wget "https://ftp.gnu.org/gnu/binutils/binutils-$(BINUTILS).tar.xz" -O "$@.partial"
-	sha384sum -c binutils.sha384
-	mv "$@.partial" "$@"
-
-prefix/binutils-$(BINUTILS): prefix/binutils-$(BINUTILS).tar.xz
-	mkdir -p "$@.partial"
-	tar --extract --verbose --file "$<" --directory "$@.partial" --strip-components=1
-	mv "$@.partial" "$@"
-
-$(LD): prefix/binutils-$(BINUTILS)
-	rm -rf prefix/bin prefix/share "prefix/$(TARGET)"
-	mkdir -p prefix/build
-	cd prefix/build && \
-	../../$</configure --target="$(TARGET)" --disable-werror --prefix="$(PREFIX)" && \
-	make all-ld -j `nproc` && \
-	make install-ld -j `nproc`
