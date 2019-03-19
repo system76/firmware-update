@@ -146,11 +146,11 @@ impl<'a> Renderer for ScaledDisplay<'a> {
     }
 
     fn data(&self) -> &[Color] {
-        unreachable!()
+        self.display.data()
     }
 
     fn data_mut(&mut self) -> &mut [Color] {
-        unreachable!()
+        self.display.data_mut()
     }
 
     fn sync(&mut self) -> bool {
