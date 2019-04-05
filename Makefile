@@ -5,6 +5,14 @@ export LD=ld
 export RUST_TARGET_PATH=$(CURDIR)/targets
 BUILD=build/$(TARGET)
 
+QEMU?=qemu-system-x86_64
+QEMU_FLAGS=\
+	-accel kvm \
+	-M q35 \
+	-m 1024 \
+	-net none \
+	-vga std \
+	-bios /usr/share/OVMF/OVMF_CODE.fd
 all: $(BUILD)/boot.img
 
 clean:
@@ -16,7 +24,7 @@ update:
 	cargo update
 
 qemu: $(BUILD)/boot.img
-	kvm -M q35 -m 1024 -net none -vga std -bios /usr/share/OVMF/OVMF_CODE.fd $<
+	$(QEMU) $(QEMU_FLAGS) $<
 
 $(BUILD)/boot.img: $(BUILD)/efi.img
 	dd if=/dev/zero of=$@.tmp bs=512 count=100352
@@ -34,6 +42,7 @@ $(BUILD)/efi.img: $(BUILD)/boot.efi res/*
 	mcopy -i $@.tmp $< ::efi/boot/bootx64.efi
 	mmd -i $@.tmp $(BASEDIR)
 	mcopy -i $@.tmp -s res ::$(BASEDIR)
+	if [ -d firmware ]; then mcopy -i $@.tmp -s firmware ::$(BASEDIR); fi
 	mv $@.tmp $@
 
 $(BUILD)/boot.efi: $(BUILD)/boot.o
