@@ -1,27 +1,43 @@
+use core::char;
+use coreboot_fs::Rom;
 use dmi;
+use ecflash::{Ec, EcFlash};
+use intel_spi::{HsfStsCtl, Spi, SpiKbl, SpiCnl};
 use plain::Plain;
+use std::collections::BTreeMap;
 use std::fs::{find, load};
 use uefi::status::{Error, Result};
+
+use crate::key::raw_key;
 
 use super::{FIRMWAREDIR, FIRMWARENSH, FIRMWAREROM, UEFIFLASH, shell, Component};
 
 pub struct BiosComponent {
-    model: String,
-    version: String,
+    bios_vendor: String,
+    bios_version: String,
+    system_version: String,
 }
 
 impl BiosComponent {
     pub fn new() -> BiosComponent {
-        let mut model = String::new();
-        let mut version = String::new();
+        let mut bios_vendor = String::new();
+        let mut bios_version = String::new();
+        let mut system_version = String::new();
 
         for table in crate::dmi::dmi() {
             match table.header.kind {
                 0 => if let Ok(info) = dmi::BiosInfo::from_bytes(&table.data) {
+                    let index = info.vendor;
+                    if index > 0 {
+                        if let Some(value) = table.strings.get((index - 1) as usize) {
+                            bios_vendor = value.trim().to_string();
+                        }
+                    }
+
                     let index = info.version;
                     if index > 0 {
                         if let Some(value) = table.strings.get((index - 1) as usize) {
-                            version = value.trim().to_string();
+                            bios_version = value.trim().to_string();
                         }
                     }
                 },
@@ -29,7 +45,7 @@ impl BiosComponent {
                     let index = info.version;
                     if index > 0 {
                         if let Some(value) = table.strings.get((index - 1) as usize) {
-                            model = value.trim().to_string();
+                            system_version = value.trim().to_string();
                         }
                     }
                 },
@@ -38,8 +54,58 @@ impl BiosComponent {
         }
 
         BiosComponent {
-            model: model,
-            version: version,
+            bios_vendor,
+            bios_version,
+            system_version,
+        }
+    }
+
+    pub fn spi(&self) -> Option<(&'static mut Spi, HsfStsCtl)> {
+        match self.bios_vendor.as_str() {
+            "coreboot" => match self.system_version.as_str() {
+                "galp2" | "galp3" | "galp3-b" => {
+                    let spi_kbl = unsafe {
+                        &mut *(SpiKbl::address() as *mut SpiKbl)
+                    };
+                    let hsfsts_ctl = spi_kbl.hsfsts_ctl();
+                    Some((spi_kbl as &mut Spi, hsfsts_ctl))
+                },
+                "darp5" | "darp6" | "galp3-c" | "galp4" | "gaze14" => {
+                    let spi_cnl = unsafe {
+                        &mut *(SpiCnl::address() as *mut SpiCnl)
+                    };
+                    let hsfsts_ctl = spi_cnl.hsfsts_ctl();
+                    Some((spi_cnl as &mut Spi, hsfsts_ctl))
+                },
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+
+    fn spi_unlock() {
+        if let Ok(mut ec) = EcFlash::new(true) {
+            unsafe {
+                println!("GetParam(WINF)");
+                let mut value = ec.get_param(0xDA).unwrap_or(0x00);
+                println!("GetParam(WINF) = 0x{:>02X}", value);
+                value |= 0x08;
+                println!("SetParam(WINF, 0x{:>02X})", value);
+                ec.set_param(0xDA, value);
+
+                println!("SetPOnTimer(0, 2)");
+                ec.cmd(0x97);
+                ec.write(0x00);
+                ec.write(0x02);
+
+                println!("PowerOff");
+                ec.cmd(0x95);
+            }
+
+            println!("Halt");
+            loop {}
+        } else {
+            println!("Failed to locate EC");
         }
     }
 }
@@ -54,32 +120,284 @@ impl Component for BiosComponent {
     }
 
     fn model(&self) -> &str {
-        &self.model
+        &self.system_version
     }
 
     fn version(&self) -> &str {
-        &self.version
+        &self.bios_version
     }
 
     fn validate(&self) -> Result<bool> {
         let data = load(self.path())?;
-        Ok(
-            data.len() == 8 * 1024 * 1024 ||
-            data.len() == 16 * 1024 * 1024 ||
-            data.len() == 32 * 1024 * 1024 ||
-            find(UEFIFLASH).is_ok() // meerkat bios fix
-        )
+        if let Some((spi, hsfsts_ctl)) = self.spi() {
+            if hsfsts_ctl.contains(HsfStsCtl::FDOPSS) {
+                println!("SPI currently locked, attempting to unlock");
+                Self::spi_unlock();
+            }
+
+            let len = spi.len().map_err(|_| Error::DeviceError)?;
+            Ok(data.len() == len)
+        } else {
+            Ok(
+                data.len() == 8 * 1024 * 1024 ||
+                data.len() == 16 * 1024 * 1024 ||
+                data.len() == 32 * 1024 * 1024 ||
+                find(UEFIFLASH).is_ok() // meerkat bios fix
+            )
+        }
     }
 
     fn flash(&self) -> Result<()> {
-        find(FIRMWARENSH)?;
+        if let Some((spi, hsfsts_ctl)) = self.spi() {
+            // Read new data
+            let mut new;
+            {
+                let loading = "Loading";
+                print!("SPI FILE: {}", loading);
+                // TODO: Do not require two load operations
+                new = load(self.path())?;
+                for _c in loading.chars() {
+                    print!("\x08");
+                }
+                println!("{} MB", new.len() / (1024 * 1024));
+            }
 
-        let cmd = format!("{} {} bios flash", FIRMWARENSH, FIRMWAREDIR);
+            // Grab new FMAP areas area, if they exist
+            let mut new_areas = BTreeMap::new();
+            {
+                let rom = Rom::new(&new);
+                if let Some(fmap) = rom.fmap() {
+                    let mut name = String::new();
+                    for &b in fmap.name.iter() {
+                        if b == 0 {
+                            break;
+                        }
+                        name.push(b as char);
+                    }
 
-        let status = shell(&cmd)?;
-        if status != 0 {
-            println!("{} Flash Error: {}", self.name(), status);
-            return Err(Error::DeviceError);
+                    println!("  {}", name);
+
+                    for i in 0..fmap.nareas {
+                        let area = fmap.area(i);
+
+                        let mut name = String::new();
+                        for &b in area.name.iter() {
+                            if b == 0 {
+                                break;
+                            }
+                            name.push(b as char);
+                        }
+
+                        println!("    {}: {}", i, name);
+
+                        new_areas.insert(name, area.clone());
+                    }
+                }
+            }
+
+            // Check ROM size
+            let len = spi.len().map_err(|_| Error::DeviceError)?;
+            println!("SPI ROM: {} MB", len / (1024 * 1024));
+            if len != new.len() {
+                println!("firmware.rom size invalid");
+                return Err(Error::DeviceError);
+            }
+
+            // Read current data
+            let mut data;
+            {
+                data = Vec::with_capacity(len);
+                let mut print_mb = !0; // Invalid number to force first print
+                while data.len() < len {
+                    let mut buf = [0; 4096];
+                    let read = spi.read(data.len(), &mut buf).map_err(|_| Error::DeviceError)?;
+                    data.extend_from_slice(&buf[..read]);
+
+                    // Print output once per megabyte
+                    let mb = data.len() / (1024 * 1024);
+                    if mb != print_mb {
+                        print!("\rSPI READ: {} MB", mb);
+                        print_mb = mb;
+                    }
+                }
+                println!();
+            }
+
+            // Grab old FMAP areas, if they exist
+            let mut areas = BTreeMap::new();
+            {
+                let rom = Rom::new(&data);
+                if let Some(fmap) = rom.fmap() {
+                    let mut name = String::new();
+                    for &b in fmap.name.iter() {
+                        if b == 0 {
+                            break;
+                        }
+                        name.push(b as char);
+                    }
+
+                    println!("  {}", name);
+
+                    for i in 0..fmap.nareas {
+                        let area = fmap.area(i);
+
+                        let mut name = String::new();
+                        for &b in area.name.iter() {
+                            if b == 0 {
+                                break;
+                            }
+                            name.push(b as char);
+                        }
+
+                        println!("    {}: {}", i, name);
+
+                        areas.insert(name, area.clone());
+                    }
+                }
+            }
+
+            // Copy old areas to new areas
+            let area_names = [
+                "RW_MRC_CACHE".to_string(),
+                "SMMSTORE".to_string(),
+            ];
+            for area_name in &area_names {
+                if let Some(new_area) = new_areas.get(area_name) {
+                    let new_offset = new_area.offset as usize;
+                    let new_size = new_area.size as usize;
+                    println!(
+                        "{}: found in new firmware: offset {:#X}, size {} KB",
+                        area_name,
+                        new_offset,
+                        new_size / 1024
+                    );
+                    let new_slice = new.get_mut(
+                        new_offset .. new_offset + new_size
+                    ).ok_or(Error::DeviceError)?;
+
+                    if let Some(area) = areas.get(area_name) {
+                        let offset = area.offset as usize;
+                        let size = area.size as usize;
+                        println!(
+                            "{}: found in old firmware: offset {:#X}, size {} KB",
+                            area_name,
+                            new_offset,
+                            new_size / 1024
+                        );
+                        let slice = data.get(
+                            offset .. offset + size
+                        ).ok_or(Error::DeviceError)?;
+
+                        if slice.len() == new_slice.len() {
+                            new_slice.copy_from_slice(slice);
+
+                            println!(
+                                "{}: copied from old firmware to new firmware",
+                                area_name
+                            );
+                        } else {
+                            println!(
+                                "{}: old firmware size {} does not match new firmware size {}, not copying",
+                                area_name,
+                                slice.len(),
+                                new_slice.len()
+                            );
+                        }
+                    } else {
+                        println!(
+                            "{}: found in new firmware, but not found in old firmware",
+                            area_name
+                        );
+                    }
+                } else if areas.get(area_name).is_some() {
+                    println!(
+                        "{}: found in old firmware, but not found in new firmware",
+                        area_name
+                    );
+                }
+            }
+
+            // Erase and write
+            {
+                let erase_byte = 0xFF;
+                let erase_size = 4096;
+                let mut i = 0;
+                let mut print_mb = !0; // Invalid number to force first print
+                for (chunk, new_chunk) in data.chunks(erase_size).zip(new.chunks(erase_size)) {
+                    // Data matches, meaning sector can be skipped
+                    let mut matching = true;
+                    // Data is erased, meaning sector can be erased instead of written
+                    let mut erased = true;
+                    for (&byte, &new_byte) in chunk.iter().zip(new_chunk.iter()) {
+                        if new_byte != byte {
+                            matching = false;
+                        }
+                        if new_byte != erase_byte {
+                            erased = false;
+                        }
+                    }
+
+                    if ! matching {
+                        spi.erase(i).unwrap();
+                        if ! erased {
+                            spi.write(i, &new_chunk).unwrap();
+                        }
+                    }
+
+                    i += chunk.len();
+
+                    // Print output once per megabyte
+                    let mb = i / (1024 * 1024);
+                    if mb != print_mb {
+                        print!("\rSPI WRITE: {} MB", mb);
+                        print_mb = mb;
+                    }
+                }
+                println!("");
+            }
+
+            // Verify
+            {
+                data.clear();
+                let mut print_mb = !0; // Invalid number to force first print
+                while data.len() < len {
+                    let mut address = data.len();
+
+                    let mut buf = [0; 4096];
+                    let read = spi.read(address, &mut buf).unwrap();
+                    data.extend_from_slice(&buf[..read]);
+
+                    while address < data.len() {
+                        if data[address] != new[address] {
+                            println!(
+                                "\nverification failed as {:#x}: {:#x} != {:#x}",
+                                address,
+                                data[address],
+                                new[address]
+                            );
+                            return Err(Error::DeviceError);
+                        }
+                        address += 1;
+                    }
+
+                    let mb = data.len() / (1024 * 1024);
+                    if mb != print_mb {
+                        print!("\rSPI VERIFY: {} MB", mb);
+                        print_mb = mb;
+                    }
+                }
+                println!("");
+            }
+        } else {
+            find(FIRMWARENSH)?;
+
+            let cmd = format!("{} {} bios flash", FIRMWARENSH, FIRMWAREDIR);
+
+            let status = shell(&cmd)?;
+            if status != 0 {
+                println!("{} Flash Error: {}", self.name(), status);
+                return Err(Error::DeviceError);
+            }
         }
 
         Ok(())

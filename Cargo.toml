@@ -3,23 +3,26 @@ name = "system76_firmware_update"
 version = "1.0.0"
 edition = "2018"
 
+[package.metadata.cargo-xbuild]
+memcpy = true
+sysroot_path = "build/xbuild"
+
 [lib]
 name = "system76_firmware_update"
 path = "src/lib.rs"
 crate-type = ["staticlib"]
 
 [dependencies]
+coreboot-fs = "0.1.0"
+intel-spi = "0.1.2"
 plain = "0.2.3"
-redox_dmi = "0.1.1"
+redox_dmi = "0.1.5"
+redox_hwio = "0.1.0"
 redox_uefi = "0.1.0"
-redox_uefi_std = "0.1.0"
-system76_ecflash = "0.1.0"
+redox_uefi_std = "0.1.1"
+system76_ecflash = { git = "https://github.com/system76/ecflash.git" }
 
 [dependencies.orbclient]
 git = "https://gitlab.redox-os.org/redox-os/orbclient.git"
 branch = "no_std"
 features = ["no_std"]
-
-[package.metadata.cargo-xbuild]
-memcpy = true
-sysroot_path = "build/xbuild"

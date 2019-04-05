@@ -9,6 +9,7 @@ use std::proto::Protocol;
 use std::vars::{
     get_boot_current,
     get_boot_next, set_boot_next,
+    get_boot_order, set_boot_order,
     get_boot_item, set_boot_item,
     get_os_indications, set_os_indications,
     get_os_indications_supported
@@ -179,6 +180,15 @@ fn remove_override(option: u16) -> Result<()> {
         println!("Already removed boot override");
     }
 
+    if let Ok(mut order) = get_boot_order() {
+        println!("Found boot order {:>04X?}", order);
+        order.retain(|&x| x != option);
+        set_boot_order(&order)?;
+        println!("Set boot order {:>04X?}", order);
+    } else {
+        println!("Failed to read boot order");
+    }
+
     if get_boot_item(option).is_ok() {
         println!("Found boot option {:>04X}", option);
 
@@ -196,7 +206,7 @@ fn inner() -> Result<()> {
 
     let option = set_override()?;
 
-    let (mut components, mut validations) = components_validations();
+    let (components, validations) = components_validations();
 
     if validations.iter().any(|v| *v != ValidateKind::Found && *v != ValidateKind::NotFound) {
         println!("! Errors were found !");
