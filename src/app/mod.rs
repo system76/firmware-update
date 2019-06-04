@@ -38,6 +38,8 @@ static FIRMWAREROM: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\f
 static MESETTAG: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\meset.tag");
 static SHELLEFI: &'static str = concat!("\\", env!("BASEDIR"), "\\res\\shell.efi");
 static SPLASHBMP: &'static str = concat!("\\", env!("BASEDIR"), "\\res\\splash.bmp");
+static UEFIFLASH: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\uefiflash.efi");
+static UEFIFLASHTAG: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\uefiflash.tag");
 
 fn shell(cmd: &str) -> Result<usize> {
     exec_path(
@@ -157,25 +159,62 @@ fn reset_dmi() -> Result<()> {
     Ok(())
 }
 
-fn inner() -> Result<()> {
-    let mut shutdown = false;
-
+fn set_override() -> Result<u16> {
     let option = get_boot_current()?;
     println!("Booting from item {:>04X}", option);
 
     set_boot_next(Some(option))?;
     println!("Set boot override to {:>04X}", option);
 
-    let (components, validations) = components_validations();
+    Ok(option)
+}
+
+fn remove_override(option: u16) -> Result<()> {
+    if let Ok(next) = get_boot_next() {
+        println!("Found boot override {:>04X}", next);
+
+        set_boot_next(None)?;
+        println!("Removed boot override");
+    } else {
+        println!("Already removed boot override");
+    }
+
+    if get_boot_item(option).is_ok() {
+        println!("Found boot option {:>04X}", option);
+
+        set_boot_item(option, &[])?;
+        println!("Removed boot option {:>04X}", option);
+    } else {
+        println!("Already removed boot option {:>04X}", option);
+    }
+
+    Ok(())
+}
+
+fn inner() -> Result<()> {
+    let mut shutdown = false;
+
+    let option = set_override()?;
+
+    let (mut components, mut validations) = components_validations();
 
     if validations.iter().any(|v| *v != ValidateKind::Found && *v != ValidateKind::NotFound) {
         println!("! Errors were found !");
     } else if ! validations.iter().any(|v| *v == ValidateKind::Found) {
         println!("* No updates were found *");
     } else {
-        // Skip enter if in manufacturing mode
         let c = if find(MESETTAG).is_ok() {
+            // Skip enter if in manufacturing mode
             '\n'
+        } else if find(UEFIFLASH).is_ok() {
+            // Skip enter if flashing a meerkat
+            if find(UEFIFLASHTAG).is_ok() {
+                components.clear();
+                validations.clear();
+                '\n'
+            } else {
+                '\n'
+            }
         } else {
             println!("Press enter to commence flashing, the system may reboot...");
             let k = raw_key()?;
@@ -227,23 +266,7 @@ fn inner() -> Result<()> {
         }
     }
 
-    if let Ok(next) = get_boot_next() {
-        println!("Found boot override {:>04X}", next);
-
-        set_boot_next(None)?;
-        println!("Removed boot override");
-    } else {
-        println!("Already removed boot override");
-    }
-
-    if get_boot_item(option).is_ok() {
-        println!("Found boot option {:>04X}", option);
-
-        set_boot_item(option, &[])?;
-        println!("Removed boot option {:>04X}", option);
-    } else {
-        println!("Already removed boot option {:>04X}", option);
-    }
+    remove_override(option)?;
 
     if shutdown {
         println!("Press any key to shutdown...");

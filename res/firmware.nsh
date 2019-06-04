@@ -72,6 +72,21 @@ if "%2" == "bios" then
             if exist efiflash.efi then
                 efiflash.efi firmware.rom /C /NR
                 exit %lasterror%
+            else
+                if exist uefiflash.efi then
+                    if exist uefiflash.tag then
+                        rm uefiflash.tag
+                    else
+                        echo > uefiflash.tag
+                        if not exist uefiflash.tag then
+                            echo "failed to create uefiflash.tag"
+                            exit 1
+                        endif
+
+                        uefiflash.efi firmware.rom
+                        exit 1
+                    endif
+                endif
             endif
         endif
     endif
