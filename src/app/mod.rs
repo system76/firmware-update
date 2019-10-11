@@ -206,7 +206,7 @@ fn inner() -> Result<()> {
 
     let option = set_override()?;
 
-    let (components, validations) = components_validations();
+    let (mut components, mut validations) = components_validations();
 
     if validations.iter().any(|v| *v != ValidateKind::Found && *v != ValidateKind::NotFound) {
         println!("! Errors were found !");
