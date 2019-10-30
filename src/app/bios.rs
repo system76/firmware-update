@@ -130,10 +130,10 @@ impl Component for BiosComponent {
     fn validate(&self) -> Result<bool> {
         let data = load(self.path())?;
         if let Some((spi, hsfsts_ctl)) = self.spi() {
-            if hsfsts_ctl.contains(HsfStsCtl::FDOPSS) {
-                println!("SPI currently locked, attempting to unlock");
-                Self::spi_unlock();
-            }
+            // if hsfsts_ctl.contains(HsfStsCtl::FDOPSS) {
+            //     println!("SPI currently locked, attempting to unlock");
+            //     Self::spi_unlock();
+            // }
 
             let len = spi.len().map_err(|_| Error::DeviceError)?;
             Ok(data.len() == len)
