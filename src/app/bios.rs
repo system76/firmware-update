@@ -1,10 +1,10 @@
+use alloc::collections::BTreeMap;
 use core::char;
 use coreboot_fs::Rom;
 use dmi;
 use ecflash::{Ec, EcFlash};
 use intel_spi::{HsfStsCtl, Spi, SpiKbl, SpiCnl};
 use plain::Plain;
-use std::collections::BTreeMap;
 use std::fs::{find, load};
 use uefi::status::{Error, Result};
 

@@ -2,7 +2,7 @@
 # It is not intended for manual editing.
 [[package]]
 name = "bitflags"
-version = "1.2.0"
+version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -18,19 +18,19 @@ name = "intel-spi"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "bitflags 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.2.62 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bitflags 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.65 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "libc"
-version = "0.2.62"
+version = "0.2.65"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "orbclient"
 version = "0.3.21"
-source = "git+https://gitlab.redox-os.org/redox-os/orbclient.git?branch=no_std#d746b90dc6ff1361d9ed967b70edf50e91068c37"
+source = "git+https://gitlab.redox-os.org/redox-os/orbclient.git?branch=no_std#0cf93f23b88fdeff6561a4f9b4b91798c3c3a4a1"
 
 [[package]]
 name = "plain"
@@ -65,7 +65,7 @@ dependencies = [
 
 [[package]]
 name = "redox_uefi_std"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "redox_uefi 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -88,20 +88,20 @@ dependencies = [
  "redox_dmi 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "redox_hwio 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "redox_uefi 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "redox_uefi_std 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "redox_uefi_std 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "system76_ecflash 0.1.1 (git+https://github.com/system76/ecflash.git)",
 ]
 
 [metadata]
-"checksum bitflags 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "8a606a02debe2813760609f57a64a2ffd27d9fdf5b2f133eaca0b248dd92cdd2"
+"checksum bitflags 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
 "checksum coreboot-fs 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "2cec4e0a87f04876c1fac4ca4a1645d7ffb308575ee0580ca27edc886227cf1b"
 "checksum intel-spi 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "b3538f3c0b81ec81a14db2d38700c8b555f6adadcc98dc6adbc7918d8a534042"
-"checksum libc 0.2.62 (registry+https://github.com/rust-lang/crates.io-index)" = "34fcd2c08d2f832f376f4173a231990fa5aef4e99fb569867318a227ef4c06ba"
+"checksum libc 0.2.65 (registry+https://github.com/rust-lang/crates.io-index)" = "1a31a0627fdf1f6a39ec0dd577e101440b7db22672c0901fe00a9a6fbb5c24e8"
 "checksum orbclient 0.3.21 (git+https://gitlab.redox-os.org/redox-os/orbclient.git?branch=no_std)" = "<none>"
 "checksum plain 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 "checksum redox_dmi 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "a99ca13e2ee4afe0fa2a646db6ac800f6d077a789ee759085f7313092535a45f"
 "checksum redox_hwio 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "9c5c3085fd5054b1f2ad35668f7c60031e6a7cb05d82477f936ac700d24d4477"
 "checksum redox_uefi 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "dafc50645c27c55ca19d27645a6d91e2a8cbc7aabb2ed024ce914512c75e1217"
 "checksum redox_uefi_alloc 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "72e7224e2106fdc2a35a33e38825f4867c3566671dc496fb67b992d05328e564"
-"checksum redox_uefi_std 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "e3f5e5ec865d317ed5997461649e6e3f95787adcf73fd5d1b968d47f9ae4843b"
+"checksum redox_uefi_std 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "ead5c13a8a650646b2f93065002d65b45226cdbc6494b0ac4aaed30ce9b17c7f"
 "checksum system76_ecflash 0.1.1 (git+https://github.com/system76/ecflash.git)" = "<none>"

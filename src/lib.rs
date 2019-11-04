@@ -5,6 +5,8 @@
 #![feature(prelude_import)]
 #![feature(try_trait)]
 
+extern crate alloc;
+
 #[macro_use]
 extern crate uefi_std as std;
 
