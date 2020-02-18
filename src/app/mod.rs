@@ -335,7 +335,7 @@ pub fn main() -> Result<()> {
     }
 
     {
-        let bg = Color::rgb(0x41, 0x3e, 0x3c);
+        let bg = Color::rgb(0x36, 0x32, 0x2f);
 
         display.set(bg);
 
