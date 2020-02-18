@@ -6,6 +6,7 @@ use ecflash::{Ec, EcFlash};
 use intel_spi::{HsfStsCtl, Spi, SpiKbl, SpiCnl};
 use plain::Plain;
 use std::fs::{find, load};
+use std::vars::{get_boot_item, get_boot_order, set_boot_item, set_boot_order};
 use uefi::status::{Error, Result};
 
 use crate::key::raw_key;
@@ -390,9 +391,38 @@ impl Component for BiosComponent {
         } else {
             find(FIRMWARENSH)?;
 
-            let cmd = format!("{} {} bios flash", FIRMWARENSH, FIRMWAREDIR);
+            let mut boot_options: Vec<(u16, Vec<u8>)> = vec!();
 
+            let order = get_boot_order();
+            if order.is_ok() {
+                println!("Preserving boot order");
+                for num in order.clone().unwrap() {
+                    if let Ok(item) = get_boot_item(num) {
+                        boot_options.push((num, item));
+                    } else {
+                        println!("Failed to read Boot{:>04X}", num);
+                    }
+                }
+            } else {
+                println!("Failed to preserve boot order");
+            }
+
+            let cmd = format!("{} {} bios flash", FIRMWARENSH, FIRMWAREDIR);
             let status = shell(&cmd)?;
+
+            if order.is_ok() {
+                if set_boot_order(&order.unwrap()).is_ok() {
+                    for (num, data) in boot_options {
+                        if set_boot_item(num, &data).is_err() {
+                            println!("Failed to write Boot{:>04X}", num);
+                        }
+                    }
+                    println!("Restored boot order");
+                } else {
+                    println!("Failed to restore boot order");
+                }
+            }
+
             if status != 0 {
                 println!("{} Flash Error: {}", self.name(), status);
                 return Err(Error::DeviceError);
