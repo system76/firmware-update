@@ -1,102 +1,144 @@
-use ecflash::{Ec, EcFile, EcFlash, Flasher};
-use hwio::{Io, Pio};
-use std::fs::{find, load};
+use ecflash::{Ec, EcFile, EcFlash};
+use ectool::{
+    Firmware,
+    Timeout,
+};
+use std::{
+    cell::Cell,
+    fs::{find, load},
+    str,
+};
 use uefi::status::{Error, Result};
 
 use super::{ECROM, EC2ROM, FIRMWAREDIR, FIRMWARENSH, shell, Component};
 
-pub struct Ps2 {
-    data_port: Pio<u8>,
-    cmd_port: Pio<u8>
+pub struct UefiTimeout {
+    duration: u64,
+    elapsed: Cell<u64>,
 }
 
-impl Ps2 {
-    pub fn new() -> Self {
+impl UefiTimeout {
+    pub fn new(duration: u64) -> Self {
         Self {
-            data_port: Pio::new(0x60),
-            cmd_port: Pio::new(0x64),
+            duration,
+            elapsed: Cell::new(0),
         }
     }
+}
 
-    pub unsafe fn can_read(&mut self) -> bool {
-        self.cmd_port.read() & 1 == 1
+impl Timeout for UefiTimeout {
+    fn reset(&mut self) {
+        self.elapsed.set(0);
     }
 
-    pub unsafe fn wait_read(&mut self) {
-        while ! self.can_read() {}
+    fn running(&self) -> bool {
+        let elapsed = self.elapsed.get() + 1;
+        let _ = (std::system_table().BootServices.Stall)(1);
+        self.elapsed.set(elapsed);
+        elapsed < self.duration
     }
+}
 
-    pub unsafe fn can_write(&mut self) -> bool {
-        self.cmd_port.read() & 2 == 0
-    }
+enum EcKind {
+    System76(ectool::Ec<UefiTimeout>),
+    Legacy(EcFlash),
+    Unknown,
+}
 
-    pub unsafe fn wait_write(&mut self) {
-        while ! self.can_write() {}
-    }
-
-    pub unsafe fn flush(&mut self) {
-        while self.can_read() {
-            self.data_port.read();
+impl EcKind {
+    unsafe fn new(primary: bool) -> Self {
+        if let Ok(ec) = ectool::Ec::new(primary, UefiTimeout::new(100_000)) {
+            return EcKind::System76(ec);
         }
+
+        if let Ok(ec) = EcFlash::new(primary) {
+            return EcKind::Legacy(ec);
+        }
+
+        EcKind::Unknown
     }
 
-    pub unsafe fn cmd(&mut self, data: u8) {
-        self.wait_write();
-        self.cmd_port.write(data);
-        self.wait_write();
+    unsafe fn model(&mut self) -> String {
+        match self {
+            EcKind::System76(ec) => {
+                let mut data = [0; 256];
+                if let Ok(count) = ec.board(&mut data) {
+                    if let Ok(string) = str::from_utf8(&data[..count]) {
+                        return string.to_string();
+                    }
+                }
+            },
+            EcKind::Legacy(ec) => {
+                return ec.project();
+            },
+            EcKind::Unknown => (),
+        }
+        String::new()
+    }
+
+    unsafe fn version(&mut self) -> String {
+        match self {
+            EcKind::System76(ec) => {
+                let mut data = [0; 256];
+                if let Ok(count) = ec.version(&mut data) {
+                    if let Ok(string) = str::from_utf8(&data[..count]) {
+                        return string.to_string();
+                    }
+                }
+            },
+            EcKind::Legacy(ec) => {
+                return ec.version();
+            },
+            EcKind::Unknown => (),
+        }
+        String::new()
+    }
+
+    fn firmware_model(&self, data: Vec<u8>) -> String {
+        match self {
+            EcKind::System76(_) => {
+                if let Some(firmware) = Firmware::new(&data) {
+                    if let Ok(string) = str::from_utf8(firmware.version) {
+                        return string.to_string();
+                    }
+                }
+            },
+            EcKind::Legacy(_) => {
+                return EcFile::new(data).project();
+            },
+            EcKind::Unknown => (),
+        }
+        String::new()
     }
 }
 
 pub struct EcComponent {
     master: bool,
+    ec: EcKind,
     model: String,
     version: String,
 }
 
 impl EcComponent {
     pub fn new(master: bool) -> EcComponent {
-        let mut model = String::new();
-        let mut version = String::new();
+        unsafe {
+            let mut ec = EcKind::new(master);
+            let model = ec.model();
+            let version = ec.version();
 
-        if let Ok(mut ec) = EcFlash::new(master) {
-            model = ec.project();
-            version = ec.version();
-        }
-
-        EcComponent {
-            master: master,
-            model: model,
-            version: version,
-        }
-    }
-
-    pub fn validate_data(&self, data: Vec<u8>) -> bool {
-        match EcFlash::new(self.master).map(|mut ec| ec.project()) {
-            Ok(project) => {
-                if EcFile::new(data).project() == project {
-                    true
-                } else {
-                    false
-                }
-            },
-            Err(_err) => {
-                false
+            EcComponent {
+                ec,
+                master,
+                model,
+                version,
             }
         }
     }
 
-    pub fn flasher(&self) -> Option<EcFlash> {
-        match self.model.as_str() {
-            "N130BU" | "N130WU" | "N140WU" | "N130ZU" | "N150ZU" | "N140CU" | "N150CU" => {
-                if let Ok(ec) = EcFlash::new(self.master) {
-                    //TODO Some(ec)
-                    None
-                } else {
-                    None
-                }
-            },
-            _ => None,
-        }
+    pub fn validate_data(&self, data: Vec<u8>) -> bool {
+        ! self.model.is_empty() &&
+        ! self.version.is_empty() &&
+        self.ec.firmware_model(data) == self.model
     }
 }
 
@@ -131,166 +173,32 @@ impl Component for EcComponent {
     }
 
     fn flash(&self) -> Result<()> {
-        if let Some(mut ec) = self.flasher() {
-            let size = ec.size();
+        match &self.ec {
+            EcKind::System76(_) => {
+                println!("{} Failed to flash EcKind::System76", self.name());
+                return Err(Error::DeviceError);
+            },
+            EcKind::Legacy(_) => {
+                find(FIRMWARENSH)?;
 
-            let data = load(self.path())?;
-
-            let blocks = (size / 0x1_0000) as u8;
-
-            let mut success = false;
-            unsafe {
-                let mut ps2 = Ps2::new();
-                ps2.flush();
-                ps2.cmd(0xAD);
-
-                let unlocked = {
-                    println!("unlock");
-                    ec.cmd(0xDE);
-                    ec.cmd(0xDC);
-                    ec.cmd(0xF0);
-                    ec.read() == Ok(1)
+                let cmd = if self.master {
+                    format!("{} {} ec flash", FIRMWARENSH, FIRMWAREDIR)
+                } else {
+                    format!("{} {} ec2 flash", FIRMWARENSH, FIRMWAREDIR)
                 };
 
-                if unlocked {
-
-                    {
-                        print!("erase: ");
-                        ec.cmd(0x01);
-                        ec.cmd(0x00);
-                        ec.cmd(0x00);
-                        ec.cmd(0x00);
-                        ec.cmd(0x00);
-
-                        for i in 0..64 {
-                            print!("*");
-                        }
-                        println!();
-                    }
-
-                    for block in 0..blocks {
-                        print!("verify block {}: ", block);
-
-                        ec.cmd(0x03);
-                        ec.cmd(block);
-                        for i in 0x0000..0x1_0000 {
-                            if i % 1024 == 0 {
-                                print!("*");
-                            }
-
-                            if ec.read() != Ok(0xFF) {
-                                panic!("erase failed at block {}, address 0x{:04X}", block, i);
-                            }
-                        }
-                        println!("*");
-                    }
-
-                    for block in 0..blocks {
-                        print!("write block {}: ", block);
-
-                        let start = if block == 0 {
-                            // The first 1024 bytes are programmed later
-                            print!(".");
-                            0x0400
-                        } else {
-                            0x0000
-                        };
-
-                        ec.cmd(0x02);
-                        ec.cmd(0x00);
-                        ec.cmd(block);
-                        ec.cmd((start >> 8) as u8);
-                        ec.cmd(start as u8);
-                        for i in start..0x1_0000 {
-                            if i % 1024 == 0 {
-                                print!("*");
-                            }
-
-                            let value = data.get((block as usize) * 0x1_0000 + i).unwrap_or(&0xFF);
-                            ec.write(*value);
-                        }
-                        println!("*");
-                    }
-
-                    {
-                        print!("write block 0: ");
-                        ec.cmd(0x06);
-                        for i in 0x0000..0x0400 {
-                            ec.write(data[i]);
-                        }
-                        println!("*");
-                    }
-
-                    for block in 0..blocks {
-                        print!("verify block {}: ", block);
-
-                        ec.cmd(0x03);
-                        ec.cmd(block);
-                        for i in 0x0000..0x1_0000 {
-                            if i % 1024 == 0 {
-                                print!("*");
-                            }
-
-                            let value = data.get((block as usize) * 0x1_0000 + i).unwrap_or(&0xFF);
-                            if ec.read() != Ok(*value) {
-                                panic!("write failed at block {}, address 0x{:04X}", block, i);
-                            }
-                        }
-                        println!("*");
-                    }
-
-                    println!("lock");
-                    ec.cmd(0xFE);
-
-                    println!("successfully flashed {} KiB", size/1024);
-
-                    success = true;
+                let status = shell(&cmd)?;
+                if status != 0 {
+                    println!("{} Flash Error: {}", self.name(), status);
+                    return Err(Error::DeviceError);
                 }
 
-                ps2.cmd(0xAE);
-            }
-
-            if ! success {
+                Ok(())
+            },
+            EcKind::Unknown => {
+                println!("{} Failed to flash EcKind::Unknown", self.name());
                 return Err(Error::DeviceError);
-            }
-        } else {
-            find(FIRMWARENSH)?;
-
-            let cmd = if self.master {
-                format!("{} {} ec flash", FIRMWARENSH, FIRMWAREDIR)
-            } else {
-                format!("{} {} ec2 flash", FIRMWARENSH, FIRMWAREDIR)
-            };
-
-            let (e_p, _e_v) = match EcFlash::new(self.master) {
-                Ok(mut ec) => {
-                    (ec.project(), ec.version())
-                },
-                Err(err) => {
-                    println!("{} Open Error: {}", self.name(), err);
-                    return Err(Error::NotFound);
-                }
-            };
-
-            let (f_p, _f_v) = {
-                let mut file = EcFile::new(load(self.path())?);
-                (file.project(), file.version())
-            };
-
-            if e_p != f_p {
-                println!("{} Project Mismatch", self.name());
-                return Err(Error::DeviceError);
-            }
-
-            // We could check e_v vs f_v to verify version, and not flash if up to date
-            // Instead, we rely on the Linux side to determine when it is appropriate to flash
-            let status = shell(&cmd)?;
-            if status != 0 {
-                println!("{} Flash Error: {}", self.name(), status);
-                return Err(Error::DeviceError);
-            }
+            },
         }
-
-        Ok(())
     }
 }

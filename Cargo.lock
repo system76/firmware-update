@@ -15,16 +15,17 @@ dependencies = [
 
 [[package]]
 name = "intel-spi"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.2.65 (registry+https://github.com/rust-lang/crates.io-index)",
+ "coreboot-fs 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.67 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "libc"
-version = "0.2.65"
+version = "0.2.67"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -75,14 +76,22 @@ dependencies = [
 [[package]]
 name = "system76_ecflash"
 version = "0.1.1"
-source = "git+https://github.com/system76/ecflash.git#0078a481b812e5d9ea4a40cb21678c1f957c1514"
+source = "git+https://github.com/system76/ecflash.git#945ec8d276edd78f26cd744624344e67549824ad"
+
+[[package]]
+name = "system76_ectool"
+version = "0.1.0"
+source = "git+https://github.com/system76/ec.git#d511a57bff0259964ce29b6f93b3c42eef2e0372"
+dependencies = [
+ "redox_hwio 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "system76_firmware_update"
 version = "1.0.0"
 dependencies = [
  "coreboot-fs 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "intel-spi 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "intel-spi 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "orbclient 0.3.21 (git+https://gitlab.redox-os.org/redox-os/orbclient.git?branch=no_std)",
  "plain 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "redox_dmi 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -90,13 +99,14 @@ dependencies = [
  "redox_uefi 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "redox_uefi_std 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "system76_ecflash 0.1.1 (git+https://github.com/system76/ecflash.git)",
+ "system76_ectool 0.1.0 (git+https://github.com/system76/ec.git)",
 ]
 
 [metadata]
 "checksum bitflags 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
 "checksum coreboot-fs 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "2cec4e0a87f04876c1fac4ca4a1645d7ffb308575ee0580ca27edc886227cf1b"
-"checksum intel-spi 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "b3538f3c0b81ec81a14db2d38700c8b555f6adadcc98dc6adbc7918d8a534042"
-"checksum libc 0.2.65 (registry+https://github.com/rust-lang/crates.io-index)" = "1a31a0627fdf1f6a39ec0dd577e101440b7db22672c0901fe00a9a6fbb5c24e8"
+"checksum intel-spi 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "78c089b8aae34e5131f552262bcb0f9989bb74808e916e930e569cf09e7f1363"
+"checksum libc 0.2.67 (registry+https://github.com/rust-lang/crates.io-index)" = "eb147597cdf94ed43ab7a9038716637d2d1bf2bc571da995d0028dec06bd3018"
 "checksum orbclient 0.3.21 (git+https://gitlab.redox-os.org/redox-os/orbclient.git?branch=no_std)" = "<none>"
 "checksum plain 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 "checksum redox_dmi 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "a99ca13e2ee4afe0fa2a646db6ac800f6d077a789ee759085f7313092535a45f"
@@ -105,3 +115,4 @@ dependencies = [
 "checksum redox_uefi_alloc 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "72e7224e2106fdc2a35a33e38825f4867c3566671dc496fb67b992d05328e564"
 "checksum redox_uefi_std 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "ead5c13a8a650646b2f93065002d65b45226cdbc6494b0ac4aaed30ce9b17c7f"
 "checksum system76_ecflash 0.1.1 (git+https://github.com/system76/ecflash.git)" = "<none>"
+"checksum system76_ectool 0.1.0 (git+https://github.com/system76/ec.git)" = "<none>"
