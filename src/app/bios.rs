@@ -2,14 +2,12 @@ use alloc::collections::BTreeMap;
 use core::char;
 use coreboot_fs::Rom;
 use dmi;
-use ecflash::{Ec, EcFlash};
+use ecflash::EcFlash;
 use intel_spi::{HsfStsCtl, Spi, SpiKbl, SpiCnl};
 use plain::Plain;
 use std::fs::{find, load};
 use std::vars::{get_boot_item, get_boot_order, set_boot_item, set_boot_order};
 use uefi::status::{Error, Result};
-
-use crate::key::raw_key;
 
 use super::{FIRMWAREDIR, FIRMWARENSH, FIRMWAREROM, UEFIFLASH, shell, Component};
 
@@ -61,7 +59,7 @@ impl BiosComponent {
         }
     }
 
-    pub fn spi(&self) -> Option<(&'static mut Spi, HsfStsCtl)> {
+    pub fn spi(&self) -> Option<(&'static mut dyn Spi, HsfStsCtl)> {
         match self.bios_vendor.as_str() {
             "coreboot" => match self.system_version.as_str() {
                 "galp2" | "galp3" | "galp3-b" => {
@@ -69,14 +67,14 @@ impl BiosComponent {
                         &mut *(SpiKbl::address() as *mut SpiKbl)
                     };
                     let hsfsts_ctl = spi_kbl.hsfsts_ctl();
-                    Some((spi_kbl as &mut Spi, hsfsts_ctl))
+                    Some((spi_kbl as &mut dyn Spi, hsfsts_ctl))
                 },
                 "darp5" | "darp6" | "galp3-c" | "galp4" | "gaze14" | "lemp9" => {
                     let spi_cnl = unsafe {
                         &mut *(SpiCnl::address() as *mut SpiCnl)
                     };
                     let hsfsts_ctl = spi_cnl.hsfsts_ctl();
-                    Some((spi_cnl as &mut Spi, hsfsts_ctl))
+                    Some((spi_cnl as &mut dyn Spi, hsfsts_ctl))
                 },
                 _ => None,
             },
@@ -92,15 +90,15 @@ impl BiosComponent {
                 println!("GetParam(WINF) = 0x{:>02X}", value);
                 value |= 0x08;
                 println!("SetParam(WINF, 0x{:>02X})", value);
-                ec.set_param(0xDA, value);
+                let _ = ec.set_param(0xDA, value);
 
                 println!("SetPOnTimer(0, 2)");
-                ec.cmd(0x97);
-                ec.write(0x00);
-                ec.write(0x02);
+                let _ = ec.cmd(0x97);
+                let _ = ec.write(0x00);
+                let _ = ec.write(0x02);
 
                 println!("PowerOff");
-                ec.cmd(0x95);
+                let _ = ec.cmd(0x95);
             }
 
             println!("Halt");
@@ -130,7 +128,7 @@ impl Component for BiosComponent {
 
     fn validate(&self) -> Result<bool> {
         let data = load(self.path())?;
-        if let Some((spi, hsfsts_ctl)) = self.spi() {
+        if let Some((spi, _hsfsts_ctl)) = self.spi() {
             // if hsfsts_ctl.contains(HsfStsCtl::FDOPSS) {
             //     println!("SPI currently locked, attempting to unlock");
             //     Self::spi_unlock();
@@ -149,7 +147,7 @@ impl Component for BiosComponent {
     }
 
     fn flash(&self) -> Result<()> {
-        if let Some((spi, hsfsts_ctl)) = self.spi() {
+        if let Some((spi, _hsfsts_ctl)) = self.spi() {
             // Read new data
             let mut new;
             {

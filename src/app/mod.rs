@@ -72,8 +72,8 @@ enum ValidateKind {
     Error(Error)
 }
 
-fn components_validations() -> (Vec<Box<Component>>, Vec<ValidateKind>) {
-    let components: Vec<Box<Component>> = vec![
+fn components_validations() -> (Vec<Box<dyn Component>>, Vec<ValidateKind>) {
+    let components: Vec<Box<dyn Component>> = vec![
         Box::new(BiosComponent::new()),
         Box::new(EcComponent::new(true)),
         Box::new(EcComponent::new(false)),
