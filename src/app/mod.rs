@@ -38,6 +38,7 @@ mod ec;
 mod mapper;
 mod pci;
 
+static AMIDE: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\amide.efi");
 static ECROM: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\ec.rom");
 static ECTAG: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\ec.tag");
 static EC2ROM: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\ec2.rom");
@@ -50,6 +51,7 @@ static IFLASHV: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\iflashv.efi")
 static IFLASHVTAG: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\iflashv.tag");
 static IPXEEFI: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\ipxe.efi");
 static MESETTAG: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\meset.tag");
+static SERIAL: &str = concat!("\\", env!("BASEDIR"), "\\serial");
 static SHELLEFI: &str = concat!("\\", env!("BASEDIR"), "\\res\\shell.efi");
 static SPLASHBMP: &str = concat!("\\", env!("BASEDIR"), "\\res\\splash.bmp");
 static UEFIFLASH: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\uefiflash.efi");
