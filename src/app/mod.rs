@@ -38,7 +38,7 @@ mod ec;
 mod mapper;
 mod pci;
 
-static AMIDE: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\amide.efi");
+static AMIDETAG: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\amide.tag");
 static ECROM: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\ec.rom");
 static ECTAG: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\ec.tag");
 static EC2ROM: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\ec2.rom");
@@ -76,6 +76,18 @@ fn ac_connected() -> bool {
         (adp & 0x01) == 0x01
     } else {
         true
+    }
+}
+
+fn set_serial(serial: &str) -> Result<()> {
+    find(FIRMWARENSH)?;
+    let cmd = format!("{} {} serial {}", FIRMWARENSH, FIRMWAREDIR, serial);
+    let status = shell(&cmd)?;
+    if status == 0 {
+        Ok(())
+    } else {
+        println!("Set Serial Error: {}", status);
+        Err(Error::DeviceError)
     }
 }
 
@@ -257,6 +269,11 @@ fn inner() -> Result<()> {
             components.clear();
             validations.clear();
             '\n'
+        } else if find(AMIDETAG).is_ok() {
+            // Skip enter if writing serial
+            components.clear();
+            validations.clear();
+            '\n'
         } else if find(UEFIFLASH).is_ok() {
             // Skip enter if flashing a meerkat
             if find(UEFIFLASHTAG).is_ok() {
@@ -318,6 +335,25 @@ fn inner() -> Result<()> {
             "! Not applying updates !"
         }
     };
+
+    if let Ok(serial_vec) = load(SERIAL) {
+        match String::from_utf8(serial_vec) {
+            Ok(serial_str) => {
+                let serial = serial_str.trim();
+                match set_serial(&serial) {
+                    Ok(()) => {
+                        println!("Set serial to '{}'", serial);
+                    },
+                    Err(err) => {
+                        println!("Failed to set serial to '{}': {:?}", serial, err);
+                    }
+                }
+            },
+            Err(err) => {
+                println!("Failed to parse serial: {:?}", err);
+            }
+        }
+    }
 
     remove_override(option)?;
 

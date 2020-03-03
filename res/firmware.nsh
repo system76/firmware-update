@@ -208,5 +208,23 @@ if "%2" == "ec2" then
     exit 1
 endif
 
+if "%2" == "serial" then
+    if exist amide.efi then
+        if exist amide.tag then
+            rm amide.tag
+            amide.efi /SS "%3"
+            exit %lasterror%
+        else
+            echo > amide.tag
+            if not exist amide.tag then
+                echo "failed to create amide.tag"
+                exit 1
+            endif
+
+            reset
+        endif
+    endif
+endif
+
 echo "unknown command '%2'"
 exit 1

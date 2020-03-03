@@ -13,7 +13,7 @@ use std::vars::{get_boot_item, get_boot_order, set_boot_item, set_boot_order};
 use std::uefi::reset::ResetType;
 use std::uefi::status::{Error, Result, Status};
 
-use super::{AMIDE, FIRMWARECAP, FIRMWAREDIR, FIRMWARENSH, FIRMWAREROM, H2OFFT, IFLASHV, SERIAL, UEFIFLASH, shell, Component, pci_mcfg, UefiMapper};
+use super::{FIRMWARECAP, FIRMWAREDIR, FIRMWARENSH, FIRMWAREROM, H2OFFT, IFLASHV, UEFIFLASH, shell, Component, pci_mcfg, UefiMapper};
 
 fn copy_region(region: intelflash::RegionKind, old_data: &[u8], new_data: &mut [u8]) -> core::result::Result<bool, String> {
     let old_opt = intelflash::Rom::new(old_data)?.get_region_base_limit(region)?;
@@ -186,23 +186,6 @@ impl BiosComponent {
             }
         } else {
             println!("Failed to locate EC");
-        }
-    }
-
-    fn set_serial(&self, serial: &str) -> Result<()> {
-        if find(AMIDE).is_ok() {
-            let cmd = format!("{} /SS {}", AMIDE, serial);
-            let status = shell(&cmd)?;
-
-            if status == 0 {
-                Ok(())
-            } else {
-                println!("{} Set Serial Error: {}", self.name(), status);
-                Err(Error::DeviceError)
-            }
-        } else {
-            //TODO
-            Err(Error::NotFound)
         }
     }
 }
@@ -555,25 +538,6 @@ impl Component for BiosComponent {
             if status != 0 {
                 println!("{} Flash Error: {}", self.name(), status);
                 return Err(Error::DeviceError);
-            }
-        }
-
-        if let Ok(serial_vec) = load(SERIAL) {
-            match String::from_utf8(serial_vec) {
-                Ok(serial_str) => {
-                    let serial = serial_str.trim();
-                    match self.set_serial(&serial) {
-                        Ok(()) => {
-                            println!("Set serial to '{}'", serial);
-                        },
-                        Err(err) => {
-                            println!("Failed to set serial to '{}': {:?}", serial, err);
-                        }
-                    }
-                },
-                Err(err) => {
-                    println!("Failed to parse serial: {:?}", err);
-                }
             }
         }
 
