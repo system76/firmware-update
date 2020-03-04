@@ -315,6 +315,25 @@ fn inner() -> Result<()> {
                     println!("Failed to reset DMI: {:?}", err);
                 }
 
+                if let Ok(serial_vec) = load(SERIAL) {
+                    match String::from_utf8(serial_vec) {
+                        Ok(serial_str) => {
+                            let serial = serial_str.trim();
+                            match set_serial(&serial) {
+                                Ok(()) => {
+                                    println!("Set serial to '{}'", serial);
+                                },
+                                Err(err) => {
+                                    println!("Failed to set serial to '{}': {:?}", serial, err);
+                                }
+                            }
+                        },
+                        Err(err) => {
+                            println!("Failed to parse serial: {:?}", err);
+                        }
+                    }
+                }
+
                 if setup_menu {
                     let supported = get_os_indications_supported().unwrap_or(0);
                     if supported & 1 == 1 {
@@ -335,25 +354,6 @@ fn inner() -> Result<()> {
             "! Not applying updates !"
         }
     };
-
-    if let Ok(serial_vec) = load(SERIAL) {
-        match String::from_utf8(serial_vec) {
-            Ok(serial_str) => {
-                let serial = serial_str.trim();
-                match set_serial(&serial) {
-                    Ok(()) => {
-                        println!("Set serial to '{}'", serial);
-                    },
-                    Err(err) => {
-                        println!("Failed to set serial to '{}': {:?}", serial, err);
-                    }
-                }
-            },
-            Err(err) => {
-                println!("Failed to parse serial: {:?}", err);
-            }
-        }
-    }
 
     remove_override(option)?;
 
