@@ -218,9 +218,14 @@ fn inner() -> Result<()> {
         let c = if find(MESETTAG).is_ok() {
             // Skip enter if in manufacturing mode
             '\n'
-        } else if find(IFLASHV).is_ok() || find(UEFIFLASH).is_ok() {
+        } else if find(IFLASHVTAG).is_ok() {
+            // Skip enter if flashing a meer5 and flashing already occured
+            components.clear();
+            validations.clear();
+            '\n'
+        } else if find(UEFIFLASH).is_ok() {
             // Skip enter if flashing a meerkat
-            if find(IFLASHVTAG).is_ok() || find(UEFIFLASHTAG).is_ok() {
+            if find(UEFIFLASHTAG).is_ok() {
                 components.clear();
                 validations.clear();
                 '\n'
@@ -253,10 +258,13 @@ fn inner() -> Result<()> {
                 }
             }
 
-
             if success {
-                if let Err(err) = reset_dmi() {
-                    println!("Failed to reset DMI: {:?}", err);
+                if find(IFLASHV).is_ok() {
+                    // Do not reset DMI on meer5
+                } else {
+                    if let Err(err) = reset_dmi() {
+                        println!("Failed to reset DMI: {:?}", err);
+                    }
                 }
 
                 let supported = get_os_indications_supported().unwrap_or(0);
