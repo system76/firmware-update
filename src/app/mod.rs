@@ -36,6 +36,8 @@ static EC2ROM: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\ec2.ro
 static FIRMWAREDIR: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware");
 static FIRMWARENSH: &'static str = concat!("\\", env!("BASEDIR"), "\\res\\firmware.nsh");
 static FIRMWAREROM: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\firmware.rom");
+static IFLASHV: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\iflashv.efi");
+static IFLASHVTAG: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\iflashv.tag");
 static MESETTAG: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\meset.tag");
 static SHELLEFI: &'static str = concat!("\\", env!("BASEDIR"), "\\res\\shell.efi");
 static SPLASHBMP: &'static str = concat!("\\", env!("BASEDIR"), "\\res\\splash.bmp");
@@ -216,6 +218,11 @@ fn inner() -> Result<()> {
         let c = if find(MESETTAG).is_ok() {
             // Skip enter if in manufacturing mode
             '\n'
+        } else if find(IFLASHVTAG).is_ok() {
+            // Skip enter if flashing a meer5 and flashing already occured
+            components.clear();
+            validations.clear();
+            '\n'
         } else if find(UEFIFLASH).is_ok() {
             // Skip enter if flashing a meerkat
             if find(UEFIFLASHTAG).is_ok() {
@@ -251,10 +258,13 @@ fn inner() -> Result<()> {
                 }
             }
 
-
             if success {
-                if let Err(err) = reset_dmi() {
-                    println!("Failed to reset DMI: {:?}", err);
+                if find(IFLASHV).is_ok() {
+                    // Do not reset DMI on meer5
+                } else {
+                    if let Err(err) = reset_dmi() {
+                        println!("Failed to reset DMI: {:?}", err);
+                    }
                 }
 
                 let supported = get_os_indications_supported().unwrap_or(0);
