@@ -112,7 +112,7 @@ if "%2" == "bios" then
 
                 # Update logo
                 iflashv.efi firmware.rom /K1
-                if %lasterror% != 0 then
+                if not "%lasterror%" == "0" then
                     exit %lasterror%
                 endif
 
