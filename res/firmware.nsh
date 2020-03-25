@@ -104,7 +104,7 @@ if "%2" == "bios" then
             else
                 # Set DMI information if possible and exit
                 if exist idmiedit.efi then
-                    idmiedit.efi idmiedit.dms
+                    idmiedit.efi SET.DMS
                     if not "%lasterror%" == "0" then
                         exit %lasterror%
                     endif
@@ -123,7 +123,7 @@ if "%2" == "bios" then
                 endif
 
                 # Update BIOS, should reboot
-                iflashv.efi firmware.rom
+                iflashv.efi firmware.rom /Q
                 exit 1
             endif
         endif
