@@ -36,6 +36,8 @@ static EC2ROM: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\ec2.ro
 static FIRMWAREDIR: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware");
 static FIRMWARENSH: &'static str = concat!("\\", env!("BASEDIR"), "\\res\\firmware.nsh");
 static FIRMWAREROM: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\firmware.rom");
+static IFLASHV: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\iflashv.efi");
+static IFLASHVTAG: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\iflashv.tag");
 static MESETTAG: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\meset.tag");
 static SHELLEFI: &'static str = concat!("\\", env!("BASEDIR"), "\\res\\shell.efi");
 static SPLASHBMP: &'static str = concat!("\\", env!("BASEDIR"), "\\res\\splash.bmp");
@@ -216,9 +218,9 @@ fn inner() -> Result<()> {
         let c = if find(MESETTAG).is_ok() {
             // Skip enter if in manufacturing mode
             '\n'
-        } else if find(UEFIFLASH).is_ok() {
+        } else if find(IFLASHV).is_ok() || find(UEFIFLASH).is_ok() {
             // Skip enter if flashing a meerkat
-            if find(UEFIFLASHTAG).is_ok() {
+            if find(IFLASHVTAG).is_ok() || find(UEFIFLASHTAG).is_ok() {
                 components.clear();
                 validations.clear();
                 '\n'

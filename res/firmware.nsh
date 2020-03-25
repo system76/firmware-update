@@ -100,26 +100,31 @@ if "%2" == "bios" then
         if exist iflashv.efi then
             if exist iflashv.tag then
                 rm iflashv.tag
-
+                exit 0
+            else
                 # Set DMI information if possible and exit
-                if exist idmiedit.efi then
+                if exist idmiedit.efi and exist idmidedit.dms then
                     idmiedit.efi idmiedit.dms
+                    if %lasterror% != 0 then
+                        exit %lasterror%
+                    endif
+                endif
+
+                # Update logo
+                iflashv.efi firmware.rom /K1
+                if %lasterror% != 0 then
                     exit %lasterror%
                 endif
 
-                exit 0
-            else
                 echo > iflashv.tag
                 if not exist iflashv.tag then
                     echo "failed to create iflashv.tag"
                     exit 1
                 endif
 
-                iflashv.efi firmware.rom /K1
-                if %lasterror% == 0 then
-                    reset
-                endif
-                exit %lasterror%
+                # Update BIOS, should reboot
+                iflashv.efi firmware.rom
+                exit 1
             endif
         endif
 
