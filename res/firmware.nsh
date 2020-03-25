@@ -103,9 +103,9 @@ if "%2" == "bios" then
                 exit 0
             else
                 # Set DMI information if possible and exit
-                if exist idmiedit.efi and exist idmidedit.dms then
+                if exist idmiedit.efi then
                     idmiedit.efi idmiedit.dms
-                    if %lasterror% != 0 then
+                    if not "%lasterror%" == "0" then
                         exit %lasterror%
                     endif
                 endif
