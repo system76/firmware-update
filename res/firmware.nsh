@@ -116,7 +116,10 @@ if "%2" == "bios" then
                 endif
 
                 iflashv.efi firmware.rom /K1
-                exit 1
+                if %lasterror% == 0 then
+                    reset
+                endif
+                exit %lasterror%
             endif
         endif
 
