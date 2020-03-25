@@ -49,7 +49,9 @@ cd "%1"
 
 if "%2" == "bios" then
     if "%3" == "flash" then
+        # Unlock ME region if possible, should reboot automatically
         if exist meset.efi then
+            # meset reboots automatically
             if exist meset.tag then
                 rm meset.tag
             else
@@ -65,30 +67,61 @@ if "%2" == "bios" then
             endif
         endif
 
+        # Flash with FPT and exit if possible
         if exist fpt.efi then
             fpt.efi -P "%1\fparts.txt" -F "%1\firmware.rom"
             exit %lasterror%
-        else
-            if exist efiflash.efi then
-                efiflash.efi firmware.rom /C /NR \NoOemId
-                exit %lasterror%
-            else
-                if exist uefiflash.efi then
-                    if exist uefiflash.tag then
-                        rm uefiflash.tag
-                    else
-                        echo > uefiflash.tag
-                        if not exist uefiflash.tag then
-                            echo "failed to create uefiflash.tag"
-                            exit 1
-                        endif
+        endif
 
-                        uefiflash.efi firmware.rom
-                        exit 1
-                    endif
+        # Flash with efiflash and exit if possible
+        if exist efiflash.efi then
+            efiflash.efi firmware.rom /C /NR \NoOemId
+            exit %lasterror%
+        endif
+
+        # Flash with uefiflash if possible, should reboot automatically
+        if exist uefiflash.efi then
+            if exist uefiflash.tag then
+                rm uefiflash.tag
+                exit 0
+            else
+                echo > uefiflash.tag
+                if not exist uefiflash.tag then
+                    echo "failed to create uefiflash.tag"
+                    exit 1
                 endif
+
+                uefiflash.efi firmware.rom
+                exit 1
             endif
         endif
+
+        # Set logo, should reboot automatically
+        if exist iflashv.efi then
+            if exist iflashv.tag then
+                rm iflashv.tag
+
+                # Set DMI information if possible and exit
+                if exist idmiedit.efi then
+                    idmiedit.efi idmiedit.dms
+                    exit %lasterror%
+                endif
+
+                exit 0
+            else
+                echo > iflashv.tag
+                if not exist iflashv.tag then
+                    echo "failed to create iflashv.tag"
+                    exit 1
+                endif
+
+                iflashv.efi firmware.rom /K1
+                exit 1
+            endif
+        endif
+
+        echo "bios: no flash implementation found"
+        exit 1
     endif
 
     echo "bios: unknown subcommand '%3'"
