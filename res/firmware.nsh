@@ -99,9 +99,6 @@ if "%2" == "bios" then
         # Set logo, should reboot automatically
         if exist iflashv.efi then
             if exist iflashv.tag then
-                rm iflashv.tag
-                exit 0
-            else
                 # Set DMI information if possible and exit
                 if exist idmiedit.efi then
                     idmiedit.efi idmiedit.dms
@@ -116,6 +113,9 @@ if "%2" == "bios" then
                     exit %lasterror%
                 endif
 
+                rm iflashv.tag
+                exit 0
+            else
                 echo > iflashv.tag
                 if not exist iflashv.tag then
                     echo "failed to create iflashv.tag"
