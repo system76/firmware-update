@@ -32,6 +32,7 @@ mod component;
 mod ec;
 
 static ECROM: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\ec.rom");
+static ECTAG: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\ec.tag");
 static EC2ROM: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\ec2.rom");
 static FIRMWAREDIR: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware");
 static FIRMWARENSH: &'static str = concat!("\\", env!("BASEDIR"), "\\res\\firmware.nsh");
@@ -215,7 +216,12 @@ fn inner() -> Result<()> {
     } else if ! validations.iter().any(|v| *v == ValidateKind::Found) {
         println!("* No updates were found *");
     } else {
-        let c = if find(MESETTAG).is_ok() {
+        let c = if find(ECTAG).is_ok() {
+            // Skip enter if system76 ec flashing already occured
+            components.clear();
+            validations.clear();
+            '\n'
+        } else if find(MESETTAG).is_ok() {
             // Skip enter if in manufacturing mode
             '\n'
         } else if find(IFLASHVTAG).is_ok() {
