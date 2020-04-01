@@ -138,7 +138,7 @@ endif
 
 if "%2" == "ec" then
     if "%3" == "flash" then
-        uecflash.efi ec.rom /AD /F2 /P
+        uecflash.efi ec.rom /AD /F2 /P /Y
         exit %lasterror%
     endif
 
