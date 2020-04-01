@@ -42,6 +42,111 @@ impl Timeout for UefiTimeout {
     }
 }
 
+enum EcKind {
+    System76(ectool::Ec<UefiTimeout>),
+    Legacy(EcFlash),
+    Unknown,
+}
+
+impl EcKind {
+    unsafe fn new(primary: bool) -> Self {
+        if let Ok(ec) = ectool::Ec::new(UefiTimeout::new(100_000)) {
+            return EcKind::System76(ec);
+        }
+
+        if let Ok(ec) = EcFlash::new(primary) {
+            return EcKind::Legacy(ec);
+        }
+
+        EcKind::Unknown
+    }
+
+    unsafe fn model(&mut self) -> String {
+        match self {
+            EcKind::System76(ec) => {
+                let mut data = [0; 256];
+                if let Ok(count) = ec.board(&mut data) {
+                    if let Ok(string) = str::from_utf8(&data[..count]) {
+                        return string.to_string();
+                    }
+                }
+            },
+            EcKind::Legacy(ec) => {
+                return ec.project();
+            },
+            EcKind::Unknown => (),
+        }
+        String::new()
+    }
+
+    unsafe fn version(&mut self) -> String {
+        match self {
+            EcKind::System76(ec) => {
+                let mut data = [0; 256];
+                if let Ok(count) = ec.version(&mut data) {
+                    if let Ok(string) = str::from_utf8(&data[..count]) {
+                        return string.to_string();
+                    }
+                }
+            },
+            EcKind::Legacy(ec) => {
+                return ec.version();
+            },
+            EcKind::Unknown => (),
+        }
+        String::new()
+    }
+
+    fn firmware_model(&self, data: Vec<u8>) -> String {
+        if let Some(firmware) = Firmware::new(&data) {
+            if let Ok(string) = str::from_utf8(firmware.board) {
+                string.to_string()
+            } else {
+                String::new()
+            }
+        } else {
+            EcFile::new(data).project()
+        }
+    }
+}
+
+pub struct EcComponent {
+    master: bool,
+    ec: EcKind,
+    model: String,
+    version: String,
+}
+
+impl EcComponent {
+    pub fn new(master: bool) -> EcComponent {
+        unsafe {
+            let mut ec = EcKind::new(master);
+            let model = ec.model();
+            let version = ec.version();
+
+            EcComponent {
+                ec,
+                master,
+                model,
+                version,
+            }
+        }
+    }
+
+    pub fn validate_data(&self, data: Vec<u8>) -> bool {
+        let normalize_model = |model: &str| -> String {
+            match model {
+                "L140CU" => "system76/lemp9".to_string(),
+                _ => model.to_string(),
+            }
+        };
+        let firmware_model = self.ec.firmware_model(data);
+        ! self.model.is_empty() &&
+        ! self.version.is_empty() &&
+        normalize_model(&firmware_model) == normalize_model(&self.model)
+    }
+}
+
 unsafe fn flash_read<S: Spi>(spi: &mut SpiRom<S, UefiTimeout>, rom: &mut [u8], sector_size: usize) -> core::result::Result<(), ectool::Error> {
     let mut address = 0;
     while address < rom.len() {
@@ -58,16 +163,34 @@ unsafe fn flash_read<S: Spi>(spi: &mut SpiRom<S, UefiTimeout>, rom: &mut [u8], s
     Ok(())
 }
 
-unsafe fn flash_inner(ec: &mut ectool::Ec<UefiTimeout>, firmware: &Firmware, target: SpiTarget, scratch: bool) -> core::result::Result<(), ectool::Error> {
+unsafe fn flash(firmware_data: &[u8]) -> core::result::Result<(), ectool::Error> {
+    let mut ec = ectool::Ec::new(UefiTimeout::new(1_000_000))?;
+
+    {
+        let mut data = [0; 256];
+        let size = ec.board(&mut data)?;
+
+        let ec_board = &data[..size];
+        println!("ec board: {:?}", str::from_utf8(ec_board));
+    }
+
+    {
+        let mut data = [0; 256];
+        let size = ec.version(&mut data)?;
+
+        let ec_version = &data[..size];
+        println!("ec version: {:?}", str::from_utf8(ec_version));
+    }
+
     let rom_size = 128 * 1024;
     let sector_size = 1024;
 
-    let mut new_rom = firmware.data.to_vec();
+    let mut new_rom = firmware_data.to_vec();
     while new_rom.len() < rom_size {
         new_rom.push(0xFF);
     }
 
-    let mut spi_bus = ec.spi(target, scratch)?;
+    let mut spi_bus = ec.spi(SpiTarget::Main, true)?;
     let mut spi = SpiRom::new(
         &mut spi_bus,
         UefiTimeout::new(1_000_000)
@@ -132,158 +255,33 @@ unsafe fn flash_inner(ec: &mut ectool::Ec<UefiTimeout>, firmware: &Firmware, tar
     Ok(())
 }
 
-enum EcKind {
-    System76(ectool::Ec<UefiTimeout>),
-    Legacy(EcFlash),
-    Unknown,
-}
-
-impl EcKind {
-    unsafe fn new(primary: bool) -> Self {
-        if let Ok(ec) = ectool::Ec::new(UefiTimeout::new(100_000)) {
-            return EcKind::System76(ec);
-        }
-
-        if let Ok(ec) = EcFlash::new(primary) {
-            return EcKind::Legacy(ec);
-        }
-
-        EcKind::Unknown
-    }
-
-    unsafe fn model(&mut self) -> String {
-        match self {
-            EcKind::System76(ec) => {
-                let mut data = [0; 256];
-                if let Ok(count) = ec.board(&mut data) {
-                    if let Ok(string) = str::from_utf8(&data[..count]) {
-                        return string.to_string();
-                    }
-                }
-            },
-            EcKind::Legacy(ec) => {
-                return ec.project();
-            },
-            EcKind::Unknown => (),
-        }
-        String::new()
-    }
-
-    unsafe fn version(&mut self) -> String {
-        match self {
-            EcKind::System76(ec) => {
-                let mut data = [0; 256];
-                if let Ok(count) = ec.version(&mut data) {
-                    if let Ok(string) = str::from_utf8(&data[..count]) {
-                        return string.to_string();
-                    }
-                }
-            },
-            EcKind::Legacy(ec) => {
-                return ec.version();
-            },
-            EcKind::Unknown => (),
-        }
-        String::new()
-    }
-
-    fn firmware_model(&self, data: Vec<u8>) -> String {
-        match self {
-            EcKind::System76(_) => {
-                if let Some(firmware) = Firmware::new(&data) {
-                    if let Ok(string) = str::from_utf8(firmware.board) {
-                        return string.to_string();
-                    }
-                }
-            },
-            EcKind::Legacy(_) => {
-                return EcFile::new(data).project();
-            },
-            EcKind::Unknown => (),
-        }
-        String::new()
-    }
-}
-
-pub struct EcComponent {
-    master: bool,
-    ec: EcKind,
-    model: String,
-    version: String,
-}
-
-impl EcComponent {
-    pub fn new(master: bool) -> EcComponent {
-        unsafe {
-            let mut ec = EcKind::new(master);
-            let model = ec.model();
-            let version = ec.version();
-
-            EcComponent {
-                ec,
-                master,
-                model,
-                version,
-            }
-        }
-    }
-
-    pub fn validate_data(&self, data: Vec<u8>) -> bool {
-        let firmware_model = self.ec.firmware_model(data);
-        ! self.model.is_empty() &&
-        ! self.version.is_empty() &&
-        firmware_model == self.model
-    }
-}
-
-unsafe fn flash(firmware_data: &[u8]) -> core::result::Result<(), ectool::Error> {
-    let target = SpiTarget::Main;
-    let scratch = true;
-
-    let firmware = match Firmware::new(&firmware_data) {
-        Some(some) => some,
-        None => {
-            println!("failed to parse firmware");
-            return Err(ectool::Error::Verify);
-        }
+unsafe fn watchdog_reset() {
+    let d2_read = |addr: u8| -> u8 {
+        let mut super_io = ectool::SuperIo::new(0x2E);
+        super_io.write(0x2E, addr);
+        super_io.read(0x2F)
     };
-    println!("file board: {:?}", str::from_utf8(firmware.board));
-    println!("file version: {:?}", str::from_utf8(firmware.version));
 
-    let mut ec = ectool::Ec::new(UefiTimeout::new(1_000_000))?;
+    let d2_write = |addr: u8, value: u8| {
+        let mut super_io = ectool::SuperIo::new(0x2E);
+        super_io.write(0x2E, addr);
+        super_io.write(0x2F, value);
+    };
 
-    {
-        let mut data = [0; 256];
-        let size = ec.board(&mut data)?;
+    let i2ec_read = |addr: u16| -> u8 {
+        d2_write(0x11, (addr >> 8) as u8);
+        d2_write(0x10, addr as u8);
+        d2_read(0x12)
+    };
 
-        let ec_board = &data[..size];
-        println!("ec board: {:?}", str::from_utf8(ec_board));
+    let i2ec_write = |addr: u16, value: u8| {
+        d2_write(0x11, (addr >> 8) as u8);
+        d2_write(0x10, addr as u8);
+        d2_write(0x12, value);
+    };
 
-        if ec_board != firmware.board {
-            println!("file board does not match ec board");
-            return Err(ectool::Error::Verify);
-        }
-    }
-
-    {
-        let mut data = [0; 256];
-        let size = ec.version(&mut data)?;
-
-        let ec_version = &data[..size];
-        println!("ec version: {:?}", str::from_utf8(ec_version));
-    }
-
-    let res = flash_inner(&mut ec, &firmware, target, scratch);
-    println!("Result: {:X?}", res);
-
-    if scratch {
-        println!("System will shut off in 5 seconds");
-        let _ = (std::system_table().BootServices.Stall)(5_000_000);
-
-        ec.reset()?;
-    }
-
-    res
+    i2ec_write(0x1F01, i2ec_read(0x1F01) | (1 << 5));
+    i2ec_write(0x1F07, 0);
 }
 
 impl Component for EcComponent {
@@ -317,9 +315,23 @@ impl Component for EcComponent {
     }
 
     fn flash(&self) -> Result<()> {
-        match &self.ec {
+        let mut requires_reset = false;
+
+        let firmware_data = load(self.path())?;
+        match Firmware::new(&firmware_data) {
+            Some(firmware) => {
+                // System76 EC requires reset to load new firmware
+                requires_reset = true;
+                println!("file board: {:?}", str::from_utf8(firmware.board));
+                println!("file version: {:?}", str::from_utf8(firmware.version));
+            },
+            None => (),
+        }
+
+        let result = match &self.ec {
             EcKind::System76(_) => {
-                let firmware_data = load(self.path())?;
+                // System76 EC requires reset to load new firmware
+                requires_reset = true;
                 match unsafe { flash(&firmware_data) } {
                     Ok(()) => Ok(()),
                     Err(err) => {
@@ -330,14 +342,8 @@ impl Component for EcComponent {
             },
             EcKind::Legacy(_) => {
                 find(FIRMWARENSH)?;
-
-                let cmd = if self.master {
-                    format!("{} {} ec flash", FIRMWARENSH, FIRMWAREDIR)
-                } else {
-                    format!("{} {} ec2 flash", FIRMWARENSH, FIRMWAREDIR)
-                };
-
-                let status = shell(&cmd)?;
+                let command = if self.master { "ec" } else { "ec2" };
+                let status = shell(&format!("{} {} {} flash", FIRMWARENSH, FIRMWAREDIR, command))?;
                 if status == 0 {
                     Ok(())
                 } else {
@@ -349,6 +355,29 @@ impl Component for EcComponent {
                 println!("{} Failed to flash EcKind::Unknown", self.name());
                 Err(Error::DeviceError)
             },
+        };
+
+        if requires_reset {
+            //Create tag file and skip enter when tag file is found
+            let cmd = format!("{} {} ec tag", FIRMWARENSH, FIRMWAREDIR);
+            match shell(&cmd) {
+                Ok(status) => {
+                    if status != 0 {
+                        println!("EC tag exited with error: {}", status);
+                    }
+                },
+                Err(err) => {
+                    println!("EC tag error: {:?}", err);
+                }
+            }
+
+            println!("System will shut off in 5 seconds");
+            let _ = (std::system_table().BootServices.Stall)(5_000_000);
+
+            // Reset EC
+            unsafe { watchdog_reset(); }
         }
+
+        result
     }
 }
