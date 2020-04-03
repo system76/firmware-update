@@ -143,10 +143,14 @@ if "%2" == "ec" then
     endif
 
     if "%3" == "tag" then
-        echo > ec.tag
-        if not exist ec.tag then
-            echo "failed to create ec.tag"
-            exit 1
+        if exist ec.tag then
+            rm ec.tag
+        else
+            echo > ec.tag
+            if not exist ec.tag then
+                echo "failed to create ec.tag"
+                exit 1
+            endif
         endif
         exit 0
     endif

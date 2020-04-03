@@ -217,6 +217,9 @@ fn inner() -> Result<()> {
         println!("* No updates were found *");
     } else {
         let c = if find(ECTAG).is_ok() {
+            // Attempt to remove EC tag
+            let _ = shell(&format!("{} {} ec tag", FIRMWARENSH, FIRMWAREDIR));
+
             // Skip enter if system76 ec flashing already occured
             components.clear();
             validations.clear();
