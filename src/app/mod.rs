@@ -39,6 +39,7 @@ static FIRMWARENSH: &'static str = concat!("\\", env!("BASEDIR"), "\\res\\firmwa
 static FIRMWAREROM: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\firmware.rom");
 static IFLASHV: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\iflashv.efi");
 static IFLASHVTAG: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\iflashv.tag");
+static IPXEEFI: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\ipxe.efi");
 static MESETTAG: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\meset.tag");
 static SHELLEFI: &'static str = concat!("\\", env!("BASEDIR"), "\\res\\shell.efi");
 static SPLASHBMP: &'static str = concat!("\\", env!("BASEDIR"), "\\res\\splash.bmp");
@@ -206,6 +207,7 @@ fn remove_override(option: u16) -> Result<()> {
 
 fn inner() -> Result<()> {
     let mut shutdown = false;
+    let mut success = false;
 
     let option = set_override()?;
 
@@ -249,9 +251,7 @@ fn inner() -> Result<()> {
 
         if c == '\n' || c == '\r' {
             shutdown = true;
-
-            let mut success = true;
-
+            success = true;
             for (component, validation) in components.iter().zip(validations.iter()) {
                 if *validation == ValidateKind::Found {
                     match component.flash() {
@@ -296,6 +296,18 @@ fn inner() -> Result<()> {
     }
 
     remove_override(option)?;
+
+    if success && find(IPXEEFI).is_ok() {
+        println!("Launching iPXE...");
+        match exec_path(IPXEEFI, &[]) {
+            Ok(status) => {
+                println!("iPXE exited with status {}", status);
+            },
+            Err(err) => {
+                println!("Failed to launch iPXE: {:?}", err);
+            }
+        }
+    }
 
     if shutdown {
         println!("Press any key to shutdown...");
