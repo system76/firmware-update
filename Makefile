@@ -75,6 +75,7 @@ $(BUILD)/boot.o: $(BUILD)/boot.a
 
 $(BUILD)/boot.a: Cargo.lock Cargo.toml src/* src/*/*
 	mkdir -p $(BUILD)
+	rustup component add rust-src
 	cargo xrustc \
 		--lib \
 		--target $(TARGET) \
