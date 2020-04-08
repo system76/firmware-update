@@ -54,6 +54,10 @@ if "%2" == "bios" then
             # meset reboots automatically
             if exist meset.tag then
                 rm meset.tag
+                if exist meset.tag then
+                    echo "failed to remove meset.tag"
+                    exit 1
+                endif
             else
                 echo > meset.tag
                 if not exist meset.tag then
@@ -83,6 +87,10 @@ if "%2" == "bios" then
         if exist uefiflash.efi then
             if exist uefiflash.tag then
                 rm uefiflash.tag
+                if exist uefiflash.tag then
+                    echo "failed to remove uefiflash.tag"
+                    exit 1
+                endif
                 exit 0
             else
                 echo > uefiflash.tag
@@ -100,6 +108,10 @@ if "%2" == "bios" then
         if exist iflashv.efi then
             if exist iflashv.tag then
                 rm iflashv.tag
+                if exist iflashv.tag then
+                    echo "failed to remove iflashv.tag"
+                    exit 1
+                endif
                 exit 0
             else
                 # Set DMI information if possible and exit
@@ -145,6 +157,10 @@ if "%2" == "ec" then
     if "%3" == "tag" then
         if exist ec.tag then
             rm ec.tag
+            if exist ec.tag then
+                echo "failed to remove ec.tag"
+                exit 1
+            endif
         else
             echo > ec.tag
             if not exist ec.tag then
