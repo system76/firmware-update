@@ -163,7 +163,7 @@ unsafe fn flash_read<S: Spi>(spi: &mut SpiRom<S, UefiTimeout>, rom: &mut [u8], s
     Ok(())
 }
 
-unsafe fn flash(firmware_data: &[u8]) -> core::result::Result<(), ectool::Error> {
+unsafe fn flash(firmware_data: &[u8], target: SpiTarget) -> core::result::Result<(), ectool::Error> {
     let mut ec = ectool::Ec::new(UefiTimeout::new(1_000_000))?;
 
     {
@@ -183,7 +183,6 @@ unsafe fn flash(firmware_data: &[u8]) -> core::result::Result<(), ectool::Error>
     }
 
     let rom_size = 128 * 1024;
-    let sector_size = 1024;
 
     let mut new_rom = firmware_data.to_vec();
     while new_rom.len() < rom_size {
@@ -195,6 +194,7 @@ unsafe fn flash(firmware_data: &[u8]) -> core::result::Result<(), ectool::Error>
         &mut spi_bus,
         UefiTimeout::new(1_000_000)
     );
+    let sector_size = spi.sector_size();
 
     let mut rom = vec![0xFF; rom_size];
     flash_read(&mut spi, &mut rom, sector_size)?;
@@ -332,7 +332,18 @@ impl Component for EcComponent {
             EcKind::System76(_) => {
                 // System76 EC requires reset to load new firmware
                 requires_reset = true;
-                match unsafe { flash(&firmware_data) } {
+
+                // Flash backup ROM first
+                match unsafe { flash(&firmware_data, SpiTarget::Backup) } {
+                    Ok(()) => (),
+                    Err(err) => {
+                        println!("{} Backup Flash Error: {:X?}", self.name(), err);
+                        return Err(Error::DeviceError);
+                    }
+                }
+
+                // Flash main ROM after ensuring backup ROM is good
+                match unsafe { flash(&firmware_data, SpiTarget::Main) } {
                     Ok(()) => Ok(()),
                     Err(err) => {
                         println!("{} Flash Error: {:X?}", self.name(), err);
