@@ -166,6 +166,11 @@ unsafe fn flash_read<S: Spi>(spi: &mut SpiRom<S, UefiTimeout>, rom: &mut [u8], s
 unsafe fn flash(firmware_data: &[u8], target: SpiTarget) -> core::result::Result<(), ectool::Error> {
     let mut ec = ectool::Ec::new(UefiTimeout::new(1_000_000))?;
 
+    println!("Programming EC {} ROM", match target {
+        SpiTarget::Main => "Main",
+        SpiTarget::Backup => "Backup",
+    });
+
     {
         let mut data = [0; 256];
         let size = ec.board(&mut data)?;
@@ -250,7 +255,10 @@ unsafe fn flash(firmware_data: &[u8], target: SpiTarget) -> core::result::Result
         }
     }
 
-    println!("Successfully programmed SPI ROM");
+    println!("Successfully programmed EC {} ROM", match target {
+        SpiTarget::Main => "Main",
+        SpiTarget::Backup => "Backup",
+    });
 
     Ok(())
 }
