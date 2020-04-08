@@ -213,10 +213,10 @@ fn inner() -> Result<()> {
 
     let (mut components, mut validations) = components_validations();
 
-    if validations.iter().any(|v| *v != ValidateKind::Found && *v != ValidateKind::NotFound) {
-        println!("! Errors were found !");
+    let message = if validations.iter().any(|v| *v != ValidateKind::Found && *v != ValidateKind::NotFound) {
+        "! Errors were found !"
     } else if ! validations.iter().any(|v| *v == ValidateKind::Found) {
-        println!("* No updates were found *");
+        "* No updates were found *"
     } else {
         let c = if find(ECTAG).is_ok() {
             // Attempt to remove EC tag
@@ -287,16 +287,18 @@ fn inner() -> Result<()> {
                     println!("Cannot boot into BIOS setup automatically");
                 }
 
-                println!("* All updates applied successfully *");
+                "* All updates applied successfully *"
             } else {
-                println!("! Failed to apply updates !");
+                "! Failed to apply updates !"
             }
         } else {
-            println!("! Not applying updates !");
+            "! Not applying updates !"
         }
-    }
+    };
 
     remove_override(option)?;
+
+    println!("{}", message);
 
     if success && find(IPXEEFI).is_ok() {
         println!("Launching iPXE...");
