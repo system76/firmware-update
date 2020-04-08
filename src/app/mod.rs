@@ -250,10 +250,11 @@ fn inner() -> Result<()> {
         };
 
         if c == '\n' || c == '\r' {
-            shutdown = true;
             success = true;
             for (component, validation) in components.iter().zip(validations.iter()) {
                 if *validation == ValidateKind::Found {
+                    // Only shutdown if components are flashed
+                    shutdown = true;
                     match component.flash() {
                         Ok(()) => {
                             println!("{}: Success", component.name());
