@@ -137,6 +137,8 @@ impl EcComponent {
         let normalize_model = |model: &str| -> String {
             match model {
                 "L140CU" => "system76/lemp9".to_string(),
+                "N130ZU" => "system76/galp3-c".to_string(),
+                "N140CU" => "system76/galp3-c".to_string(),
                 _ => model.to_string(),
             }
         };
