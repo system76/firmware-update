@@ -104,6 +104,13 @@ if "%2" == "bios" then
             endif
         endif
 
+        # Flash with h2offt if possible, will require reboot and then will
+        # shut down automatically
+        if exist h2offt.efi then
+           h2offt.efi firmware.rom -all -n
+           exit %lasterror%
+        endif
+
         # Set logo, should reboot automatically
         if exist iflashv.efi then
             if exist iflashv.tag then

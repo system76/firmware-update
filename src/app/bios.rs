@@ -9,7 +9,7 @@ use std::fs::{find, load};
 use std::vars::{get_boot_item, get_boot_order, set_boot_item, set_boot_order};
 use uefi::status::{Error, Result};
 
-use super::{FIRMWAREDIR, FIRMWARENSH, FIRMWAREROM, IFLASHV, UEFIFLASH, shell, Component};
+use super::{FIRMWAREDIR, FIRMWARENSH, FIRMWAREROM, H2OFFT, IFLASHV, UEFIFLASH, shell, Component};
 
 pub struct BiosComponent {
     bios_vendor: String,
@@ -141,6 +141,7 @@ impl Component for BiosComponent {
                 data.len() == 8 * 1024 * 1024 ||
                 data.len() == 16 * 1024 * 1024 ||
                 data.len() == 32 * 1024 * 1024 ||
+                find(H2OFFT).is_ok() || // H2OFFT capsule support
                 find(IFLASHV).is_ok() || // meer5 capsule support
                 find(UEFIFLASH).is_ok() // meer4 capsule support
             )
