@@ -37,6 +37,7 @@ static EC2ROM: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\ec2.ro
 static FIRMWAREDIR: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware");
 static FIRMWARENSH: &'static str = concat!("\\", env!("BASEDIR"), "\\res\\firmware.nsh");
 static FIRMWAREROM: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\firmware.rom");
+static H2OFFT: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\h2offt.efi");
 static IFLASHV: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\iflashv.efi");
 static IFLASHVTAG: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\iflashv.tag");
 static IPXEEFI: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\ipxe.efi");
@@ -218,6 +219,7 @@ fn inner() -> Result<()> {
     } else if ! validations.iter().any(|v| *v == ValidateKind::Found) {
         "* No updates were found *"
     } else {
+        let mut setup_menu = false;
         let c = if find(ECTAG).is_ok() {
             // Attempt to remove EC tag
             let _ = shell(&format!("{} {} ec tag", FIRMWARENSH, FIRMWAREDIR));
@@ -227,7 +229,8 @@ fn inner() -> Result<()> {
             validations.clear();
             '\n'
         } else if find(MESETTAG).is_ok() {
-            // Skip enter if in manufacturing mode
+            // Skip enter if ME unlocked, and boot into firmware setup to disable ME
+            setup_menu = true;
             '\n'
         } else if find(IFLASHVTAG).is_ok() {
             // Skip enter if flashing a meer5 and flashing already occured
@@ -277,14 +280,16 @@ fn inner() -> Result<()> {
                     }
                 }
 
-                let supported = get_os_indications_supported().unwrap_or(0);
-                if supported & 1 == 1 {
-                    println!("Booting into BIOS setup on next boot");
-                    let mut indications = get_os_indications().unwrap_or(0);
-                    indications |= 1;
-                    set_os_indications(Some(indications))?;
-                } else {
-                    println!("Cannot boot into BIOS setup automatically");
+                if setup_menu {
+                    let supported = get_os_indications_supported().unwrap_or(0);
+                    if supported & 1 == 1 {
+                        println!("Booting into BIOS setup on next boot");
+                        let mut indications = get_os_indications().unwrap_or(0);
+                        indications |= 1;
+                        set_os_indications(Some(indications))?;
+                    } else {
+                        println!("Cannot boot into BIOS setup automatically");
+                    }
                 }
 
                 "* All updates applied successfully *"
@@ -312,7 +317,11 @@ fn inner() -> Result<()> {
         }
     }
 
-    if shutdown {
+    if find(H2OFFT).is_ok() {
+        // H2OFFT will automatically shut down, so skip success confirmation
+        println!("System will reboot in 5 seconds to perform capsule update");
+        let _ = (std::system_table().BootServices.Stall)(5_000_000);
+    } else if shutdown {
         println!("Press any key to shutdown...");
         raw_key()?;
 
