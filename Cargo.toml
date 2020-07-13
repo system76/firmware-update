@@ -3,10 +3,6 @@ name = "system76_firmware_update"
 version = "1.0.0"
 edition = "2018"
 
-[package.metadata.cargo-xbuild]
-memcpy = true
-sysroot_path = "build/xbuild"
-
 [lib]
 name = "system76_firmware_update"
 path = "src/lib.rs"
@@ -20,6 +16,7 @@ redox_dmi = "0.1.5"
 redox_hwio = "0.1.0"
 redox_uefi = "0.1.0"
 redox_uefi_std = "0.1.1"
+rlibc = "1.0"
 system76_ecflash = { git = "https://github.com/system76/ecflash.git" }
 system76_ectool = { git = "https://github.com/system76/ec.git" }
 
