@@ -74,6 +74,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "rlibc"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "system76_ecflash"
 version = "0.1.1"
 source = "git+https://github.com/system76/ecflash.git#fc3f098fda1c1f0707ac2f339f1cb760ff7376bb"
@@ -98,6 +103,7 @@ dependencies = [
  "redox_hwio 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "redox_uefi 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "redox_uefi_std 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rlibc 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "system76_ecflash 0.1.1 (git+https://github.com/system76/ecflash.git)",
  "system76_ectool 0.1.3 (git+https://github.com/system76/ec.git)",
 ]
@@ -114,5 +120,6 @@ dependencies = [
 "checksum redox_uefi 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "dafc50645c27c55ca19d27645a6d91e2a8cbc7aabb2ed024ce914512c75e1217"
 "checksum redox_uefi_alloc 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "72e7224e2106fdc2a35a33e38825f4867c3566671dc496fb67b992d05328e564"
 "checksum redox_uefi_std 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "ead5c13a8a650646b2f93065002d65b45226cdbc6494b0ac4aaed30ce9b17c7f"
+"checksum rlibc 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "fc874b127765f014d792f16763a81245ab80500e2ad921ed4ee9e82481ee08fe"
 "checksum system76_ecflash 0.1.1 (git+https://github.com/system76/ecflash.git)" = "<none>"
 "checksum system76_ectool 0.1.3 (git+https://github.com/system76/ec.git)" = "<none>"
