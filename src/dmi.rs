@@ -6,25 +6,19 @@ pub fn dmi() -> Vec<dmi::Table> {
         let data_opt = match table.VendorGuid.kind() {
             GuidKind::Smbios => unsafe {
                 let smbios = &*(table.VendorTable as *const dmi::Smbios);
-                if smbios.is_valid() {
-                    Some(slice::from_raw_parts(
-                        smbios.table_address as *const u8,
-                        smbios.table_length as usize
-                    ))
-                } else {
-                    None
-                }
+                //TODO: smbios is_valid fails on bonw14, assume UEFI is right
+                Some(slice::from_raw_parts(
+                    smbios.table_address as *const u8,
+                    smbios.table_length as usize
+                ))
             },
             GuidKind::Smbios3 => unsafe {
                 let smbios = &*(table.VendorTable as *const dmi::Smbios3);
-                if smbios.is_valid() {
-                    Some(slice::from_raw_parts(
-                        smbios.table_address as *const u8,
-                        smbios.table_length as usize
-                    ))
-                } else {
-                    None
-                }
+                //TODO: smbios is_valid fails on bonw14, assume UEFI is right
+                Some(slice::from_raw_parts(
+                    smbios.table_address as *const u8,
+                    smbios.table_length as usize
+                ))
             },
             _ => None
         };
