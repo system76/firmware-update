@@ -138,9 +138,9 @@ impl EcComponent {
             match model {
                 "L140CU" => "system76/lemp9".to_string(),
                 "N130ZU" => "system76/galp3-c".to_string(),
-                "N140CU" => "system76/galp3-c".to_string(),
+                "N140CU" => "system76/galp4".to_string(),
                 "N150ZU" => "system76/darp5".to_string(),
-                "N150CU" => "system76/darp5".to_string(),
+                "N150CU" => "system76/darp6".to_string(),
                 "NH50DB" | "NH5xDC" => "system76/gaze15".to_string(),
                 "PBx0Dx2" => "system76/addw2".to_string(),
                 "PCx0Dx2" => "system76/oryp6".to_string(),
