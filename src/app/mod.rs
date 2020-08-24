@@ -95,7 +95,7 @@ fn components_validations() -> (Vec<Box<dyn Component>>, Vec<ValidateKind>) {
             } else {
                 ValidateKind::Mismatch
             },
-            Err(err) => if err == Error::NotFound {
+            Err(err) => if err == Error::NotFound || err == Error::InvalidParameter {
                 ValidateKind::NotFound
             } else {
                 ValidateKind::Error(err)
