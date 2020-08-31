@@ -166,23 +166,6 @@ if "%2" == "ec" then
         exit %lasterror%
     endif
 
-    if "%3" == "tag" then
-        if exist ec.tag then
-            rm ec.tag
-            if exist ec.tag then
-                echo "failed to remove ec.tag"
-                exit 1
-            endif
-        else
-            echo > ec.tag
-            if not exist ec.tag then
-                echo "failed to create ec.tag"
-                exit 1
-            endif
-        endif
-        exit 0
-    endif
-
     echo "ec: unknown subcommand '%3'"
     exit 1
 endif

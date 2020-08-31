@@ -1,3 +1,4 @@
+use core::ops::Try;
 use ecflash::{Ec, EcFile, EcFlash};
 use ectool::{
     Firmware,
@@ -8,12 +9,13 @@ use ectool::{
 };
 use std::{
     cell::Cell,
+    ffi::wstr,
     fs::{find, load},
     str,
 };
 use uefi::status::{Error, Result};
 
-use super::{ECROM, EC2ROM, FIRMWAREDIR, FIRMWARENSH, shell, Component};
+use super::{ECROM, EC2ROM, ECTAG, FIRMWAREDIR, FIRMWARENSH, shell, Component};
 
 pub struct UefiTimeout {
     duration: u64,
@@ -385,16 +387,31 @@ impl Component for EcComponent {
         };
 
         if requires_reset {
-            //Create tag file and skip enter when tag file is found
-            let cmd = format!("{} {} ec tag", FIRMWARENSH, FIRMWAREDIR);
-            match shell(&cmd) {
-                Ok(status) => {
-                    if status != 0 {
-                        println!("EC tag exited with error: {}", status);
+            match find(FIRMWAREDIR) {
+                Ok((_, firmware_dir)) => {
+                    //Try to create tag file without running shell
+                    let filename = wstr(ECTAG);
+                    let mut file = 0 as *mut uefi::fs::File;
+                    match (firmware_dir.0.Open)(
+                        firmware_dir.0,
+                        &mut file,
+                        filename.as_ptr(),
+                        uefi::fs::FILE_MODE_CREATE | uefi::fs::FILE_MODE_READ | uefi::fs::FILE_MODE_WRITE,
+                        0
+                    ).into_result() {
+                        Ok(_) => {
+                            unsafe {
+                                let _ = ((*file).Close)(&mut *file);
+                            }
+                            println!("EC tag: created successfully");
+                        },
+                        Err(err) => {
+                            println!("EC tag: failed to create {}: {:?}", ECTAG, err);
+                        }
                     }
                 },
                 Err(err) => {
-                    println!("EC tag error: {:?}", err);
+                    println!("EC tag: failed to find {}: {:?}", FIRMWAREDIR, err);
                 }
             }
 

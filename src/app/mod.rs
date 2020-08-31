@@ -1,4 +1,4 @@
-use core::{char, ptr};
+use core::{char, mem, ptr};
 use core::ops::Try;
 use ecflash::EcFlash;
 use orbclient::{Color, Renderer};
@@ -220,9 +220,19 @@ fn inner() -> Result<()> {
         "* No updates were found *"
     } else {
         let mut setup_menu = false;
-        let c = if find(ECTAG).is_ok() {
+        let c = if let Ok((_, ectag)) = find(ECTAG) {
             // Attempt to remove EC tag
-            let _ = shell(&format!("{} {} ec tag", FIRMWARENSH, FIRMWAREDIR));
+            match (ectag.0.Delete)(ectag.0).into_result() {
+                Ok(_) => {
+                    println!("EC tag: deleted successfully");
+
+                    // Have to prevent Close from being called after Delete
+                    mem::forget(ectag);
+                },
+                Err(err) => {
+                    println!("EC tag: failed to delete: {:?}", err);
+                }
+            }
 
             // Skip enter if system76 ec flashing already occured
             components.clear();
