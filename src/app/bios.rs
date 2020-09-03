@@ -69,7 +69,7 @@ impl BiosComponent {
                     let hsfsts_ctl = spi_kbl.hsfsts_ctl();
                     Some((spi_kbl as &mut dyn Spi, hsfsts_ctl))
                 },
-                "addw1" | "addw2" | "bonw14" | "darp5" | "darp6" | "galp3-c" | "galp4" | "gaze14" | "gaze15" | "lemp9" | "oryp6" => {
+                "addw1" | "addw2" | "bonw14" | "darp5" | "darp6" | "galp3-c" | "galp4" | "gaze14" | "gaze15" | "lemp9" | "oryp5" | "oryp6" => {
                     let spi_cnl = unsafe {
                         &mut *(SpiCnl::address() as *mut SpiCnl)
                     };
