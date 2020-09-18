@@ -144,6 +144,7 @@ impl EcComponent {
                 "N150ZU" => "system76/darp5".to_string(),
                 "N150CU" => "system76/darp6".to_string(),
                 "NH50DB" | "NH5xDC" => "system76/gaze15".to_string(),
+                "PB50Ex" => "system76/addw1".to_string(),
                 "PBx0Dx2" => "system76/addw2".to_string(),
                 "PCx0Dx2" => "system76/oryp6".to_string(),
                 "X170SM-G" => "system76/bonw14".to_string(),
