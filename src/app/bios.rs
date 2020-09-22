@@ -15,7 +15,6 @@ pub struct BiosComponent {
     bios_vendor: String,
     bios_version: String,
     system_version: String,
-    clear_nvram: bool,
 }
 
 impl BiosComponent {
@@ -23,7 +22,6 @@ impl BiosComponent {
         let mut bios_vendor = String::new();
         let mut bios_version = String::new();
         let mut system_version = String::new();
-        let mut clear_nvram = false;
 
         for table in crate::dmi::dmi() {
             match table.header.kind {
@@ -54,23 +52,10 @@ impl BiosComponent {
             }
         }
 
-        match bios_vendor.as_str() {
-            "coreboot" => match system_version.as_str() {
-                "darp6" => {
-                    // Clear NVRAM if flashing darp6, as workaround for
-                    // https://github.com/system76/firmware-open/issues/127
-                    clear_nvram = true;
-                },
-                _ => (),
-            },
-            _ => (),
-        }
-
         BiosComponent {
             bios_vendor,
             bios_version,
             system_version,
-            clear_nvram,
         }
     }
 
@@ -273,11 +258,9 @@ impl Component for BiosComponent {
             }
 
             // Copy old areas to new areas
-            let area_names = if self.clear_nvram {
-                Vec::new()
-            } else {
-                vec!["SMMSTORE".to_string()]
-            };
+            let area_names = [
+                "SMMSTORE".to_string(),
+            ];
             for area_name in &area_names {
                 if let Some(new_area) = new_areas.get(area_name) {
                     let new_offset = new_area.offset as usize;
