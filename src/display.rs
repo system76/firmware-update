@@ -187,7 +187,7 @@ impl<'a> Renderer for ScaledDisplay<'a> {
 #[inline(always)]
 #[cold]
 pub unsafe fn fast_copy(dst: *mut u8, src: *const u8, len: usize) {
-    asm!("cld
+    llvm_asm!("cld
         rep movsb"
         :
         : "{rdi}"(dst as usize), "{rsi}"(src as usize), "{rcx}"(len)
@@ -199,7 +199,7 @@ pub unsafe fn fast_copy(dst: *mut u8, src: *const u8, len: usize) {
 #[inline(always)]
 #[cold]
 pub unsafe fn fast_set32(dst: *mut u32, src: u32, len: usize) {
-    asm!("cld
+    llvm_asm!("cld
         rep stosd"
         :
         : "{rdi}"(dst as usize), "{eax}"(src), "{rcx}"(len)

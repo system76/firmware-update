@@ -1,5 +1,5 @@
 #![no_std]
-#![feature(asm)]
+#![feature(llvm_asm)]
 #![feature(const_fn)]
 #![feature(core_intrinsics)]
 #![feature(prelude_import)]
