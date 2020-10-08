@@ -1,3 +1,0 @@
-[submodule "compiler-builtins"]
-	path = compiler-builtins
-	url = https://github.com/rust-lang/compiler-builtins.git
