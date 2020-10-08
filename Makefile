@@ -83,5 +83,4 @@ $(BUILD)/boot.a: Cargo.lock Cargo.toml src/* src/*/*
 		--release \
 		-- \
 		-C soft-float \
-		-C lto \
 		--emit link=$@

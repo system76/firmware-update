@@ -8,6 +8,9 @@ name = "system76_firmware_update"
 path = "src/lib.rs"
 crate-type = ["staticlib"]
 
+[profile.release]
+lto = true
+
 [dependencies]
 coreboot-fs = "0.1.0"
 intel-spi = "0.1.2"
