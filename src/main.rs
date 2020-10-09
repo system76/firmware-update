@@ -1,4 +1,5 @@
 #![no_std]
+#![no_main]
 #![feature(llvm_asm)]
 #![feature(const_fn)]
 #![feature(core_intrinsics)]

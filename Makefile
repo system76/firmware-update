@@ -1,4 +1,4 @@
-TARGET?=x86_64-efi-pe
+TARGET?=x86_64-unknown-uefi
 export BASEDIR?=system76-firmware-update
 
 export LD=ld
@@ -45,42 +45,14 @@ $(BUILD)/efi.img: $(BUILD)/boot.efi res/*
 	if [ -d firmware ]; then mcopy -i $@.tmp -s firmware ::$(BASEDIR); fi
 	mv $@.tmp $@
 
-$(BUILD)/boot.efi: $(BUILD)/boot.o
-	$(LD) \
-		-m i386pep \
-		--oformat pei-x86-64 \
-		--dll \
-		--image-base 0 \
-		--section-alignment 32 \
-		--file-alignment 32 \
-		--major-os-version 0 \
-		--minor-os-version 0 \
-		--major-image-version 0 \
-		--minor-image-version 0 \
-		--major-subsystem-version 0 \
-		--minor-subsystem-version 0 \
-		--subsystem 10 \
-		--heap 0,0 \
-		--stack 0,0 \
-		--pic-executable \
-		--entry _start \
-		--no-insert-timestamp \
-		$< -o $@
-
-$(BUILD)/boot.o: $(BUILD)/boot.a
-	rm -rf $(BUILD)/boot
-	mkdir $(BUILD)/boot
-	cd $(BUILD)/boot && ar x ../boot.a
-	ld -r $(BUILD)/boot/*.o -o $@
-
-$(BUILD)/boot.a: Cargo.lock Cargo.toml src/* src/*/*
+$(BUILD)/boot.efi: Cargo.lock Cargo.toml src/* src/*/*
 	mkdir -p $(BUILD)
 	rustup component add rust-src
 	cargo rustc \
 		-Z build-std=core,alloc \
-		--lib \
 		--target $(TARGET) \
 		--release \
 		-- \
+		-Z pre-link-arg="/entry:_start" \
 		-C soft-float \
 		--emit link=$@
