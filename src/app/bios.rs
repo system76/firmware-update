@@ -62,14 +62,29 @@ impl BiosComponent {
     pub fn spi(&self) -> Option<(&'static mut dyn Spi, HsfStsCtl)> {
         match self.bios_vendor.as_str() {
             "coreboot" => match self.system_version.as_str() {
-                "galp2" | "galp3" | "galp3-b" => {
+                "galp2" |
+                "galp3" |
+                "galp3-b" => {
                     let spi_kbl = unsafe {
                         &mut *(SpiKbl::address() as *mut SpiKbl)
                     };
                     let hsfsts_ctl = spi_kbl.hsfsts_ctl();
                     Some((spi_kbl as &mut dyn Spi, hsfsts_ctl))
                 },
-                "addw1" | "addw2" | "bonw14" | "darp5" | "darp6" | "galp3-c" | "galp4" | "gaze14" | "gaze15" | "lemp9" | "oryp5" | "oryp6" => {
+                "addw1" |
+                "addw2" |
+                "bonw14" |
+                "darp5" |
+                "darp6" |
+                "galp3-c" |
+                "galp4" |
+                "galp5" | // Technically TGL-U but protocol is the same
+                "gaze14" |
+                "gaze15" |
+                "lemp9" |
+                "lemp10" | // Technically TGL-U but protocol is the same
+                "oryp5" |
+                "oryp6" => {
                     let spi_cnl = unsafe {
                         &mut *(SpiCnl::address() as *mut SpiCnl)
                     };
