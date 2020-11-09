@@ -36,6 +36,7 @@ static ECTAG: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\ec.tag"
 static EC2ROM: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\ec2.rom");
 static FIRMWAREDIR: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware");
 static FIRMWARENSH: &'static str = concat!("\\", env!("BASEDIR"), "\\res\\firmware.nsh");
+static FIRMWARECAP: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\firmware.cap");
 static FIRMWAREROM: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\firmware.rom");
 static H2OFFT: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\h2offt.efi");
 static IFLASHV: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\iflashv.efi");

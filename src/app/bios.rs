@@ -9,9 +9,10 @@ use std::fs::{find, load};
 use std::vars::{get_boot_item, get_boot_order, set_boot_item, set_boot_order};
 use uefi::status::{Error, Result};
 
-use super::{FIRMWAREDIR, FIRMWARENSH, FIRMWAREROM, H2OFFT, IFLASHV, UEFIFLASH, shell, Component};
+use super::{FIRMWARECAP, FIRMWAREDIR, FIRMWARENSH, FIRMWAREROM, H2OFFT, IFLASHV, UEFIFLASH, shell, Component};
 
 pub struct BiosComponent {
+    capsule: bool,
     bios_vendor: String,
     bios_version: String,
     system_version: String,
@@ -19,6 +20,8 @@ pub struct BiosComponent {
 
 impl BiosComponent {
     pub fn new() -> BiosComponent {
+        let capsule = find(FIRMWARECAP).is_ok();
+
         let mut bios_vendor = String::new();
         let mut bios_version = String::new();
         let mut system_version = String::new();
@@ -53,6 +56,7 @@ impl BiosComponent {
         }
 
         BiosComponent {
+            capsule,
             bios_vendor,
             bios_version,
             system_version,
@@ -130,7 +134,11 @@ impl Component for BiosComponent {
     }
 
     fn path(&self) -> &str {
-        FIRMWAREROM
+        if self.capsule {
+            FIRMWARECAP
+        } else {
+            FIRMWAREROM
+        }
     }
 
     fn model(&self) -> &str {
@@ -151,11 +159,14 @@ impl Component for BiosComponent {
 
             let len = spi.len().map_err(|_| Error::DeviceError)?;
             Ok(data.len() == len)
+        } else if self.capsule {
+            Ok(true)
         } else {
             Ok(
                 data.len() == 8 * 1024 * 1024 ||
                 data.len() == 16 * 1024 * 1024 ||
                 data.len() == 32 * 1024 * 1024 ||
+                //TODO: rename firmware.rom to firmware.cap in these cases
                 find(H2OFFT).is_ok() || // H2OFFT capsule support
                 find(IFLASHV).is_ok() || // meer5 capsule support
                 find(UEFIFLASH).is_ok() // meer4 capsule support

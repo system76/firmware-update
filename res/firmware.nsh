@@ -82,6 +82,12 @@ if "%2" == "bios" then
             endif
         endif
 
+        # Flash with asusefiflash and exit if possible
+        if exist asusefiflash.efi then
+            asusefiflash.efi firmware.cap
+            exit %lasterror%
+        endif
+
         # Flash with efiflash and exit if possible
         if exist efiflash.efi then
             efiflash.efi firmware.rom /C /NR \NoOemId
