@@ -1,6 +1,8 @@
 use core::ops::Try;
 use ecflash::{Ec, EcFile, EcFlash};
 use ectool::{
+    Access,
+    AccessLpcDirect,
     Firmware,
     Spi,
     SpiRom,
@@ -45,15 +47,17 @@ impl Timeout for UefiTimeout {
 }
 
 enum EcKind {
-    System76(ectool::Ec<UefiTimeout>),
+    System76(ectool::Ec<AccessLpcDirect<UefiTimeout>>),
     Legacy(EcFlash),
     Unknown,
 }
 
 impl EcKind {
     unsafe fn new(primary: bool) -> Self {
-        if let Ok(ec) = ectool::Ec::new(UefiTimeout::new(100_000)) {
-            return EcKind::System76(ec);
+        if let Ok(access) = AccessLpcDirect::new(UefiTimeout::new(100_000)) {
+            if let Ok(ec) = ectool::Ec::new(access) {
+                return EcKind::System76(ec);
+            }
         }
 
         if let Ok(ec) = EcFlash::new(primary) {
@@ -66,7 +70,8 @@ impl EcKind {
     unsafe fn model(&mut self) -> String {
         match self {
             EcKind::System76(ec) => {
-                let mut data = [0; 256];
+                let data_size = ec.access().data_size();
+                let mut data = vec![0; data_size];
                 if let Ok(count) = ec.board(&mut data) {
                     if let Ok(string) = str::from_utf8(&data[..count]) {
                         return string.to_string();
@@ -84,7 +89,8 @@ impl EcKind {
     unsafe fn version(&mut self) -> String {
         match self {
             EcKind::System76(ec) => {
-                let mut data = [0; 256];
+                let data_size = ec.access().data_size();
+                let mut data = vec![0; data_size];
                 if let Ok(count) = ec.version(&mut data) {
                     if let Ok(string) = str::from_utf8(&data[..count]) {
                         return string.to_string();
@@ -179,7 +185,9 @@ unsafe fn flash_read<S: Spi>(spi: &mut SpiRom<S, UefiTimeout>, rom: &mut [u8], s
 }
 
 unsafe fn flash(firmware_data: &[u8], target: SpiTarget) -> core::result::Result<(), ectool::Error> {
-    let mut ec = ectool::Ec::new(UefiTimeout::new(1_000_000))?;
+    let access = AccessLpcDirect::new(UefiTimeout::new(100_000))?;
+    let mut ec = ectool::Ec::new(access)?;
+    let data_size = ec.access().data_size();
 
     println!("Programming EC {} ROM", match target {
         SpiTarget::Main => "Main",
@@ -187,7 +195,7 @@ unsafe fn flash(firmware_data: &[u8], target: SpiTarget) -> core::result::Result
     });
 
     {
-        let mut data = [0; 256];
+        let mut data = vec![0; data_size];
         let size = ec.board(&mut data)?;
 
         let ec_board = &data[..size];
@@ -195,7 +203,7 @@ unsafe fn flash(firmware_data: &[u8], target: SpiTarget) -> core::result::Result
     }
 
     {
-        let mut data = [0; 256];
+        let mut data = vec![0; data_size];
         let size = ec.version(&mut data)?;
 
         let ec_version = &data[..size];
