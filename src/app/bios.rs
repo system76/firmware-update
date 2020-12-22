@@ -80,6 +80,7 @@ impl BiosComponent {
                 "bonw14" |
                 "darp5" |
                 "darp6" |
+                "darp7" | // Technically TGL-U but protocol is the same
                 "galp3-c" |
                 "galp4" |
                 "galp5" | // Technically TGL-U but protocol is the same
