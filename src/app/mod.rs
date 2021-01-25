@@ -213,7 +213,10 @@ fn inner() -> Result<()> {
     let mut shutdown = false;
     let mut success = false;
 
-    let option = set_override()?;
+    let option = set_override();
+    if option.is_err() {
+        println!("Warning: Failed to set boot override");
+    }
 
     let (mut components, mut validations) = components_validations();
 
@@ -259,6 +262,14 @@ fn inner() -> Result<()> {
             } else {
                 '\n'
             }
+        } else if option.is_err() {
+            // Issue reading/writing EFI vars implies SMMSTORE is
+            // corrupted or full. Keyboards (PS/2 and USB) may not
+            // work in this state, so continue automatically.
+            println!("! Detected errors with SMMSTORE !");
+            println!("Flashing will continue automatically in 10 seconds.");
+            let _ = (std::system_table().BootServices.Stall)(10_000_000);
+            '\n'
         } else {
             println!("Press enter to commence flashing, the system may reboot...");
             let k = raw_key()?;
@@ -314,9 +325,13 @@ fn inner() -> Result<()> {
         }
     };
 
-    remove_override(option)?;
-
     println!("{}", message);
+
+    if let Ok(option) = option {
+        if let Err(_err) = remove_override(option) {
+            println!("Warning: Failed to remove boot override");
+        }
+    }
 
     if success && find(IPXEEFI).is_ok() {
         println!("Launching iPXE...");
