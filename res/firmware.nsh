@@ -90,6 +90,14 @@ if "%2" == "bios" then
 
         # Flash with afuefi and exit if possible
         if exist afuefi.efi then
+            if exist fwupdlcl.efi
+                # Update ME if possible
+                fwupdlcl.efi -f me.rom
+                if not "%lasterror%" == "0" then
+                    exit %lasterror%
+                endif
+            endif
+
             afuefi.efi firmware.rom /p /b /n /l
             exit %lasterror%
         endif
