@@ -92,7 +92,7 @@ if "%2" == "bios" then
         if exist afuefi.efi then
             if exist fwupdlcl.efi
                 # Update ME if possible
-                fwupdlcl.efi -f me.rom
+                fwupdlcl.efi -f "%1\me.rom"
                 if not "%lasterror%" == "0" then
                     exit %lasterror%
                 endif
