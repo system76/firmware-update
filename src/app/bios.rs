@@ -6,8 +6,10 @@ use ecflash::EcFlash;
 use intel_spi::{HsfStsCtl, Spi, SpiKbl, SpiCnl};
 use plain::Plain;
 use std::fs::{find, load};
+use std::ptr;
 use std::vars::{get_boot_item, get_boot_order, set_boot_item, set_boot_order};
-use uefi::status::{Error, Result};
+use uefi::reset::ResetType;
+use uefi::status::{Error, Result, Status};
 
 use super::{FIRMWARECAP, FIRMWAREDIR, FIRMWARENSH, FIRMWAREROM, H2OFFT, IFLASHV, UEFIFLASH, shell, Component};
 
@@ -436,6 +438,19 @@ impl Component for BiosComponent {
 
             let cmd = format!("{} {} bios flash", FIRMWARENSH, FIRMWAREDIR);
             let status = shell(&cmd)?;
+
+            match self.system_version.as_str() {
+                "thelio-b2" => {
+                    // thelio-b2 sometimes has issues with keyboard input after flashing,
+                    // so we will shut down after a short delay
+
+                    println!("System will shut off in 5 seconds");
+                    let _ = (std::system_table().BootServices.Stall)(5_000_000);
+
+                    (std::system_table().RuntimeServices.ResetSystem)(ResetType::Shutdown, Status(0), 0, ptr::null());
+                },
+                _ => (),
+            }
 
             if order.is_ok() {
                 if set_boot_order(&order.unwrap()).is_ok() {
