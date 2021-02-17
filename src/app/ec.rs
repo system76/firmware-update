@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 use core::ops::Try;
 use ecflash::{Ec, EcFile, EcFlash};
 use ectool::{

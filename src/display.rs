@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 use core::cell::Cell;
 use core::ops::Try;
 use orbclient::{Color, Mode, Renderer};

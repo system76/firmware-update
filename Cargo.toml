@@ -2,6 +2,7 @@
 name = "system76_firmware_update"
 version = "1.0.0"
 edition = "2018"
+license = "GPL-3.0-only"
 
 [profile.release]
 lto = true
