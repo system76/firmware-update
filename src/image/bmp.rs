@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 use super::Image;
 
 pub fn parse(file_data: &[u8]) -> Result<Image, String> {

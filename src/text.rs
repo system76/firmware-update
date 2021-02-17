@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 use core::{char, mem};
 use core::ops::Deref;
 use orbclient::{Color, Renderer};

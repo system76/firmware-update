@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 use alloc::collections::BTreeMap;
 use core::char;
 use coreboot_fs::Rom;

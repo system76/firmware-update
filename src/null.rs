@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 use core::mem;
 use core::ops::Deref;
 use uefi::Handle;
