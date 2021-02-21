@@ -93,7 +93,8 @@ impl BiosComponent {
                 "lemp9" |
                 "lemp10" | // Technically TGL-U but protocol is the same
                 "oryp5" |
-                "oryp6" => {
+                "oryp6" |
+                "oryp7" => {
                     let spi_cnl = unsafe {
                         &mut *(SpiCnl::address() as *mut SpiCnl)
                     };

@@ -159,6 +159,7 @@ impl EcComponent {
                 "PBx0Dx2" => "system76/addw2".to_string(),
                 "P950Ex" => "system76/oryp5".to_string(),
                 "PCx0Dx2" => "system76/oryp6".to_string(),
+                "PCx0Dx" => "system76/oryp7".to_string(),
                 "X170SM-G" => "system76/bonw14".to_string(),
                 _ => model.to_string(),
             }
