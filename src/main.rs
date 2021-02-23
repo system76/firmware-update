@@ -7,6 +7,10 @@
 #![feature(core_intrinsics)]
 #![feature(prelude_import)]
 #![feature(try_trait)]
+#![allow(clippy::collapsible_if)]
+#![allow(clippy::many_single_char_names)]
+#![allow(clippy::missing_safety_doc)]
+#![allow(clippy::transmute_ptr_to_ptr)]
 
 extern crate alloc;
 extern crate rlibc;

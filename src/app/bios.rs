@@ -3,7 +3,6 @@
 use alloc::collections::BTreeMap;
 use core::char;
 use coreboot_fs::Rom;
-use dmi;
 use ecflash::EcFlash;
 use intel_spi::{HsfStsCtl, Spi, SpiKbl, SpiCnl};
 use plain::Plain;
@@ -107,6 +106,7 @@ impl BiosComponent {
         }
     }
 
+    #[allow(dead_code)]
     fn spi_unlock() {
         if let Ok(mut ec) = EcFlash::new(true) {
             unsafe {
@@ -223,7 +223,7 @@ impl Component for BiosComponent {
 
                         println!("    {}: {}", i, name);
 
-                        new_areas.insert(name, area.clone());
+                        new_areas.insert(name, *area);
                     }
                 }
             }
@@ -284,7 +284,7 @@ impl Component for BiosComponent {
 
                         println!("    {}: {}", i, name);
 
-                        areas.insert(name, area.clone());
+                        areas.insert(name, *area);
                     }
                 }
             }
@@ -385,7 +385,7 @@ impl Component for BiosComponent {
                         print_mb = mb;
                     }
                 }
-                println!("");
+                println!();
             }
 
             // Verify
@@ -418,7 +418,7 @@ impl Component for BiosComponent {
                         print_mb = mb;
                     }
                 }
-                println!("");
+                println!();
             }
         } else {
             find(FIRMWARENSH)?;
@@ -442,6 +442,7 @@ impl Component for BiosComponent {
             let cmd = format!("{} {} bios flash", FIRMWARENSH, FIRMWAREDIR);
             let status = shell(&cmd)?;
 
+            #[allow(clippy::single_match)]
             match self.system_version.as_str() {
                 "thelio-b2" => {
                     // thelio-b2 sometimes has issues with keyboard input after flashing,
@@ -455,8 +456,8 @@ impl Component for BiosComponent {
                 _ => (),
             }
 
-            if order.is_ok() {
-                if set_boot_order(&order.unwrap()).is_ok() {
+            if let Ok(order) = order {
+                if set_boot_order(&order).is_ok() {
                     for (num, data) in boot_options {
                         if set_boot_item(num, &data).is_err() {
                             println!("Failed to write Boot{:>04X}", num);

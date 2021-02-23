@@ -33,22 +33,22 @@ mod bios;
 mod component;
 mod ec;
 
-static ECROM: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\ec.rom");
-static ECTAG: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\ec.tag");
-static EC2ROM: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\ec2.rom");
-static FIRMWAREDIR: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware");
-static FIRMWARENSH: &'static str = concat!("\\", env!("BASEDIR"), "\\res\\firmware.nsh");
-static FIRMWARECAP: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\firmware.cap");
-static FIRMWAREROM: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\firmware.rom");
-static H2OFFT: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\h2offt.efi");
-static IFLASHV: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\iflashv.efi");
-static IFLASHVTAG: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\iflashv.tag");
-static IPXEEFI: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\ipxe.efi");
-static MESETTAG: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\meset.tag");
-static SHELLEFI: &'static str = concat!("\\", env!("BASEDIR"), "\\res\\shell.efi");
-static SPLASHBMP: &'static str = concat!("\\", env!("BASEDIR"), "\\res\\splash.bmp");
-static UEFIFLASH: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\uefiflash.efi");
-static UEFIFLASHTAG: &'static str = concat!("\\", env!("BASEDIR"), "\\firmware\\uefiflash.tag");
+static ECROM: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\ec.rom");
+static ECTAG: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\ec.tag");
+static EC2ROM: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\ec2.rom");
+static FIRMWAREDIR: &str = concat!("\\", env!("BASEDIR"), "\\firmware");
+static FIRMWARENSH: &str = concat!("\\", env!("BASEDIR"), "\\res\\firmware.nsh");
+static FIRMWARECAP: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\firmware.cap");
+static FIRMWAREROM: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\firmware.rom");
+static H2OFFT: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\h2offt.efi");
+static IFLASHV: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\iflashv.efi");
+static IFLASHVTAG: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\iflashv.tag");
+static IPXEEFI: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\ipxe.efi");
+static MESETTAG: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\meset.tag");
+static SHELLEFI: &str = concat!("\\", env!("BASEDIR"), "\\res\\shell.efi");
+static SPLASHBMP: &str = concat!("\\", env!("BASEDIR"), "\\res\\splash.bmp");
+static UEFIFLASH: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\uefiflash.efi");
+static UEFIFLASHTAG: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\uefiflash.tag");
 
 fn shell(cmd: &str) -> Result<usize> {
     exec_path(
@@ -148,7 +148,7 @@ fn reset_dmi() -> Result<()> {
         }
         let name_str = nstr(name.as_mut_ptr());
         if name_str.starts_with("DmiVar") {
-            vars.push((name_str, guid.clone()));
+            vars.push((name_str, guid));
         }
     }
 

@@ -352,14 +352,11 @@ impl Component for EcComponent {
         let mut requires_reset = false;
 
         let firmware_data = load(self.path())?;
-        match Firmware::new(&firmware_data) {
-            Some(firmware) => {
-                // System76 EC requires reset to load new firmware
-                requires_reset = true;
-                println!("file board: {:?}", str::from_utf8(firmware.board));
-                println!("file version: {:?}", str::from_utf8(firmware.version));
-            },
-            None => (),
+        if let Some(firmware) = Firmware::new(&firmware_data) {
+            // System76 EC requires reset to load new firmware
+            requires_reset = true;
+            println!("file board: {:?}", str::from_utf8(firmware.board));
+            println!("file version: {:?}", str::from_utf8(firmware.version));
         }
 
         let result = match &self.ec {
@@ -407,7 +404,7 @@ impl Component for EcComponent {
                 Ok((_, firmware_dir)) => {
                     //Try to create tag file without running shell
                     let filename = wstr(ECTAG);
-                    let mut file = 0 as *mut uefi::fs::File;
+                    let mut file = std::ptr::null_mut::<uefi::fs::File>();
                     match (firmware_dir.0.Open)(
                         firmware_dir.0,
                         &mut file,
