@@ -16,6 +16,8 @@ jobs:
         rustup component add rust-src clippy
 
     - uses: actions-rs/clippy-check@v1
+      env:
+        BASEDIR: "."
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
 
