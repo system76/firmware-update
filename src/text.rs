@@ -39,7 +39,7 @@ extern "win64" fn reset(_output: &mut TextDisplay, _extra: bool) -> Status {
 }
 
 extern "win64" fn output_string(output: &mut TextDisplay, string: *const u16) -> Status {
-    output.write(string);
+    unsafe { output.write(string); }
     Status(0)
 }
 
@@ -151,7 +151,7 @@ impl<'a> TextDisplay<'a> {
         self.mode.CursorColumn = column;
     }
 
-    pub fn write(&mut self, string: *const u16) {
+    pub unsafe fn write(&mut self, string: *const u16) {
         let bg = Color::rgb(0, 0, 0);
         let fg = Color::rgb(255, 255, 255);
 
@@ -161,12 +161,12 @@ impl<'a> TextDisplay<'a> {
 
         let mut i = 0;
         loop {
-            let w = unsafe { *string.offset(i) };
+            let w = *string.offset(i);
             if w == 0 {
                 break;
             }
 
-            let c = unsafe { char::from_u32_unchecked(w as u32) };
+            let c = char::from_u32_unchecked(w as u32);
 
             if self.mode.CursorColumn as usize >= self.cols {
                 self.mode.CursorColumn = 0;
