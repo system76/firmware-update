@@ -1,0 +1,20 @@
+name: CI
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install dependencies
+      run: |
+        sudo apt install --yes make mtools parted
+        rustup show
+        rustup component add rust-src
+
+    - name: Build UEFI application
+      run: make
