@@ -68,7 +68,7 @@ extern "win64" fn enable_cursor(output: &mut NullDisplay, enable: bool) -> Statu
 }
 
 impl NullDisplay {
-    pub fn new() -> NullDisplay {
+    pub fn new() -> Self {
         let mode = Box::new(TextOutputMode {
             MaxMode: 0,
             Mode: 0,
@@ -78,7 +78,7 @@ impl NullDisplay {
             CursorVisible: false,
         });
 
-        NullDisplay {
+        Self {
             Reset: reset,
             OutputString: output_string,
             TestString: test_string,
@@ -90,7 +90,7 @@ impl NullDisplay {
             EnableCursor: enable_cursor,
             Mode: unsafe { mem::transmute(&*mode.deref()) },
 
-            mode: mode
+            mode,
         }
     }
 
@@ -121,6 +121,12 @@ impl NullDisplay {
         let _ = (uefi.BootServices.UninstallProtocolInterface)(stdout_handle, &SIMPLE_TEXT_OUTPUT_GUID, stdout as usize);
 
         res
+    }
+}
+
+impl Default for NullDisplay {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

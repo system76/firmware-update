@@ -58,7 +58,7 @@ impl Image {
         Ok(Image {
             w: width,
             h: height,
-            data: data,
+            data,
             mode: Cell::new(Mode::Blend),
         })
     }
@@ -69,7 +69,7 @@ impl Image {
     }
 
     /// Get a piece of the image
-    pub fn roi<'a>(&'a self, x: u32, y: u32, w: u32, h: u32) -> ImageRoi<'a> {
+    pub fn roi(&self, x: u32, y: u32, w: u32, h: u32) -> ImageRoi {
         let x1 = cmp::min(x, self.width());
         let y1 = cmp::min(y, self.height());
         let x2 = cmp::max(x1, cmp::min(x + w, self.width()));

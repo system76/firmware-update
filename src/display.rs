@@ -32,9 +32,9 @@ impl Display {
         let w = output.0.Mode.Info.HorizontalResolution;
         let h = output.0.Mode.Info.VerticalResolution;
         Self {
-            output: output,
-            w: w,
-            h: h,
+            output,
+            w,
+            h,
             data: vec![Color::rgb(0, 0, 0); w as usize * h as usize].into_boxed_slice(),
             mode: Cell::new(Mode::Blend),
         }
@@ -64,8 +64,8 @@ impl Display {
             let off2 = height * width - off1;
             unsafe {
                 let data_ptr = self.data.as_mut_ptr() as *mut u32;
-                fast_copy(data_ptr as *mut u8, data_ptr.offset(off1 as isize) as *const u8, off2 as usize * 4);
-                fast_set32(data_ptr.offset(off2 as isize), color.data, off1 as usize);
+                fast_copy(data_ptr as *mut u8, data_ptr.add(off1) as *const u8, off2 as usize * 4);
+                fast_set32(data_ptr.add(off2), color.data, off1 as usize);
             }
         }
     }
