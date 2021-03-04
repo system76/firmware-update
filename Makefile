@@ -52,6 +52,5 @@ $(BUILD)/boot.efi: Cargo.lock Cargo.toml src/* src/*/*
 		--target $(TARGET) \
 		--release \
 		-- \
-		-Z pre-link-arg="/entry:_start" \
 		-C soft-float \
 		--emit link=$@
