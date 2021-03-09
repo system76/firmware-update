@@ -289,7 +289,7 @@ unsafe fn flash(firmware_data: &[u8], target: SpiTarget) -> core::result::Result
     Ok(())
 }
 
-unsafe fn watchdog_reset() {
+unsafe fn watchdog_reset(global: bool) {
     let d2_read = |addr: u8| -> u8 {
         let mut super_io = ectool::SuperIo::new(0x2E);
         super_io.write(0x2E, addr);
@@ -313,6 +313,14 @@ unsafe fn watchdog_reset() {
         d2_write(0x10, addr as u8);
         d2_write(0x12, value);
     };
+
+    let mut rsts = i2ec_read(0x2006);
+    if global {
+        rsts |= 1 << 2;
+    } else {
+        rsts &= !(1 << 2);
+    }
+    i2ec_write(0x2006, rsts);
 
     i2ec_write(0x1F01, i2ec_read(0x1F01) | (1 << 5));
     i2ec_write(0x1F07, 0);
@@ -364,16 +372,7 @@ impl Component for EcComponent {
                 // System76 EC requires reset to load new firmware
                 requires_reset = true;
 
-                // Flash backup ROM first
-                match unsafe { flash(&firmware_data, SpiTarget::Backup) } {
-                    Ok(()) => (),
-                    Err(err) => {
-                        println!("{} Backup Flash Error: {:X?}", self.name(), err);
-                        return Err(Error::DeviceError);
-                    }
-                }
-
-                // Flash main ROM after ensuring backup ROM is good
+                // Flash main ROM
                 match unsafe { flash(&firmware_data, SpiTarget::Main) } {
                     Ok(()) => Ok(()),
                     Err(err) => {
@@ -428,11 +427,11 @@ impl Component for EcComponent {
                 }
             }
 
-            println!("System will shut off in 5 seconds");
+            println!("EC will reset in 5 seconds");
             let _ = (std::system_table().BootServices.Stall)(5_000_000);
 
             // Reset EC
-            unsafe { watchdog_reset(); }
+            unsafe { watchdog_reset(true); }
         }
 
         result
