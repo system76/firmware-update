@@ -10,6 +10,7 @@ use ectool::{
     SpiRom,
     SpiTarget,
     Timeout,
+    timeout,
 };
 use std::{
     cell::Cell,
@@ -171,6 +172,157 @@ impl EcComponent {
     }
 }
 
+struct SpiLegacy<T: Timeout> {
+    pmc: ectool::Pmc<UefiTimeout>,
+    timeout: T,
+}
+
+impl<T: Timeout> SpiLegacy<T> {
+    unsafe fn new(timeout: T) -> Self {
+        Self {
+            pmc: ectool::Pmc::new(0x62, UefiTimeout::new(0)),
+            timeout,
+        }
+    }
+
+    fn rom_size(&self) -> usize { 128 * 1024 }
+    fn block_size(&self) -> usize { 64 * 1024 }
+    fn page_size(&self) -> usize { 256 }
+
+    unsafe fn pmc_cmd(&mut self, data: u8) -> core::result::Result<(), ectool::Error> {
+        self.timeout.reset();
+        timeout!(self.timeout, self.pmc.command(data))
+    }
+
+    unsafe fn pmc_read(&mut self) -> core::result::Result<u8, ectool::Error> {
+        self.timeout.reset();
+        timeout!(self.timeout, self.pmc.read())
+    }
+
+    unsafe fn pmc_write(&mut self, data: u8) -> core::result::Result<(), ectool::Error> {
+        self.timeout.reset();
+        timeout!(self.timeout, self.pmc.write(data))
+    }
+
+    unsafe fn scratch(&mut self) -> core::result::Result<u8, ectool::Error> {
+        self.pmc_cmd(0xDE)?;
+        self.pmc_cmd(0xDC)?;
+        self.pmc_cmd(0xF0)?;
+        self.pmc_read()
+    }
+
+    unsafe fn erase_page(&mut self, page: u16) -> core::result::Result<(), ectool::Error> {
+        self.pmc_cmd(0x05)?;
+        self.pmc_cmd((page >> 8) as u8)?;
+        self.pmc_cmd(page as u8)?;
+        self.pmc_cmd(0)?;
+        Ok(())
+    }
+
+    unsafe fn read(&mut self, data: &mut [u8]) -> core::result::Result<(), ectool::Error> {
+        let block_size = self.block_size();
+        let blocks = (data.len() + block_size - 1) / block_size;
+        for block in 0..blocks {
+            self.pmc_cmd(0x03)?;
+            self.pmc_cmd(block as u8)?;
+            for i in 0..block_size {
+                let byte = self.pmc_read()?;
+                let addr = block * block_size + i;
+                if addr % self.page_size() == 0{
+                    print!("\r{}%", (addr * 100) / (blocks * block_size));
+                }
+                if addr < data.len() {
+                    data[addr] = byte;
+                }
+            }
+        }
+        println!("\r100%");
+        Ok(())
+    }
+
+    unsafe fn write(&mut self, data: &[u8]) -> core::result::Result<(), ectool::Error> {
+        let block_size = self.block_size();
+        let blocks = (data.len() + block_size - 1) / block_size;
+        for block in 0..blocks {
+            self.pmc_cmd(0x02)?;
+            self.pmc_cmd(0x00)?;
+            self.pmc_cmd(block as u8)?;
+            self.pmc_cmd(0x00)?;
+            self.pmc_cmd(0x00)?;
+            for i in 0..block_size {
+                let addr = block * block_size + i;
+                if addr % self.page_size() == 0{
+                    print!("\r{}%", (addr * 100) / (blocks * block_size));
+                }
+                let byte = if addr < data.len() {
+                    data[addr]
+                } else {
+                    0xFF
+                };
+                self.pmc_write(byte)?;
+            }
+        }
+        println!("\r100%");
+        Ok(())
+    }
+}
+
+unsafe fn flash_legacy(firmware_data: &[u8]) -> core::result::Result<(), ectool::Error> {
+    let mut spi = SpiLegacy::new(UefiTimeout::new(1_000_000));
+
+    let rom_size = spi.rom_size();
+    let mut new_rom = firmware_data.to_vec();
+    while new_rom.len() < rom_size {
+        new_rom.push(0xFF);
+    }
+
+    println!("Entering scratch ROM");
+    let _ = spi.scratch()?;
+
+    println!("Erasing ROM");
+    let pages = rom_size / spi.page_size();
+    for page in 0..pages {
+        print!("\r{}%", (page * 100) / pages);
+        spi.erase_page(page as u16)?;
+    }
+    println!("\r100%");
+
+    println!("Verifying ROM erase");
+    let mut erased = vec![0; rom_size];
+    spi.read(&mut erased)?;
+    for (addr, byte) in erased.iter().enumerate() {
+        if *byte != 0xFF {
+            println!(
+                "Failed to erase ROM: {:04X} is {:02X} not {:02X}",
+                addr,
+                byte,
+                0xFF,
+            );
+            return Err(ectool::Error::Verify);
+        }
+    }
+
+    println!("Writing ROM");
+    spi.write(&new_rom)?;
+
+    println!("Verifying ROM write");
+    let mut written = vec![0; rom_size];
+    spi.read(&mut written)?;
+    for (addr, byte) in written.iter().enumerate() {
+        if *byte != written[addr] {
+            println!(
+                "Failed to write ROM: {:04X} is {:02X} not {:02X}",
+                addr,
+                byte,
+                written[addr],
+            );
+            return Err(ectool::Error::Verify);
+        }
+    }
+
+    Ok(())
+}
+
 unsafe fn flash_read<S: Spi>(spi: &mut SpiRom<S, UefiTimeout>, rom: &mut [u8], sector_size: usize) -> core::result::Result<(), ectool::Error> {
     let mut address = 0;
     while address < rom.len() {
@@ -289,41 +441,54 @@ unsafe fn flash(firmware_data: &[u8], target: SpiTarget) -> core::result::Result
     Ok(())
 }
 
+struct I2EC {
+    sio: ectool::SuperIo,
+}
+
+impl I2EC {
+    unsafe fn new() -> Self {
+        Self {
+            sio: ectool::SuperIo::new(0x2E),
+        }
+    }
+
+    unsafe fn d2_read(&mut self, addr: u8)  -> u8 {
+        self.sio.write(0x2E, addr);
+        self.sio.read(0x2F)
+    }
+
+    unsafe fn d2_write(&mut self, addr: u8, value: u8) {
+        self.sio.write(0x2E, addr);
+        self.sio.write(0x2F, value);
+    }
+
+    unsafe fn read(&mut self, addr: u16) -> u8 {
+        self.d2_write(0x11, (addr >> 8) as u8);
+        self.d2_write(0x10, addr as u8);
+        self.d2_read(0x12)
+    }
+
+    unsafe fn write(&mut self, addr: u16, value: u8) {
+        self.d2_write(0x11, (addr >> 8) as u8);
+        self.d2_write(0x10, addr as u8);
+        self.d2_write(0x12, value);
+    }
+}
+
 unsafe fn watchdog_reset(global: bool) {
-    let d2_read = |addr: u8| -> u8 {
-        let mut super_io = ectool::SuperIo::new(0x2E);
-        super_io.write(0x2E, addr);
-        super_io.read(0x2F)
-    };
+    let mut i2ec = I2EC::new();
 
-    let d2_write = |addr: u8, value: u8| {
-        let mut super_io = ectool::SuperIo::new(0x2E);
-        super_io.write(0x2E, addr);
-        super_io.write(0x2F, value);
-    };
-
-    let i2ec_read = |addr: u16| -> u8 {
-        d2_write(0x11, (addr >> 8) as u8);
-        d2_write(0x10, addr as u8);
-        d2_read(0x12)
-    };
-
-    let i2ec_write = |addr: u16, value: u8| {
-        d2_write(0x11, (addr >> 8) as u8);
-        d2_write(0x10, addr as u8);
-        d2_write(0x12, value);
-    };
-
-    let mut rsts = i2ec_read(0x2006);
+    let mut rsts = i2ec.read(0x2006);
     if global {
         rsts |= 1 << 2;
     } else {
         rsts &= !(1 << 2);
     }
-    i2ec_write(0x2006, rsts);
+    i2ec.write(0x2006, rsts);
 
-    i2ec_write(0x1F01, i2ec_read(0x1F01) | (1 << 5));
-    i2ec_write(0x1F07, 0);
+    let etwcfg = i2ec.read(0x1F01);
+    i2ec.write(0x1F01, etwcfg | (1 << 5));
+    i2ec.write(0x1F07, 0);
 }
 
 impl Component for EcComponent {
@@ -382,14 +547,25 @@ impl Component for EcComponent {
                 }
             },
             EcKind::Legacy(_) => {
-                find(FIRMWARENSH)?;
-                let command = if self.master { "ec" } else { "ec2" };
-                let status = shell(&format!("{} {} {} flash", FIRMWARENSH, FIRMWAREDIR, command))?;
-                if status == 0 {
-                    Ok(())
+                if requires_reset {
+                    // Use open source flashing code if reset is required
+                    match unsafe { flash_legacy(&firmware_data) } {
+                        Ok(()) => Ok(()),
+                        Err(err) => {
+                            println!("{} Flash Error: {:X?}", self.name(), err);
+                            Err(Error::DeviceError)
+                        }
+                    }
                 } else {
-                    println!("{} Flash Error: {}", self.name(), status);
-                    Err(Error::DeviceError)
+                    find(FIRMWARENSH)?;
+                    let command = if self.master { "ec" } else { "ec2" };
+                    let status = shell(&format!("{} {} {} flash", FIRMWARENSH, FIRMWAREDIR, command))?;
+                    if status == 0 {
+                        Ok(())
+                    } else {
+                        println!("{} Flash Error: {}", self.name(), status);
+                        Err(Error::DeviceError)
+                    }
                 }
             },
             EcKind::Unknown => {
