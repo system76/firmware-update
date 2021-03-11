@@ -603,7 +603,7 @@ impl Component for EcComponent {
                 }
             }
 
-            println!("EC will reset in 5 seconds");
+            println!("System will shut off in 5 seconds");
             let _ = (std::system_table().BootServices.Stall)(5_000_000);
 
             // Reset EC
