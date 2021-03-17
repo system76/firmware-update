@@ -2,6 +2,7 @@
 
 use core::cell::Cell;
 use core::cmp;
+use core::prelude::v1::derive;
 
 use orbclient::{Color, Mode, Renderer};
 

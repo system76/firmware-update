@@ -2,6 +2,7 @@
 
 use core::{char, mem, ptr};
 use core::ops::Try;
+use core::prelude::v1::derive;
 use ecflash::EcFlash;
 use orbclient::{Color, Renderer};
 use std::exec::exec_path;

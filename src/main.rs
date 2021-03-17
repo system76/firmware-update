@@ -13,7 +13,6 @@
 #![allow(clippy::transmute_ptr_to_ptr)]
 
 extern crate alloc;
-extern crate rlibc;
 #[macro_use]
 extern crate uefi_std as std;
 
