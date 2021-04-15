@@ -14,6 +14,7 @@
 
 extern crate alloc;
 extern crate rlibc;
+extern crate system76_firmware_smmstore as smmstore;
 #[macro_use]
 extern crate uefi_std as std;
 

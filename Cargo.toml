@@ -18,6 +18,7 @@ redox_uefi_std = "0.1.4"
 rlibc = "1.0"
 system76_ecflash = { git = "https://github.com/system76/ecflash.git" }
 system76_ectool = { git = "https://github.com/system76/ec.git", default-features = false, features = ["redox_hwio"] }
+system76_firmware_smmstore = { git = "https://github.com/system76/firmware-smmstore.git" }
 
 [dependencies.orbclient]
 git = "https://gitlab.redox-os.org/redox-os/orbclient.git"

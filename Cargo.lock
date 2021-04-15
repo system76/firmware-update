@@ -110,6 +110,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "system76_firmware_smmstore"
+version = "1.0.0"
+source = "git+https://github.com/system76/firmware-smmstore.git#d3e03359d26a6e2fb057d15493a82720b6922602"
+dependencies = [
+ "redox_uefi",
+ "redox_uefi_std",
+ "rlibc",
+]
+
+[[package]]
 name = "system76_firmware_update"
 version = "1.0.0"
 dependencies = [
@@ -124,4 +134,5 @@ dependencies = [
  "rlibc",
  "system76_ecflash",
  "system76_ectool",
+ "system76_firmware_smmstore",
 ]

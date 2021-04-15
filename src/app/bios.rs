@@ -321,7 +321,13 @@ impl Component for BiosComponent {
                         ).ok_or(Error::DeviceError)?;
 
                         if slice.len() == new_slice.len() {
-                            new_slice.copy_from_slice(slice);
+                            if area_name == "SMMSTORE" {
+                                println!("{}: compacting region data", area_name);
+                                let compact = smmstore::compact(&slice);
+                                new_slice.copy_from_slice(compact.as_slice());
+                            } else {
+                                new_slice.copy_from_slice(slice);
+                            };
 
                             println!(
                                 "{}: copied from old firmware to new firmware",
