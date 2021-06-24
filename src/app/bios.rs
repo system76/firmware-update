@@ -89,6 +89,8 @@ impl BiosComponent {
                 "galp5" | // Technically TGL-U but protocol is the same
                 "gaze14" |
                 "gaze15" |
+                "gaze16_3050" | // Technically TGL-H but protocol is the same
+                "gaze16_3060" | // Technically TGL-H but protocol is the same
                 "lemp9" |
                 "lemp10" | // Technically TGL-U but protocol is the same
                 "oryp5" |
