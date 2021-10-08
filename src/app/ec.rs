@@ -155,7 +155,11 @@ impl EcComponent {
                 "N150CU" => "system76/darp6".to_string(),
                 "NH50DB" | "NH5xDC" => "system76/gaze15".to_string(),
                 "NH5xHX" => "system76/gaze16-3050".to_string(),
-                "NH5_7HPQ" => "system76/gaze16-3060".to_string(),
+                "NH5_7HPQ" => {
+                    // TODO: Handle both variants
+                    //"system76/gaze16-3060".to_string()
+                    "system76/gaze16-3060-b".to_string()
+                }
                 "NS50MU" => "system76/darp7".to_string(),
                 "NV40Mx" | "NV40Mx-DV" => "system76/galp5".to_string(),
                 "PB50Ex" => "system76/addw1".to_string(),
