@@ -20,7 +20,7 @@ use std::{
 };
 use uefi::status::{Error, Result};
 
-use super::{ECROM, EC2ROM, ECTAG, FIRMWAREDIR, FIRMWARENSH, shell, Component};
+use super::{ECROM, EC2ROM, ECTAG, FIRMWAREDIR, FIRMWARENSH, pci_read, shell, Component};
 
 pub struct UefiTimeout {
     duration: u64,
@@ -155,7 +155,14 @@ impl EcComponent {
                 "N150CU" => "system76/darp6".to_string(),
                 "NH50DB" | "NH5xDC" => "system76/gaze15".to_string(),
                 "NH5xHX" => "system76/gaze16-3050".to_string(),
-                "NH5_7HPQ" => "system76/gaze16-3060".to_string(),
+                "NH5_7HPQ" => {
+                    // If the builtin ethernet at 00:1f.6 is present, this is a -b variant
+                    if pci_read(0x00, 0x1f, 0x6, 0x00).unwrap() == 0x15fa8086 {
+                        "system76/gaze16-3060-b".to_string()
+                    } else {
+                        "system76/gaze16-3060".to_string()
+                    }
+                },
                 "NS50MU" => "system76/darp7".to_string(),
                 "NV40Mx" | "NV40Mx-DV" => "system76/galp5".to_string(),
                 "PB50Ex" => "system76/addw1".to_string(),
