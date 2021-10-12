@@ -28,10 +28,12 @@ use crate::text::TextDisplay;
 pub use self::bios::BiosComponent;
 pub use self::component::Component;
 pub use self::ec::EcComponent;
+pub use self::pci::pci_read;
 
 mod bios;
 mod component;
 mod ec;
+mod pci;
 
 static ECROM: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\ec.rom");
 static ECTAG: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\ec.tag");
