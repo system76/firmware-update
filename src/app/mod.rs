@@ -290,10 +290,8 @@ fn inner() -> Result<()> {
             if success {
                 if find(IFLASHV).is_ok() {
                     // Do not reset DMI on meer5
-                } else {
-                    if let Err(err) = reset_dmi() {
-                        println!("Failed to reset DMI: {:?}", err);
-                    }
+                } else if let Err(err) = reset_dmi() {
+                    println!("Failed to reset DMI: {:?}", err);
                 }
 
                 if setup_menu {

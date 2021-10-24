@@ -189,22 +189,26 @@ impl<'a> Renderer for ScaledDisplay<'a> {
 #[inline(always)]
 #[cold]
 pub unsafe fn fast_copy(dst: *mut u8, src: *const u8, len: usize) {
-    llvm_asm!("cld
-        rep movsb"
-        :
-        : "{rdi}"(dst as usize), "{rsi}"(src as usize), "{rcx}"(len)
-        : "cc", "memory", "rdi", "rsi", "rcx"
-        : "intel", "volatile");
+    asm!(
+        "cld",
+        "rep movsb [rdi], [rsi]",
+        inout("rdi") dst => _,
+        inout("rsi") src => _,
+        inout("rcx") len => _,
+        options(nostack)
+    );
 }
 
 #[cfg(target_arch = "x86_64")]
 #[inline(always)]
 #[cold]
 pub unsafe fn fast_set32(dst: *mut u32, src: u32, len: usize) {
-    llvm_asm!("cld
-        rep stosd"
-        :
-        : "{rdi}"(dst as usize), "{eax}"(src), "{rcx}"(len)
-        : "cc", "memory", "rdi", "rcx"
-        : "intel", "volatile");
+    asm!(
+        "cld",
+        "rep stosd [rdi], eax",
+        inout("rdi") dst => _,
+        inout("eax") src => _,
+        inout("rcx") len => _,
+        options(nostack)
+    );
 }
