@@ -53,7 +53,7 @@ impl Display {
             h as usize,
             0
         );
-        status.into_result().is_ok()
+        status.branch().is_continue()
     }
 
     pub fn scroll(&mut self, rows: usize, color: Color) {
