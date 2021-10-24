@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-use core::ops::Try;
+use core::ops::{ControlFlow, Try};
 use ecflash::{Ec, EcFile, EcFlash};
 use ectool::{
     Access,
@@ -596,14 +596,14 @@ impl Component for EcComponent {
                         filename.as_ptr(),
                         uefi::fs::FILE_MODE_CREATE | uefi::fs::FILE_MODE_READ | uefi::fs::FILE_MODE_WRITE,
                         0
-                    ).into_result() {
-                        Ok(_) => {
+                    ).branch() {
+                        ControlFlow::Continue(_) => {
                             unsafe {
                                 let _ = ((*file).Close)(&mut *file);
                             }
                             println!("EC tag: created successfully");
                         },
-                        Err(err) => {
+                        ControlFlow::Break(err) => {
                             println!("EC tag: failed to create {}: {:?}", ECTAG, err);
                         }
                     }

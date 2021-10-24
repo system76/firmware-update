@@ -3,14 +3,12 @@
 #![no_std]
 #![no_main]
 #![feature(llvm_asm)]
-#![feature(const_fn)]
-#![feature(core_intrinsics)]
 #![feature(prelude_import)]
-#![feature(try_trait)]
+#![feature(try_trait_v2)]
+#![feature(control_flow_enum)]
 #![allow(clippy::collapsible_if)]
 #![allow(clippy::many_single_char_names)]
 #![allow(clippy::missing_safety_doc)]
-#![allow(clippy::transmute_ptr_to_ptr)]
 
 extern crate alloc;
 extern crate rlibc;
@@ -21,7 +19,7 @@ extern crate uefi_std as std;
 #[prelude_import]
 use std::prelude::*;
 
-use core::ops::Try;
+use core::ops::{ControlFlow, Try};
 use core::ptr;
 use uefi::reset::ResetType;
 use uefi::status::{Result, Status};
@@ -43,7 +41,7 @@ fn set_max_mode(output: &uefi::text::TextOutput) -> Result<()> {
     for i in 0..output.Mode.MaxMode as usize {
         let mut w = 0;
         let mut h = 0;
-        if (output.QueryMode)(output, i, &mut w, &mut h).into_result().is_ok() {
+        if (output.QueryMode)(output, i, &mut w, &mut h).branch().is_continue() {
             if w >= max_w && h >= max_h {
                 max_i = Some(i);
                 max_w = w;
@@ -65,7 +63,7 @@ pub extern "C" fn main() -> Status {
 
     let _ = (uefi.BootServices.SetWatchdogTimer)(0, 0, 0, ptr::null());
 
-    if let Err(err) = set_max_mode(uefi.ConsoleOut).into_result() {
+    if let ControlFlow::Break(err) = set_max_mode(uefi.ConsoleOut).branch() {
         println!("Failed to set max mode: {:?}", err);
     }
 

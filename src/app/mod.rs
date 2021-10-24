@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use core::{char, mem, ptr};
-use core::ops::Try;
+use core::ops::{ControlFlow, Try};
+use core::prelude::v1::derive;
 use ecflash::EcFlash;
 use orbclient::{Color, Renderer};
 use std::exec::exec_path;
@@ -142,7 +143,7 @@ fn reset_dmi() -> Result<()> {
     loop {
         let mut size = 1024;
         let status = (uefi.RuntimeServices.GetNextVariableName)(&mut size, name.as_mut_ptr(), &mut guid);
-        if let Err(err) = status.into_result() {
+        if let ControlFlow::Break(err) = status.branch() {
             match err {
                 Error::NotFound => break,
                 _ => return Err(err),
@@ -227,14 +228,14 @@ fn inner() -> Result<()> {
         let mut setup_menu = false;
         let c = if let Ok((_, ectag)) = find(ECTAG) {
             // Attempt to remove EC tag
-            match (ectag.0.Delete)(ectag.0).into_result() {
-                Ok(_) => {
+            match (ectag.0.Delete)(ectag.0).branch() {
+                ControlFlow::Continue(_) => {
                     println!("EC tag: deleted successfully");
 
                     // Have to prevent Close from being called after Delete
                     mem::forget(ectag);
                 },
-                Err(err) => {
+                ControlFlow::Break(err) => {
                     println!("EC tag: failed to delete: {:?}", err);
                 }
             }
