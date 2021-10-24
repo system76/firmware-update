@@ -49,6 +49,7 @@ $(BUILD)/boot.efi: Cargo.lock Cargo.toml src/* src/*/*
 	mkdir -p $(BUILD)
 	cargo rustc \
 		-Z build-std=core,alloc \
+		-Z build-std-features=compiler-builtins-mem \
 		--target $(TARGET) \
 		--release \
 		-- \

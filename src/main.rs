@@ -11,7 +11,6 @@
 #![allow(clippy::missing_safety_doc)]
 
 extern crate alloc;
-extern crate rlibc;
 #[macro_use]
 extern crate uefi_std as std;
 
