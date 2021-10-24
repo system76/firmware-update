@@ -131,7 +131,9 @@ impl BiosComponent {
             }
 
             println!("Halt");
-            loop {}
+            loop {
+                unsafe { asm!("cli", "hlt", options(nomem, nostack)); }
+            }
         } else {
             println!("Failed to locate EC");
         }
@@ -376,7 +378,7 @@ impl Component for BiosComponent {
                     if ! matching {
                         spi.erase(i).unwrap();
                         if ! erased {
-                            spi.write(i, &new_chunk).unwrap();
+                            spi.write(i, new_chunk).unwrap();
                         }
                     }
 
