@@ -92,12 +92,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rlibc"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc874b127765f014d792f16763a81245ab80500e2ad921ed4ee9e82481ee08fe"
-
-[[package]]
 name = "system76_ecflash"
 version = "0.1.2"
 source = "git+https://github.com/system76/ecflash.git#b08db293137726bc576da6bef6d57adf3e4adc97"
@@ -123,7 +117,6 @@ dependencies = [
  "redox_hwio",
  "redox_uefi",
  "redox_uefi_std",
- "rlibc",
  "system76_ecflash",
  "system76_ectool",
 ]
