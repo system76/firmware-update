@@ -91,6 +91,7 @@ impl BiosComponent {
                 "gaze15" |
                 "gaze16-3050" | // Technically TGL-H but protocol is the same
                 "gaze16-3060" | // Technically TGL-H but protocol is the same
+                "gaze16-3060-b" | // Technically TGL-H but protocol is the same
                 "lemp9" |
                 "lemp10" | // Technically TGL-U but protocol is the same
                 "oryp5" |
@@ -353,6 +354,15 @@ impl Component for BiosComponent {
                         area_name
                     );
                 }
+            }
+
+            // FIXME: Make intelflash no_std, determine region location from IFD
+            if self.version() == "gaze16-3060-b" {
+                println!("Copying GbE region");
+                // GbE region occupies bytes 0x1000-0x3000
+                let gbe = data.get(0x1000..0x3000).ok_or(Error::DeviceError)?;
+                let new_gbe = new.get_mut(0x1000..0x3000).ok_or(Error::DeviceError)?;
+                new_gbe.copy_from_slice(gbe);
             }
 
             // Erase and write
