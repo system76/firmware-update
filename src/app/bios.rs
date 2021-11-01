@@ -127,6 +127,7 @@ impl BiosComponent {
                 "gaze15" |
                 "gaze16-3050" | // Technically TGL-H but protocol is the same
                 "gaze16-3060" | // Technically TGL-H but protocol is the same
+                "gaze16-3060-b" | // Technically TGL-H but protocol is the same
                 "lemp9" |
                 "lemp10" | // Technically TGL-U but protocol is the same
                 "oryp5" |
