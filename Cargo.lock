@@ -74,7 +74,7 @@ checksum = "7d8e51d17548d82fa194ca49c6adf81fce4a45bbddfdd7d35f68725cec1943f5"
 dependencies = [
  "bitflags",
  "plain",
- "redox_uefi",
+ "redox_uefi 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -84,21 +84,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9c63a3180c5aba47178029b21c1615fbdf87d2bf682669708ea15e9c71eb8935"
 
 [[package]]
+name = "redox_uefi"
+version = "0.1.2"
+source = "git+https://gitlab.redox-os.org/tcrawford/uefi.git?branch=fvb#924c4f029c9b440d819d5943369d44cff162b3da"
+
+[[package]]
 name = "redox_uefi_alloc"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "524f31a58708b6d0ba2d4e734c1dcf14d287307b09118ff07ef25dd504773c7c"
 dependencies = [
- "redox_uefi",
+ "redox_uefi 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "redox_uefi_std"
 version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "32a520781d9bb97c9802dd196e7a550fafaeea62d94b2351422c3424981d3a2d"
+source = "git+https://gitlab.redox-os.org/tcrawford/uefi_std.git?branch=fvb#5618afc25f45029bd35f0db1b2a7ea5af01caeab"
 dependencies = [
- "redox_uefi",
+ "redox_uefi 0.1.2 (git+https://gitlab.redox-os.org/tcrawford/uefi.git?branch=fvb)",
  "redox_uefi_alloc",
 ]
 
