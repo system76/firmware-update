@@ -10,8 +10,8 @@ use plain::Plain;
 use std::fs::{find, load};
 use std::ptr;
 use std::vars::{get_boot_item, get_boot_order, set_boot_item, set_boot_order};
-use uefi::reset::ResetType;
-use uefi::status::{Error, Result, Status};
+use std::uefi::reset::ResetType;
+use std::uefi::status::{Error, Result, Status};
 
 use super::{FIRMWARECAP, FIRMWAREDIR, FIRMWARENSH, FIRMWAREROM, H2OFFT, IFLASHV, UEFIFLASH, shell, Component};
 

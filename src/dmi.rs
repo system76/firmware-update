@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use core::slice;
-use uefi::guid::GuidKind;
+use std::uefi::guid::GuidKind;
 
 pub fn dmi() -> Vec<dmi::Table> {
     for table in std::system_table().config_tables() {

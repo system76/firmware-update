@@ -17,9 +17,9 @@ use std::vars::{
     get_os_indications, set_os_indications,
     get_os_indications_supported
 };
-use uefi::guid;
-use uefi::reset::ResetType;
-use uefi::status::{Error, Result, Status};
+use std::uefi::guid;
+use std::uefi::reset::ResetType;
+use std::uefi::status::{Error, Result, Status};
 
 use crate::display::{Display, ScaledDisplay, Output};
 use crate::image::{self, Image};

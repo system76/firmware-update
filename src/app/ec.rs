@@ -18,7 +18,7 @@ use std::{
     fs::{find, load},
     str,
 };
-use uefi::status::{Error, Result};
+use std::uefi::{self, status::{Error, Result}};
 
 use super::{ECROM, EC2ROM, ECTAG, FIRMWAREDIR, FIRMWARENSH, pci_read, shell, Component};
 

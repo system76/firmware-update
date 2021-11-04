@@ -127,7 +127,6 @@ dependencies = [
  "redox_dmi",
  "redox_hwio",
  "redox_intelflash",
- "redox_uefi",
  "redox_uefi_std",
  "system76_ecflash",
  "system76_ectool",

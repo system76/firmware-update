@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use core::char;
-use uefi::status;
-use uefi::text::TextInputKey;
+use std::uefi::status;
+use std::uefi::text::TextInputKey;
 
 pub fn wait_key() -> Result<char, status::Error> {
     let uefi = std::system_table();
