@@ -4,8 +4,8 @@ use core::cell::Cell;
 use core::ops::Try;
 use orbclient::{Color, Mode, Renderer};
 use std::proto::Protocol;
-use uefi::graphics::{GraphicsOutput, GraphicsBltOp, GraphicsBltPixel};
-use uefi::guid::{Guid, GRAPHICS_OUTPUT_PROTOCOL_GUID};
+use std::uefi::graphics::{GraphicsOutput, GraphicsBltOp, GraphicsBltPixel};
+use std::uefi::guid::{Guid, GRAPHICS_OUTPUT_PROTOCOL_GUID};
 
 pub struct Output(pub &'static mut GraphicsOutput);
 

@@ -20,8 +20,9 @@ use std::prelude::*;
 
 use core::ops::{ControlFlow, Try};
 use core::ptr;
-use uefi::reset::ResetType;
-use uefi::status::{Result, Status};
+use std::uefi;
+use std::uefi::reset::ResetType;
+use std::uefi::status::{Result, Status};
 
 mod app;
 mod display;

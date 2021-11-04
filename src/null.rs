@@ -2,11 +2,11 @@
 
 use core::mem;
 use core::ops::Deref;
-use uefi::Handle;
-use uefi::boot::InterfaceType;
-use uefi::guid::SIMPLE_TEXT_OUTPUT_GUID;
-use uefi::status::{Result, Status};
-use uefi::text::TextOutputMode;
+use std::uefi::Handle;
+use std::uefi::boot::InterfaceType;
+use std::uefi::guid::SIMPLE_TEXT_OUTPUT_GUID;
+use std::uefi::status::{Result, Status};
+use std::uefi::text::TextOutputMode;
 
 #[repr(C)]
 #[allow(non_snake_case)]

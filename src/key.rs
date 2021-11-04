@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-use uefi::status::Result;
-use uefi::text::TextInputKey;
+use std::uefi::status::Result;
+use std::uefi::text::TextInputKey;
 
 pub fn raw_key() -> Result<TextInputKey> {
     let uefi = std::system_table();
