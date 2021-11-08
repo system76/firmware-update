@@ -13,6 +13,7 @@
 extern crate alloc;
 #[macro_use]
 extern crate uefi_std as std;
+extern crate system76_firmware_smmstore as smmstore;
 
 #[allow(unused_imports)]
 #[prelude_import]

@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+// XXX: Remove
+#![allow(dead_code)]
+
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use core::char;
@@ -12,6 +15,7 @@ use std::ptr;
 use std::vars::{get_boot_item, get_boot_order, set_boot_item, set_boot_order};
 use std::uefi::reset::ResetType;
 use std::uefi::status::{Error, Result, Status};
+use std::uefi::guid;
 
 use super::{FIRMWARECAP, FIRMWAREDIR, FIRMWARENSH, FIRMWAREROM, H2OFFT, IFLASHV, UEFIFLASH, shell, Component};
 
@@ -374,7 +378,11 @@ impl Component for BiosComponent {
                         ).ok_or(Error::DeviceError)?;
 
                         if slice.len() == new_slice.len() {
-                            new_slice.copy_from_slice(slice);
+                            if area_name == "SMMSTORE" {
+                                smmstore_migrate(slice, new_slice)?;
+                            } else {
+                                new_slice.copy_from_slice(slice);
+                            }
 
                             println!(
                                 "{}: copied from old firmware to new firmware",
@@ -530,4 +538,271 @@ impl Component for BiosComponent {
 
         Ok(())
     }
+}
+
+// TODO: Clean up and move to UEFI crates
+
+// Minimum size of 4 64k blocks;
+const STORE_MIN_SIZE: usize = 256 * 1024;
+
+const FVH_REVISION: u8 = 0x02;
+const FVH_SIGNATURE: u32 = 0x4856465F; // '_FVH' in LE
+
+const FVB2_READ_DISABLED_CAP: u32   = 1 << 0;
+const FVB2_READ_ENABLED_CAP: u32    = 1 << 1;
+const FVB2_READ_STATUS: u32         = 1 << 2;
+const FVB2_WRITE_DISABLED_CAP: u32  = 1 << 3;
+const FVB2_WRITE_ENABLED_CAP: u32   = 1 << 4;
+const FVB2_WRITE_STATUS: u32        = 1 << 5;
+const FVB2_LOCK_CAP: u32            = 1 << 6;
+const FVB2_LOCK_STATUS: u32         = 1 << 7;
+// No value for 1 << 8
+const FVB2_STICKY_WRITE: u32        = 1 << 9;
+const FVB2_MEMORY_MAPPED: u32       = 1 << 10;
+const FVB2_ERASE_POLARITY: u32      = 1 << 11;
+const FVB2_READ_LOCK_CAP: u32       = 1 << 12;
+const FVB2_READ_LOCK_STATUS: u32    = 1 << 13;
+const FVB2_WRITE_LOCK_CAP: u32      = 1 << 14;
+const FVB2_WRITE_LOCK_STATUS: u32   = 1 << 15;
+
+struct FvbAttributes2(u32);
+
+#[allow(non_snake_case)]
+#[repr(C)]
+struct FvBlockMapEntry {
+    NumBlocks: u32,
+    Length: u32,
+}
+
+#[allow(non_snake_case)]
+#[repr(C)]
+struct FirmwareVolumeHeader {
+    ZeroVector: [u8; 16],
+    FileSystemGuid: guid::Guid,
+    FvLength: u64,
+    Signature: u32,
+    Attributes: FvbAttributes2,
+    HeaderLength: u16,
+    Checksum: u16,
+    ExtHeaderOffset: u16,
+    Reserved: [u8; 1],
+    Revision: u8,
+    // FIXME: This is a VLA in edk2
+    BlockMap: [FvBlockMapEntry; 2],
+}
+
+unsafe impl Plain for FirmwareVolumeHeader {}
+
+// Create a FV header based on some assumptions.
+fn firmware_volume_header(volume: &[u8]) -> Result<FirmwareVolumeHeader> {
+    if volume.len() < STORE_MIN_SIZE {
+        println!("SMMSTORE region is too small! (Need: {}, Actual: {})", STORE_MIN_SIZE, volume.len());
+        return Err(Error::DeviceError);
+    }
+
+    let attrs = FvbAttributes2(FVB2_READ_ENABLED_CAP
+        | FVB2_READ_STATUS
+        | FVB2_STICKY_WRITE
+        | FVB2_MEMORY_MAPPED
+        | FVB2_ERASE_POLARITY
+        | FVB2_WRITE_STATUS
+        | FVB2_WRITE_ENABLED_CAP
+    );
+
+    let block_map = [
+        // FIXME: Hard-coded for a 256 KiB SMMSTORE
+        FvBlockMapEntry { NumBlocks: 4, Length: 64 * 1024 },
+        FvBlockMapEntry { NumBlocks: 0, Length: 0 },
+    ];
+
+    Ok(FirmwareVolumeHeader {
+        ZeroVector: [0u8; 16],
+        FileSystemGuid: guid::SYSTEM_NV_DATA_FV_GUID,
+        FvLength: volume.len() as u64,
+        Signature: FVH_SIGNATURE,
+        Attributes: attrs,
+        HeaderLength: (core::mem::size_of::<FirmwareVolumeHeader>() + core::mem::size_of::<FvBlockMapEntry>()) as u16,
+        Checksum: 0, // FIXME: Sum all bytes, should be 0
+        ExtHeaderOffset: 0,
+        Reserved: [0u8; 1],
+        Revision: FVH_REVISION,
+        BlockMap: block_map,
+    })
+}
+
+const VARIABLE_STORE_FORMATTED: u8 = 0x5A;
+const VARIABLE_STORE_HEALTHY: u8 = 0xFE;
+
+#[allow(non_snake_case)]
+#[repr(C)]
+struct VariableStoreHeader {
+    Signature: guid::Guid,
+    Size: u32,
+    Format: u8,
+    State: u8,
+    Reserved: u16,
+    Reserved1: u32,
+}
+
+unsafe impl Plain for VariableStoreHeader {}
+
+// Create a VarStore header based on some assumptions.
+fn variable_store_header(volume: &[u8]) -> Result<VariableStoreHeader> {
+    Ok(VariableStoreHeader {
+        Signature: guid::AUTHENTICATED_VARIABLE_GUID,
+        Size: (volume.len() - core::mem::size_of::<FirmwareVolumeHeader>()) as u32,
+        Format: VARIABLE_STORE_FORMATTED,
+        State: VARIABLE_STORE_HEALTHY,
+        Reserved: 0,
+        Reserved1: 0,
+    })
+}
+
+const VARIABLE_NON_VOLATILE: u32                    = 1 << 0;
+const VARIABLE_BOOTSERVICE_ACCESS: u32              = 1 << 1;
+const VARIABLE_RUNTIME_ACCESS: u32                  = 1 << 2;
+const VARIABLE_HARDWARE_ERROR_RECORD: u32           = 1 << 3;
+const VARIABLE_AUTH_WRITE_ACCESS: u32               = 1 << 4;
+const VARIABLE_TIME_BASED_AUTH_WRITE_ACCESS: u32    = 1 << 5;
+const VARIABLE_APPEND_WRITE: u32                    = 1 << 6;
+
+const VARIABLE_ATTR_NV_BS: u32 = VARIABLE_NON_VOLATILE | VARIABLE_BOOTSERVICE_ACCESS;
+const VARIABLE_ATTR_BS_RT: u32 = VARIABLE_BOOTSERVICE_ACCESS | VARIABLE_RUNTIME_ACCESS;
+const VARIABLE_ATTR_BS_RT_AT: u32 = VARIABLE_ATTR_BS_RT | VARIABLE_TIME_BASED_AUTH_WRITE_ACCESS;
+const VARIABLE_ATTR_NV_BS_RT: u32 = VARIABLE_ATTR_BS_RT | VARIABLE_NON_VOLATILE;
+const VARIABLE_ATTR_NV_BS_RT_HR: u32 = VARIABLE_ATTR_NV_BS_RT | VARIABLE_HARDWARE_ERROR_RECORD;
+const VARIABLE_ATTR_NV_BS_RT_AT: u32 = VARIABLE_ATTR_NV_BS_RT | VARIABLE_TIME_BASED_AUTH_WRITE_ACCESS;
+const VARIABLE_ATTR_AT: u32 = VARIABLE_TIME_BASED_AUTH_WRITE_ACCESS;
+const VARIABLE_ATTR_NV_BS_RT_HR_AT: u32 = VARIABLE_ATTR_NV_BS_RT_HR | VARIABLE_ATTR_AT;
+
+const VARIABLE_DATA: u16 = 0x55AA;
+
+const VAR_ADDED: u8 = 0x3F;
+
+#[allow(non_snake_case)]
+#[repr(C)]
+struct EfiTime {
+    Year: u16,
+    Month: u8,
+    Day: u8,
+    Hour: u8,
+    Minute: u8,
+    Second: u8,
+    Pad1: u8,
+    Nanosecond: u32,
+    TimeZone: u16,
+    Daylight: u8,
+    Pad2: u8,
+}
+
+impl Default for EfiTime {
+    fn default() -> Self {
+        Self {
+            Year: 0,
+            Month: 0,
+            Day: 0,
+            Hour: 0,
+            Minute: 0,
+            Second: 0,
+            Pad1: 0,
+            Nanosecond: 0,
+            TimeZone: 0,
+            Daylight: 0,
+            Pad2: 0,
+        }
+    }
+}
+
+#[allow(non_snake_case)]
+#[repr(C)]
+struct AuthenticatedVariableHeader {
+    StartId: u16,
+    State: u8,
+    Reserved: u8,
+    Attributes: u32,
+    MonotonicCount: u64,
+    TimeStamp: EfiTime,
+    PubKeyIndex: u32,
+    NameSize: u32,
+    DataSize: u32,
+    VendorGuid: guid::Guid,
+}
+
+// Not a UEFI struct
+struct Variable {
+    header: AuthenticatedVariableHeader,
+    name: Vec<u8>,
+    data: Vec<u8>,
+}
+
+fn variable_from_kv(name: &[u8], data: &[u8]) -> Variable {
+    let header = AuthenticatedVariableHeader {
+        StartId: VARIABLE_DATA,
+        State: VAR_ADDED,
+        Reserved: 0,
+        Attributes: VARIABLE_ATTR_NV_BS,
+        MonotonicCount: 0,
+        TimeStamp: EfiTime::default(),
+        PubKeyIndex: 0,
+        NameSize: name.len() as u32,
+        DataSize: data.len() as u32,
+        VendorGuid: guid::GLOBAL_VARIABLE_GUID,
+    };
+
+    Variable {
+        header,
+        name: name.to_vec(),
+        data: data.to_vec(),
+    }
+}
+
+// Migrate SMMSTOREv1 data to FV data used for SMMSTOREv2.
+fn smmstore_migrate(old: &[u8], new: &mut [u8]) -> Result<()> {
+
+    if let Ok(old_fvh) = FirmwareVolumeHeader::from_bytes(old) {
+        if old_fvh.FileSystemGuid == guid::SYSTEM_NV_DATA_FV_GUID {
+            // Already formatted for SMMSTOREv2.
+            return Ok(());
+        }
+    }
+
+    let fv_hdr = firmware_volume_header(new)?;
+    let varstore_hdr = variable_store_header(new)?;
+
+    // Install the headers
+    let mut i = 0;
+    unsafe {
+        for b in plain::as_bytes(&fv_hdr) {
+            new[i] = *b;
+            i += 1;
+        }
+
+        for b in plain::as_bytes(&varstore_hdr) {
+            new[i] = *b;
+            i += 1;
+        }
+    }
+
+    let v1_data = smmstore::deserialize(old);
+
+    for (k, v) in v1_data {
+        let var = variable_from_kv(&k, &v);
+
+        unsafe {
+            for b in plain::as_bytes(&var.header) {
+                new[i] = *b;
+                i += 1;
+            }
+            for b in plain::as_bytes(&var.name) {
+                new[i] = *b;
+                i += 1;
+            }
+            for b in plain::as_bytes(&var.data) {
+                new[i] = *b;
+                i += 1;
+            }
+        }
+    }
+
+    Ok(())
 }
