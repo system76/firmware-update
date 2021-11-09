@@ -624,8 +624,8 @@ fn firmware_volume_header(volume: &[u8]) -> Result<FirmwareVolumeHeader> {
         FvLength: FV_SIZE,
         Signature: FVH_SIGNATURE,
         Attributes: attrs,
-        HeaderLength: (core::mem::size_of::<FirmwareVolumeHeader>() + core::mem::size_of::<FvBlockMapEntry>()) as u16,
-        Checksum: 0, // FIXME: Sum all bytes, should be 0
+        HeaderLength: (core::mem::size_of::<FirmwareVolumeHeader>()) as u16,
+        Checksum: 0xFA00,
         ExtHeaderOffset: 0,
         Reserved: [0u8; 1],
         Revision: FVH_REVISION,
@@ -650,15 +650,16 @@ struct VariableStoreHeader {
 unsafe impl Plain for VariableStoreHeader {}
 
 // Create a VarStore header based on some assumptions.
-fn variable_store_header(volume: &[u8]) -> Result<VariableStoreHeader> {
-    Ok(VariableStoreHeader {
+fn variable_store_header() -> VariableStoreHeader {
+    // XXX: Only one block is used.
+    VariableStoreHeader {
         Signature: guid::AUTHENTICATED_VARIABLE_GUID,
-        Size: (volume.len() - core::mem::size_of::<FirmwareVolumeHeader>()) as u32,
+        Size: ((64 * 1024) - core::mem::size_of::<FirmwareVolumeHeader>()) as u32,
         Format: VARIABLE_STORE_FORMATTED,
         State: VARIABLE_STORE_HEALTHY,
         Reserved: 0,
         Reserved1: 0,
-    })
+    }
 }
 
 const VARIABLE_NON_VOLATILE: u32                    = 1 << 0;
@@ -716,8 +717,9 @@ impl Default for EfiTime {
     }
 }
 
+// 60 bytes, must be packed or will be padded to 64 bytes.
 #[allow(non_snake_case)]
-#[repr(C)]
+#[repr(C, packed)]
 struct AuthenticatedVariableHeader {
     StartId: u16,
     State: u8,
@@ -738,7 +740,24 @@ struct Variable {
     data: Vec<u8>,
 }
 
-fn variable_from_kv(name: &[u8], data: &[u8]) -> Variable {
+// XXX: Implement TryFrom for Guid?
+fn guid_from_slice(slice: &[u8]) -> guid::Guid {
+    let mut last: [u8; 8] = [0; 8];
+    last.copy_from_slice(&slice[8..16]);
+
+    guid::Guid(
+        slice[0] as u32 | (slice[1] as u32) << 8 | (slice[2] as u32) << 16 | (slice[3] as u32) << 24,
+        slice[4] as u16 | (slice[5] as u16) << 8,
+        slice[6] as u16 | (slice[7] as u16) << 8,
+        last
+    )
+}
+
+fn variable_from_kv(key: &[u8], data: &[u8]) -> Variable {
+    // In SMMSTOREv1, the GUID is prepended to the variable name.
+    let guid = guid_from_slice(key);
+    let name = key[16..].to_vec();
+
     let header = AuthenticatedVariableHeader {
         StartId: VARIABLE_DATA,
         State: VAR_ADDED,
@@ -749,12 +768,12 @@ fn variable_from_kv(name: &[u8], data: &[u8]) -> Variable {
         PubKeyIndex: 0,
         NameSize: name.len() as u32,
         DataSize: data.len() as u32,
-        VendorGuid: guid::GLOBAL_VARIABLE_GUID,
+        VendorGuid: guid,
     };
 
     Variable {
         header,
-        name: name.to_vec(),
+        name,
         data: data.to_vec(),
     }
 }
@@ -765,12 +784,15 @@ fn smmstore_migrate(old: &[u8], new: &mut [u8]) -> Result<()> {
     if let Ok(old_fvh) = FirmwareVolumeHeader::from_bytes(old) {
         if old_fvh.FileSystemGuid == guid::SYSTEM_NV_DATA_FV_GUID {
             // Already formatted for SMMSTOREv2.
+            new.copy_from_slice(old);
             return Ok(());
         }
     }
 
+    println!("Migrating data to SMMSTOREv2");
+
     let fv_hdr = firmware_volume_header(new)?;
-    let varstore_hdr = variable_store_header(new)?;
+    let varstore_hdr = variable_store_header();
 
     // Install the headers
     let mut i = 0;
