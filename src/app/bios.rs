@@ -615,10 +615,13 @@ fn firmware_volume_header(volume: &[u8]) -> Result<FirmwareVolumeHeader> {
         FvBlockMapEntry { NumBlocks: 0, Length: 0 },
     ];
 
+    // XXX: FTW spare block not counted?
+    const FV_SIZE: u64 = 192 * 1024;
+
     Ok(FirmwareVolumeHeader {
         ZeroVector: [0u8; 16],
         FileSystemGuid: guid::SYSTEM_NV_DATA_FV_GUID,
-        FvLength: volume.len() as u64,
+        FvLength: FV_SIZE,
         Signature: FVH_SIGNATURE,
         Attributes: attrs,
         HeaderLength: (core::mem::size_of::<FirmwareVolumeHeader>() + core::mem::size_of::<FvBlockMapEntry>()) as u16,
@@ -793,12 +796,12 @@ fn smmstore_migrate(old: &[u8], new: &mut [u8]) -> Result<()> {
                 new[i] = *b;
                 i += 1;
             }
-            for b in plain::as_bytes(&var.name) {
-                new[i] = *b;
+            for b in var.name {
+                new[i] = b;
                 i += 1;
             }
-            for b in plain::as_bytes(&var.data) {
-                new[i] = *b;
+            for b in var.data {
+                new[i] = b;
                 i += 1;
             }
         }
