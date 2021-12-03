@@ -164,7 +164,7 @@ impl EcComponent {
                     }
                 },
                 "NS50MU" => "system76/darp7".to_string(),
-                "NV40Mx" | "NV40Mx-DV" => "system76/galp5".to_string(),
+                "NV40Mx" | "NV40Mx-DV" | "NV40MJ" => "system76/galp5".to_string(),
                 "PB50Ex" => "system76/addw1".to_string(),
                 "PBx0Dx2" => "system76/addw2".to_string(),
                 "P950Ex" => "system76/oryp5".to_string(),
