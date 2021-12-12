@@ -1,6 +1,6 @@
 # System76 Firmware Update
 
-System76 Firmware Update Utility
+System76 Firmware Update Utility, subproject of [firmware-open](https://github.com/system76/firmware-open).
 
 ## Overview
 
