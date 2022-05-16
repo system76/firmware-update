@@ -29,11 +29,13 @@ use crate::text::TextDisplay;
 pub use self::bios::BiosComponent;
 pub use self::component::Component;
 pub use self::ec::EcComponent;
-pub use self::pci::pci_read;
+pub use self::mapper::UefiMapper;
+pub use self::pci::{pci_mcfg, pci_read};
 
 mod bios;
 mod component;
 mod ec;
+mod mapper;
 mod pci;
 
 static ECROM: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\ec.rom");

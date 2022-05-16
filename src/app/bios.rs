@@ -5,7 +5,7 @@ use alloc::string::String;
 use core::char;
 use coreboot_fs::Rom;
 use ecflash::EcFlash;
-use intel_spi::{HsfStsCtl, Spi, SpiKbl, SpiCnl};
+use intel_spi::{HsfStsCtl, Spi, SpiDev};
 use plain::Plain;
 use std::fs::{find, load};
 use std::ptr;
@@ -13,7 +13,7 @@ use std::vars::{get_boot_item, get_boot_order, set_boot_item, set_boot_order};
 use std::uefi::reset::ResetType;
 use std::uefi::status::{Error, Result, Status};
 
-use super::{FIRMWARECAP, FIRMWAREDIR, FIRMWARENSH, FIRMWAREROM, H2OFFT, IFLASHV, UEFIFLASH, shell, Component};
+use super::{FIRMWARECAP, FIRMWAREDIR, FIRMWARENSH, FIRMWAREROM, H2OFFT, IFLASHV, UEFIFLASH, shell, Component, pci_mcfg, UefiMapper};
 
 fn copy_region(region: intelflash::RegionKind, old_data: &[u8], new_data: &mut [u8]) -> core::result::Result<bool, String> {
     let old_opt = intelflash::Rom::new(old_data)?.get_region_base_limit(region)?;
@@ -102,44 +102,54 @@ impl BiosComponent {
         }
     }
 
-    pub fn spi(&self) -> Option<(&'static mut dyn Spi, HsfStsCtl)> {
+    pub fn spi(&self) -> Option<(SpiDev<'static, UefiMapper>, HsfStsCtl)> {
+        static mut UEFI_MAPPER: UefiMapper = UefiMapper;
+
         match self.bios_vendor.as_str() {
             "coreboot" => match self.system_version.as_str() {
-                "galp2" |
-                "galp3" |
-                "galp3-b" => {
-                    let spi_kbl = unsafe {
-                        &mut *(SpiKbl::address() as *mut SpiKbl)
-                    };
-                    let hsfsts_ctl = spi_kbl.hsfsts_ctl();
-                    Some((spi_kbl as &mut dyn Spi, hsfsts_ctl))
-                },
                 "addw1" |
                 "addw2" |
                 "bonw14" |
                 "darp5" |
                 "darp6" |
-                "darp7" | // Technically TGL-U but protocol is the same
+                "darp7" |
+                "galp2" |
+                "galp3" |
+                "galp3-b" |
                 "galp3-c" |
                 "galp4" |
-                "galp5" | // Technically TGL-U but protocol is the same
+                "galp5" |
                 "gaze14" |
                 "gaze15" |
-                "gaze16-3050" | // Technically TGL-H but protocol is the same
-                "gaze16-3060" | // Technically TGL-H but protocol is the same
-                "gaze16-3060-b" | // Technically TGL-H but protocol is the same
+                "gaze16-3050" |
+                "gaze16-3060" |
+                "gaze16-3060-b" |
+                "gaze17-3050" |
+                "gaze17-3060" |
+                "gaze17-3060-b" |
                 "lemp9" |
-                "lemp10" | // Technically TGL-U but protocol is the same
+                "lemp10" |
                 "oryp5" |
                 "oryp6" |
                 "oryp7" |
-                "oryp8" // Technically TGL-H but protocol is the same
+                "oryp8"
                 => {
-                    let spi_cnl = unsafe {
-                        &mut *(SpiCnl::address() as *mut SpiCnl)
+                    let mcfg = match pci_mcfg() {
+                        Some(some) => some,
+                        None => {
+                            println!("failed to get MCFG table");
+                            return None;
+                        }
                     };
-                    let hsfsts_ctl = spi_cnl.hsfsts_ctl();
-                    Some((spi_cnl as &mut dyn Spi, hsfsts_ctl))
+                    let spi = match unsafe { SpiDev::new(mcfg, &mut UEFI_MAPPER) } {
+                        Ok(ok) => ok,
+                        Err(err) => {
+                            println!("failed to get SPI device: {}", err);
+                            return None;
+                        }
+                    };
+                    let hsfsts_ctl = spi.regs.hsfsts_ctl();
+                    Some((spi, hsfsts_ctl))
                 },
                 _ => None,
             },
@@ -200,7 +210,7 @@ impl Component for BiosComponent {
 
     fn validate(&self) -> Result<bool> {
         let data = load(self.path())?;
-        if let Some((spi, _hsfsts_ctl)) = self.spi() {
+        if let Some((mut spi, _hsfsts_ctl)) = self.spi() {
             // if hsfsts_ctl.contains(HsfStsCtl::FDOPSS) {
             //     println!("SPI currently locked, attempting to unlock");
             //     Self::spi_unlock();
@@ -224,7 +234,7 @@ impl Component for BiosComponent {
     }
 
     fn flash(&self) -> Result<()> {
-        if let Some((spi, _hsfsts_ctl)) = self.spi() {
+        if let Some((mut spi, _hsfsts_ctl)) = self.spi() {
             // Read new data
             let mut new;
             {
