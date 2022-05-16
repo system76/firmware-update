@@ -37,9 +37,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.125"
+version = "0.2.106"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5916d2ae698f6de9bfb891ad7a8d65c09d232dc58cc4ac433c7da3b2fd84bc2b"
+checksum = "a60553f9a9e039a333b4e9b20573b9e9b9c0bb3a11e201ccc48ef4283456d673"
 
 [[package]]
 name = "orbclient"
@@ -63,9 +63,9 @@ dependencies = [
 
 [[package]]
 name = "redox_hwio"
-version = "0.1.5"
+version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9489d9e1b95e30ca0c6c5e9f5af5960ef838e4045eecd71db748248a7216778d"
+checksum = "2b3b8075af56e2600f1bc43e97cb3911b8320d89d39a6215739c3cfff91af016"
 
 [[package]]
 name = "redox_intelflash"
@@ -80,24 +80,24 @@ dependencies = [
 
 [[package]]
 name = "redox_uefi"
-version = "0.1.5"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c483e82899e79d50a4ad1a5eb8f3fc918e9b37b0387d85510fa4cf21d2e3dda"
+checksum = "9c63a3180c5aba47178029b21c1615fbdf87d2bf682669708ea15e9c71eb8935"
 
 [[package]]
 name = "redox_uefi_alloc"
-version = "0.1.4"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09eebe4aab0f8207676234160ffd94cb6c8660694079449ded0eea6a4e27ede1"
+checksum = "524f31a58708b6d0ba2d4e734c1dcf14d287307b09118ff07ef25dd504773c7c"
 dependencies = [
  "redox_uefi",
 ]
 
 [[package]]
 name = "redox_uefi_std"
-version = "0.1.7"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ecc253339d4dc0606421b6118458ef45c184d76ccdc8e20296cdaddf2e401ae"
+checksum = "32a520781d9bb97c9802dd196e7a550fafaeea62d94b2351422c3424981d3a2d"
 dependencies = [
  "redox_uefi",
  "redox_uefi_alloc",
@@ -105,13 +105,13 @@ dependencies = [
 
 [[package]]
 name = "system76_ecflash"
-version = "0.1.3"
-source = "git+https://github.com/system76/ecflash.git#2b94b81b971dce74f11fc8549fa8d6c4acd68657"
+version = "0.1.2"
+source = "git+https://github.com/system76/ecflash.git#b08db293137726bc576da6bef6d57adf3e4adc97"
 
 [[package]]
 name = "system76_ectool"
-version = "0.3.8"
-source = "git+https://github.com/system76/ec.git#a70ea4558c84ec8b76faaf4aa7c11165c2b1bf38"
+version = "0.3.6"
+source = "git+https://github.com/system76/ec.git#55a617f2e0c4bd4db7ea45fb5dba71addd9461ad"
 dependencies = [
  "downcast-rs",
  "redox_hwio",
