@@ -130,6 +130,7 @@ impl BiosComponent {
                 "gaze17-3060-b" |
                 "lemp9" |
                 "lemp10" |
+                "lemp11" |
                 "oryp5" |
                 "oryp6" |
                 "oryp7" |
