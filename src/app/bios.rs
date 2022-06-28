@@ -134,7 +134,8 @@ impl BiosComponent {
                 "oryp5" |
                 "oryp6" |
                 "oryp7" |
-                "oryp8"
+                "oryp8" |
+                "oryp9"
                 => {
                     let mcfg = match pci_mcfg() {
                         Some(some) => some,
