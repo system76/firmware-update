@@ -104,6 +104,12 @@ if "%2" == "bios" then
             exit %lasterror%
         endif
 
+        # Flash with msiefiflash and exit if possible
+        if exist msiefiflash.efi then
+            msiefiflash.efi firmware.rom
+            exit %lasterror%
+        endif
+
         # Flash with efiflash and exit if possible
         if exist efiflash.efi then
             efiflash.efi firmware.rom /C /NR \NoOemId
