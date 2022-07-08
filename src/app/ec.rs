@@ -167,7 +167,8 @@ impl EcComponent {
                 "NPxxPNJ_K" => "system76/gaze17-3050".to_string(),
                 "NPxxPNP" => {
                     // If the builtin ethernet at 00:1f.6 is present, this is a -b variant
-                    if pci_read(0x00, 0x1f, 0x6, 0x00).unwrap() == 0x1a1e8086 {
+                    let pciid = pci_read(0x00, 0x1f, 0x6, 0x00).unwrap();
+                    if pciid == 0x1a1e8086 || pciid == 0x1a1f8086 {
                         "system76/gaze17-3060-b".to_string()
                     } else {
                         "system76/gaze17-3060".to_string()
