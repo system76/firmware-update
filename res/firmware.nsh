@@ -106,7 +106,7 @@ if "%2" == "bios" then
 
         # Flash with msiefiflash and exit if possible
         if exist msiefiflash.efi then
-            msiefiflash.efi firmware.rom
+            msiefiflash.efi firmware.rom /K
             exit %lasterror%
         endif
 
