@@ -120,6 +120,7 @@ impl BiosComponent {
                 "galp3-c" |
                 "galp4" |
                 "galp5" |
+                "galp6" |
                 "gaze14" |
                 "gaze15" |
                 "gaze16-3050" |
