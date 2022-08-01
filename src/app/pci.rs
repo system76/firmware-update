@@ -83,9 +83,8 @@ pub fn pci_mcfg() -> Option<&'static [u8]> {
             GuidKind::Acpi |
             GuidKind::Acpi2 => unsafe {
                 let rsdp = &*(table.VendorTable as *const Rsdp);
-                match rsdp_mcfg(rsdp) {
-                    Some(some) => return Some(some),
-                    None => (),
+                if let Some(some) = rsdp_mcfg(rsdp) {
+                    return Some(some)
                 }
             },
             _ => ()

@@ -30,7 +30,7 @@ fn copy_region(region: intelflash::RegionKind, old_data: &[u8], new_data: &mut [
         } else {
             return Err(format!("old region {:#X}:{:#X} is invalid", base, limit));
         },
-        None => return Err(format!("missing old region")),
+        None => return Err("missing old region".to_string()),
     };
 
     let new = match new_opt {
@@ -39,7 +39,7 @@ fn copy_region(region: intelflash::RegionKind, old_data: &[u8], new_data: &mut [
         } else {
             return Err(format!("new region {:#X}:{:#X} is invalid", base, limit));
         },
-        None => return Err(format!("missing new region")),
+        None => return Err("missing new region".to_string()),
     };
 
     if old.len() != new.len() {
