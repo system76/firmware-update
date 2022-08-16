@@ -15,12 +15,16 @@ pub fn parse(file_data: &[u8]) -> Result<Image, String> {
     let getw = |i: usize| -> u16 { (get(i) as u16) + ((get(i + 1) as u16) << 8) };
 
     let getd = |i: usize| -> u32 {
-        (get(i) as u32) + ((get(i + 1) as u32) << 8) + ((get(i + 2) as u32) << 16) +
-        ((get(i + 3) as u32) << 24)
+        (get(i) as u32)
+            + ((get(i + 1) as u32) << 8)
+            + ((get(i + 2) as u32) << 16)
+            + ((get(i + 3) as u32) << 24)
     };
 
     let gets = |start: usize, len: usize| -> String {
-        (start..start + len).map(|i| get(i) as char).collect::<String>()
+        (start..start + len)
+            .map(|i| get(i) as char)
+            .collect::<String>()
     };
 
     if gets(0, 2) == "BM" {
@@ -88,7 +92,7 @@ pub fn parse(file_data: &[u8]) -> Result<Image, String> {
         // It shouldn't ever return an Err in this case, unless there's an error somewhere
         // above
         Image::from_data(width, height, data.into_boxed_slice())
-    }else{
+    } else {
         Err("BMP: invalid signature".to_string())
     }
 }

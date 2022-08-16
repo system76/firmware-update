@@ -4,7 +4,7 @@ use core::cell::Cell;
 use core::ops::Try;
 use orbclient::{Color, Mode, Renderer};
 use std::proto::Protocol;
-use std::uefi::graphics::{GraphicsOutput, GraphicsBltOp, GraphicsBltPixel};
+use std::uefi::graphics::{GraphicsBltOp, GraphicsBltPixel, GraphicsOutput};
 use std::uefi::guid::{Guid, GRAPHICS_OUTPUT_PROTOCOL_GUID};
 
 pub struct Output(pub &'static mut GraphicsOutput);
@@ -51,7 +51,7 @@ impl Display {
             y as usize,
             w as usize,
             h as usize,
-            0
+            0,
         );
         status.branch().is_continue()
     }
@@ -64,7 +64,11 @@ impl Display {
             let off2 = height * width - off1;
             unsafe {
                 let data_ptr = self.data.as_mut_ptr() as *mut u32;
-                fast_copy(data_ptr as *mut u8, data_ptr.add(off1) as *const u8, off2 as usize * 4);
+                fast_copy(
+                    data_ptr as *mut u8,
+                    data_ptr.add(off1) as *const u8,
+                    off2 as usize * 4,
+                );
                 fast_set32(data_ptr.add(off2), color.data, off1 as usize);
             }
         }
@@ -106,16 +110,9 @@ pub struct ScaledDisplay<'a> {
 
 impl<'a> ScaledDisplay<'a> {
     pub fn new(display: &'a mut Display) -> Self {
-        let scale = if display.height() > 1440 {
-            2
-        } else {
-            1
-        };
+        let scale = if display.height() > 1440 { 2 } else { 1 };
 
-        Self {
-            display,
-            scale,
-        }
+        Self { display, scale }
     }
 
     pub fn scale(&self) -> u32 {
@@ -129,22 +126,18 @@ impl<'a> ScaledDisplay<'a> {
 
     pub fn blit(&mut self, x: i32, y: i32, w: u32, h: u32) -> bool {
         let scale = self.scale;
-        self.display.blit(
-            x * scale as i32,
-            y * scale as i32,
-            w * scale,
-            h * scale
-        )
+        self.display
+            .blit(x * scale as i32, y * scale as i32, w * scale, h * scale)
     }
 }
 
 impl<'a> Renderer for ScaledDisplay<'a> {
     fn width(&self) -> u32 {
-        self.display.width()/self.scale
+        self.display.width() / self.scale
     }
 
     fn height(&self) -> u32 {
-        self.display.height()/self.scale
+        self.display.height() / self.scale
     }
 
     fn data(&self) -> &[Color] {
@@ -170,7 +163,7 @@ impl<'a> Renderer for ScaledDisplay<'a> {
             y * scale as i32,
             w * scale,
             h * scale,
-            color
+            color,
         );
     }
 

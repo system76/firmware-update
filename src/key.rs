@@ -11,7 +11,7 @@ pub fn raw_key() -> Result<TextInputKey> {
 
     let mut key = TextInputKey {
         ScanCode: 0,
-        UnicodeChar: 0
+        UnicodeChar: 0,
     };
 
     (uefi.ConsoleIn.ReadKeyStroke)(uefi.ConsoleIn, &mut key)?;

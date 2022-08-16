@@ -9,13 +9,20 @@ use intel_spi::{HsfStsCtl, Spi, SpiDev};
 use plain::Plain;
 use std::fs::{find, load};
 use std::ptr;
-use std::vars::{get_boot_item, get_boot_order, set_boot_item, set_boot_order};
 use std::uefi::reset::ResetType;
 use std::uefi::status::{Error, Result, Status};
+use std::vars::{get_boot_item, get_boot_order, set_boot_item, set_boot_order};
 
-use super::{FIRMWARECAP, FIRMWAREDIR, FIRMWARENSH, FIRMWAREROM, H2OFFT, IFLASHV, UEFIFLASH, shell, Component, pci_mcfg, UefiMapper};
+use super::{
+    pci_mcfg, shell, Component, UefiMapper, FIRMWARECAP, FIRMWAREDIR, FIRMWARENSH, FIRMWAREROM,
+    H2OFFT, IFLASHV, UEFIFLASH,
+};
 
-fn copy_region(region: intelflash::RegionKind, old_data: &[u8], new_data: &mut [u8]) -> core::result::Result<bool, String> {
+fn copy_region(
+    region: intelflash::RegionKind,
+    old_data: &[u8],
+    new_data: &mut [u8],
+) -> core::result::Result<bool, String> {
     let old_opt = intelflash::Rom::new(old_data)?.get_region_base_limit(region)?;
     let new_opt = intelflash::Rom::new(new_data)?.get_region_base_limit(region)?;
 
@@ -25,25 +32,33 @@ fn copy_region(region: intelflash::RegionKind, old_data: &[u8], new_data: &mut [
     }
 
     let old = match old_opt {
-        Some((base, limit)) => if base < limit && limit < old_data.len() {
-            &old_data[base..limit + 1]
-        } else {
-            return Err(format!("old region {:#X}:{:#X} is invalid", base, limit));
-        },
+        Some((base, limit)) => {
+            if base < limit && limit < old_data.len() {
+                &old_data[base..limit + 1]
+            } else {
+                return Err(format!("old region {:#X}:{:#X} is invalid", base, limit));
+            }
+        }
         None => return Err("missing old region".to_string()),
     };
 
     let new = match new_opt {
-        Some((base, limit)) => if base < limit && limit < new_data.len() {
-            &mut new_data[base..limit + 1]
-        } else {
-            return Err(format!("new region {:#X}:{:#X} is invalid", base, limit));
-        },
+        Some((base, limit)) => {
+            if base < limit && limit < new_data.len() {
+                &mut new_data[base..limit + 1]
+            } else {
+                return Err(format!("new region {:#X}:{:#X} is invalid", base, limit));
+            }
+        }
         None => return Err("missing new region".to_string()),
     };
 
     if old.len() != new.len() {
-        return Err(format!("old region size {} does not match new region size {}", old.len(), new.len()));
+        return Err(format!(
+            "old region size {} does not match new region size {}",
+            old.len(),
+            new.len()
+        ));
     }
 
     new.copy_from_slice(old);
@@ -67,29 +82,33 @@ impl BiosComponent {
 
         for table in crate::dmi::dmi() {
             match table.header.kind {
-                0 => if let Ok(info) = dmi::BiosInfo::from_bytes(&table.data) {
-                    let index = info.vendor;
-                    if index > 0 {
-                        if let Some(value) = table.strings.get((index - 1) as usize) {
-                            bios_vendor = value.trim().to_string();
+                0 => {
+                    if let Ok(info) = dmi::BiosInfo::from_bytes(&table.data) {
+                        let index = info.vendor;
+                        if index > 0 {
+                            if let Some(value) = table.strings.get((index - 1) as usize) {
+                                bios_vendor = value.trim().to_string();
+                            }
                         }
-                    }
 
-                    let index = info.version;
-                    if index > 0 {
-                        if let Some(value) = table.strings.get((index - 1) as usize) {
-                            bios_version = value.trim().to_string();
+                        let index = info.version;
+                        if index > 0 {
+                            if let Some(value) = table.strings.get((index - 1) as usize) {
+                                bios_version = value.trim().to_string();
+                            }
                         }
                     }
-                },
-                1 => if let Ok(info) = dmi::SystemInfo::from_bytes(&table.data) {
-                    let index = info.version;
-                    if index > 0 {
-                        if let Some(value) = table.strings.get((index - 1) as usize) {
-                            system_version = value.trim().to_string();
+                }
+                1 => {
+                    if let Ok(info) = dmi::SystemInfo::from_bytes(&table.data) {
+                        let index = info.version;
+                        if index > 0 {
+                            if let Some(value) = table.strings.get((index - 1) as usize) {
+                                system_version = value.trim().to_string();
+                            }
                         }
                     }
-                },
+                }
                 _ => {}
             }
         }
@@ -106,6 +125,7 @@ impl BiosComponent {
         static mut UEFI_MAPPER: UefiMapper = UefiMapper;
 
         match self.bios_vendor.as_str() {
+            #[rustfmt::skip]
             "coreboot" => match self.system_version.as_str() {
                 "addw1" |
                 "addw2" |
@@ -183,7 +203,9 @@ impl BiosComponent {
 
             println!("Halt");
             loop {
-                unsafe { asm!("cli", "hlt", options(nomem, nostack)); }
+                unsafe {
+                    asm!("cli", "hlt", options(nomem, nostack));
+                }
             }
         } else {
             println!("Failed to locate EC");
@@ -232,7 +254,7 @@ impl Component for BiosComponent {
                 //TODO: rename firmware.rom to firmware.cap in these cases
                 find(H2OFFT).is_ok() || // H2OFFT capsule support
                 find(IFLASHV).is_ok() || // meer5 capsule support
-                find(UEFIFLASH).is_ok() // meer4 capsule support
+                find(UEFIFLASH).is_ok(), // meer4 capsule support
             )
         }
     }
@@ -300,7 +322,9 @@ impl Component for BiosComponent {
                 let mut print_mb = !0; // Invalid number to force first print
                 while data.len() < len {
                     let mut buf = [0; 4096];
-                    let read = spi.read(data.len(), &mut buf).map_err(|_| Error::DeviceError)?;
+                    let read = spi
+                        .read(data.len(), &mut buf)
+                        .map_err(|_| Error::DeviceError)?;
                     data.extend_from_slice(&buf[..read]);
 
                     // Print output once per megabyte
@@ -319,8 +343,8 @@ impl Component for BiosComponent {
                 Ok(false) => (),
                 Err(err) => {
                     println!("Ethernet: failed to copy: {}", err);
-                    return Err(Error::DeviceError)
-                },
+                    return Err(Error::DeviceError);
+                }
             }
 
             // Grab old FMAP areas, if they exist
@@ -357,9 +381,7 @@ impl Component for BiosComponent {
             }
 
             // Copy old areas to new areas
-            let area_names = [
-                "SMMSTORE".to_string(),
-            ];
+            let area_names = ["SMMSTORE".to_string()];
             for area_name in &area_names {
                 if let Some(new_area) = new_areas.get(area_name) {
                     let new_offset = new_area.offset as usize;
@@ -370,9 +392,9 @@ impl Component for BiosComponent {
                         new_offset,
                         new_size / 1024
                     );
-                    let new_slice = new.get_mut(
-                        new_offset .. new_offset + new_size
-                    ).ok_or(Error::DeviceError)?;
+                    let new_slice = new
+                        .get_mut(new_offset..new_offset + new_size)
+                        .ok_or(Error::DeviceError)?;
 
                     if let Some(area) = areas.get(area_name) {
                         let offset = area.offset as usize;
@@ -383,17 +405,12 @@ impl Component for BiosComponent {
                             new_offset,
                             new_size / 1024
                         );
-                        let slice = data.get(
-                            offset .. offset + size
-                        ).ok_or(Error::DeviceError)?;
+                        let slice = data.get(offset..offset + size).ok_or(Error::DeviceError)?;
 
                         if slice.len() == new_slice.len() {
                             new_slice.copy_from_slice(slice);
 
-                            println!(
-                                "{}: copied from old firmware to new firmware",
-                                area_name
-                            );
+                            println!("{}: copied from old firmware to new firmware", area_name);
                         } else {
                             println!(
                                 "{}: old firmware size {} does not match new firmware size {}, not copying",
@@ -436,9 +453,9 @@ impl Component for BiosComponent {
                         }
                     }
 
-                    if ! matching {
+                    if !matching {
                         spi.erase(i).unwrap();
-                        if ! erased {
+                        if !erased {
                             spi.write(i, new_chunk).unwrap();
                         }
                     }
@@ -470,9 +487,7 @@ impl Component for BiosComponent {
                         if data[address] != new[address] {
                             println!(
                                 "\nverification failed as {:#x}: {:#x} != {:#x}",
-                                address,
-                                data[address],
-                                new[address]
+                                address, data[address], new[address]
                             );
                             return Err(Error::DeviceError);
                         }
@@ -490,7 +505,7 @@ impl Component for BiosComponent {
         } else {
             find(FIRMWARENSH)?;
 
-            let mut boot_options: Vec<(u16, Vec<u8>)> = vec!();
+            let mut boot_options: Vec<(u16, Vec<u8>)> = vec![];
 
             let order = get_boot_order();
             if order.is_ok() {
@@ -518,8 +533,13 @@ impl Component for BiosComponent {
                     println!("System will shut off in 5 seconds");
                     let _ = (std::system_table().BootServices.Stall)(5_000_000);
 
-                    (std::system_table().RuntimeServices.ResetSystem)(ResetType::Shutdown, Status(0), 0, ptr::null());
-                },
+                    (std::system_table().RuntimeServices.ResetSystem)(
+                        ResetType::Shutdown,
+                        Status(0),
+                        0,
+                        ptr::null(),
+                    );
+                }
                 _ => (),
             }
 

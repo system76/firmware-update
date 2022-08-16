@@ -2,15 +2,10 @@
 
 use core::ops::{ControlFlow, Try};
 use ecflash::{Ec, EcFile, EcFlash};
-use ectool::{
-    Access,
-    AccessLpcDirect,
-    Firmware,
-    Spi,
-    SpiRom,
-    SpiTarget,
-    Timeout,
-    timeout,
+use ectool::{timeout, Access, AccessLpcDirect, Firmware, Spi, SpiRom, SpiTarget, Timeout};
+use std::uefi::{
+    self,
+    status::{Error, Result},
 };
 use std::{
     cell::Cell,
@@ -18,9 +13,8 @@ use std::{
     fs::{find, load},
     str,
 };
-use std::uefi::{self, status::{Error, Result}};
 
-use super::{ECROM, EC2ROM, ECTAG, FIRMWAREDIR, FIRMWARENSH, pci_read, shell, Component};
+use super::{pci_read, shell, Component, EC2ROM, ECROM, ECTAG, FIRMWAREDIR, FIRMWARENSH};
 
 pub struct UefiTimeout {
     duration: u64,
@@ -80,10 +74,10 @@ impl EcKind {
                         return string.to_string();
                     }
                 }
-            },
+            }
             EcKind::Legacy(ec) => {
                 return ec.project();
-            },
+            }
             EcKind::Unknown => (),
         }
         String::new()
@@ -99,10 +93,10 @@ impl EcKind {
                         return string.to_string();
                     }
                 }
-            },
+            }
             EcKind::Legacy(ec) => {
                 return ec.version();
-            },
+            }
             EcKind::Unknown => (),
         }
         String::new()
@@ -163,7 +157,7 @@ impl EcComponent {
                     } else {
                         "system76/gaze16-3060".to_string()
                     }
-                },
+                }
                 "NPxxPNJ_K" => "system76/gaze17-3050".to_string(),
                 "NPxxPNP" => {
                     // If the builtin ethernet at 00:1f.6 is present, this is a -b variant
@@ -173,7 +167,7 @@ impl EcComponent {
                     } else {
                         "system76/gaze17-3060".to_string()
                     }
-                },
+                }
                 "NS50MU" => "system76/darp7".to_string(),
                 "NS50_70PU" => "system76/darp8".to_string(),
                 "NV40Mx" | "NV40Mx-DV" | "NV40MJ" => "system76/galp5".to_string(),
@@ -190,9 +184,9 @@ impl EcComponent {
             }
         };
         let firmware_model = self.ec.firmware_model(data);
-        ! self.model.is_empty() &&
-        ! self.version.is_empty() &&
-        normalize_model(&firmware_model) == normalize_model(&self.model)
+        !self.model.is_empty()
+            && !self.version.is_empty()
+            && normalize_model(&firmware_model) == normalize_model(&self.model)
     }
 }
 
@@ -209,9 +203,15 @@ impl<T: Timeout> SpiLegacy<T> {
         }
     }
 
-    fn rom_size(&self) -> usize { 128 * 1024 }
-    fn block_size(&self) -> usize { 64 * 1024 }
-    fn page_size(&self) -> usize { 256 }
+    fn rom_size(&self) -> usize {
+        128 * 1024
+    }
+    fn block_size(&self) -> usize {
+        64 * 1024
+    }
+    fn page_size(&self) -> usize {
+        256
+    }
 
     unsafe fn pmc_cmd(&mut self, data: u8) -> core::result::Result<(), ectool::Error> {
         self.timeout.reset();
@@ -252,7 +252,7 @@ impl<T: Timeout> SpiLegacy<T> {
             for i in 0..block_size {
                 let byte = self.pmc_read()?;
                 let addr = block * block_size + i;
-                if addr % self.page_size() == 0{
+                if addr % self.page_size() == 0 {
                     print!("\r{}%", (addr * 100) / (blocks * block_size));
                 }
                 if addr < data.len() {
@@ -275,14 +275,10 @@ impl<T: Timeout> SpiLegacy<T> {
             self.pmc_cmd(0x00)?;
             for i in 0..block_size {
                 let addr = block * block_size + i;
-                if addr % self.page_size() == 0{
+                if addr % self.page_size() == 0 {
                     print!("\r{}%", (addr * 100) / (blocks * block_size));
                 }
-                let byte = if addr < data.len() {
-                    data[addr]
-                } else {
-                    0xFF
-                };
+                let byte = if addr < data.len() { data[addr] } else { 0xFF };
                 self.pmc_write(byte)?;
             }
         }
@@ -318,9 +314,7 @@ unsafe fn flash_legacy(firmware_data: &[u8]) -> core::result::Result<(), ectool:
         if *byte != 0xFF {
             println!(
                 "Failed to erase ROM: {:04X} is {:02X} not {:02X}",
-                addr,
-                byte,
-                0xFF,
+                addr, byte, 0xFF,
             );
             return Err(ectool::Error::Verify);
         }
@@ -336,9 +330,7 @@ unsafe fn flash_legacy(firmware_data: &[u8]) -> core::result::Result<(), ectool:
         if *byte != written[addr] {
             println!(
                 "Failed to write ROM: {:04X} is {:02X} not {:02X}",
-                addr,
-                byte,
-                written[addr],
+                addr, byte, written[addr],
             );
             return Err(ectool::Error::Verify);
         }
@@ -347,14 +339,21 @@ unsafe fn flash_legacy(firmware_data: &[u8]) -> core::result::Result<(), ectool:
     Ok(())
 }
 
-unsafe fn flash_read<S: Spi>(spi: &mut SpiRom<S, UefiTimeout>, rom: &mut [u8], sector_size: usize) -> core::result::Result<(), ectool::Error> {
+unsafe fn flash_read<S: Spi>(
+    spi: &mut SpiRom<S, UefiTimeout>,
+    rom: &mut [u8],
+    sector_size: usize,
+) -> core::result::Result<(), ectool::Error> {
     let mut address = 0;
     while address < rom.len() {
         print!("\rSPI Read {}K", address / 1024);
         let next_address = address + sector_size;
         let count = spi.read_at(address as u32, &mut rom[address..next_address])?;
         if count != sector_size {
-            println!("\ncount {} did not match sector size {}", count, sector_size);
+            println!(
+                "\ncount {} did not match sector size {}",
+                count, sector_size
+            );
             return Err(ectool::Error::Verify);
         }
         address = next_address;
@@ -363,15 +362,21 @@ unsafe fn flash_read<S: Spi>(spi: &mut SpiRom<S, UefiTimeout>, rom: &mut [u8], s
     Ok(())
 }
 
-unsafe fn flash(firmware_data: &[u8], target: SpiTarget) -> core::result::Result<(), ectool::Error> {
+unsafe fn flash(
+    firmware_data: &[u8],
+    target: SpiTarget,
+) -> core::result::Result<(), ectool::Error> {
     let access = AccessLpcDirect::new(UefiTimeout::new(100_000))?;
     let mut ec = ectool::Ec::new(access)?;
     let data_size = ec.access().data_size();
 
-    println!("Programming EC {} ROM", match target {
-        SpiTarget::Main => "Main",
-        SpiTarget::Backup => "Backup",
-    });
+    println!(
+        "Programming EC {} ROM",
+        match target {
+            SpiTarget::Main => "Main",
+            SpiTarget::Backup => "Backup",
+        }
+    );
 
     {
         let mut data = vec![0; data_size];
@@ -397,10 +402,7 @@ unsafe fn flash(firmware_data: &[u8], target: SpiTarget) -> core::result::Result
     }
 
     let mut spi_bus = ec.spi(SpiTarget::Main, true)?;
-    let mut spi = SpiRom::new(
-        &mut spi_bus,
-        UefiTimeout::new(1_000_000)
-    );
+    let mut spi = SpiRom::new(&mut spi_bus, UefiTimeout::new(1_000_000));
     let sector_size = spi.sector_size();
 
     let mut rom = vec![0xFF; rom_size];
@@ -430,14 +432,17 @@ unsafe fn flash(firmware_data: &[u8], target: SpiTarget) -> core::result::Result
                 }
             }
 
-            if ! matches {
-                if ! erased {
+            if !matches {
+                if !erased {
                     spi.erase_sector(address as u32)?;
                 }
-                if ! new_erased {
+                if !new_erased {
                     let count = spi.write_at(address as u32, &new_rom[address..next_address])?;
                     if count != sector_size {
-                        println!("\nWrite count {} did not match sector size {}", count, sector_size);
+                        println!(
+                            "\nWrite count {} did not match sector size {}",
+                            count, sector_size
+                        );
                         return Err(ectool::Error::Verify);
                     }
                 }
@@ -451,16 +456,22 @@ unsafe fn flash(firmware_data: &[u8], target: SpiTarget) -> core::result::Result
         flash_read(&mut spi, &mut rom, sector_size)?;
         for i in 0..rom.len() {
             if rom[i] != new_rom[i] {
-                println!("Failed to program: {:X} is {:X} instead of {:X}", i, rom[i], new_rom[i]);
+                println!(
+                    "Failed to program: {:X} is {:X} instead of {:X}",
+                    i, rom[i], new_rom[i]
+                );
                 return Err(ectool::Error::Verify);
             }
         }
     }
 
-    println!("Successfully programmed EC {} ROM", match target {
-        SpiTarget::Main => "Main",
-        SpiTarget::Backup => "Backup",
-    });
+    println!(
+        "Successfully programmed EC {} ROM",
+        match target {
+            SpiTarget::Main => "Main",
+            SpiTarget::Backup => "Backup",
+        }
+    );
 
     Ok(())
 }
@@ -476,7 +487,7 @@ impl I2EC {
         }
     }
 
-    unsafe fn d2_read(&mut self, addr: u8)  -> u8 {
+    unsafe fn d2_read(&mut self, addr: u8) -> u8 {
         self.sio.write(0x2E, addr);
         self.sio.read(0x2F)
     }
@@ -569,7 +580,7 @@ impl Component for EcComponent {
                         Err(Error::DeviceError)
                     }
                 }
-            },
+            }
             EcKind::Legacy(_) => {
                 if requires_reset {
                     // Use open source flashing code if reset is required
@@ -583,7 +594,10 @@ impl Component for EcComponent {
                 } else {
                     find(FIRMWARENSH)?;
                     let command = if self.master { "ec" } else { "ec2" };
-                    let status = shell(&format!("{} {} {} flash", FIRMWARENSH, FIRMWAREDIR, command))?;
+                    let status = shell(&format!(
+                        "{} {} {} flash",
+                        FIRMWARENSH, FIRMWAREDIR, command
+                    ))?;
                     if status == 0 {
                         Ok(())
                     } else {
@@ -591,11 +605,11 @@ impl Component for EcComponent {
                         Err(Error::DeviceError)
                     }
                 }
-            },
+            }
             EcKind::Unknown => {
                 println!("{} Failed to flash EcKind::Unknown", self.name());
                 Err(Error::DeviceError)
-            },
+            }
         };
 
         if requires_reset {
@@ -608,20 +622,24 @@ impl Component for EcComponent {
                         firmware_dir.0,
                         &mut file,
                         filename.as_ptr(),
-                        uefi::fs::FILE_MODE_CREATE | uefi::fs::FILE_MODE_READ | uefi::fs::FILE_MODE_WRITE,
-                        0
-                    ).branch() {
+                        uefi::fs::FILE_MODE_CREATE
+                            | uefi::fs::FILE_MODE_READ
+                            | uefi::fs::FILE_MODE_WRITE,
+                        0,
+                    )
+                    .branch()
+                    {
                         ControlFlow::Continue(_) => {
                             unsafe {
                                 let _ = ((*file).Close)(&mut *file);
                             }
                             println!("EC tag: created successfully");
-                        },
+                        }
                         ControlFlow::Break(err) => {
                             println!("EC tag: failed to create {}: {:?}", ECTAG, err);
                         }
                     }
-                },
+                }
                 Err(err) => {
                     println!("EC tag: failed to find {}: {:?}", FIRMWAREDIR, err);
                 }
@@ -631,7 +649,9 @@ impl Component for EcComponent {
             let _ = (std::system_table().BootServices.Stall)(5_000_000);
 
             // Reset EC
-            unsafe { watchdog_reset(true); }
+            unsafe {
+                watchdog_reset(true);
+            }
         }
 
         result

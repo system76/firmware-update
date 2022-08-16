@@ -38,17 +38,18 @@ unsafe fn rsdp_mcfg(rsdp: &Rsdp) -> Option<&'static [u8]> {
 
     if rsdp.rsdt_addr != 0 {
         let rsdt = &*(rsdp.rsdt_addr as *const SdtHeader);
-        if let Some(rsdt_data_len) = (rsdt.length as usize).checked_sub(mem::size_of::<SdtHeader>()) {
+        if let Some(rsdt_data_len) = (rsdt.length as usize).checked_sub(mem::size_of::<SdtHeader>())
+        {
             let entries = slice::from_raw_parts(
                 (rsdt as *const SdtHeader).offset(1) as *const u32,
-                rsdt_data_len / mem::size_of::<u32>()
+                rsdt_data_len / mem::size_of::<u32>(),
             );
             for &entry in entries {
                 let sdt = &*(entry as *const SdtHeader);
                 if sdt.signature == *b"MCFG" {
                     return Some(slice::from_raw_parts(
                         sdt as *const SdtHeader as *const u8,
-                        sdt.length as usize
+                        sdt.length as usize,
                     ));
                 }
             }
@@ -57,17 +58,18 @@ unsafe fn rsdp_mcfg(rsdp: &Rsdp) -> Option<&'static [u8]> {
 
     if rsdp.revision >= 2 && rsdp.xsdt_addr != 0 {
         let xsdt = &*(rsdp.xsdt_addr as *const SdtHeader);
-        if let Some(rsdt_data_len) = (xsdt.length as usize).checked_sub(mem::size_of::<SdtHeader>()) {
+        if let Some(rsdt_data_len) = (xsdt.length as usize).checked_sub(mem::size_of::<SdtHeader>())
+        {
             let entries = slice::from_raw_parts(
                 (xsdt as *const SdtHeader).offset(1) as *const u64,
-                rsdt_data_len / mem::size_of::<u64>()
+                rsdt_data_len / mem::size_of::<u64>(),
             );
             for &entry in entries {
                 let sdt = &*(entry as *const SdtHeader);
                 if sdt.signature == *b"MCFG" {
                     return Some(slice::from_raw_parts(
                         sdt as *const SdtHeader as *const u8,
-                        sdt.length as usize
+                        sdt.length as usize,
                     ));
                 }
             }
@@ -80,14 +82,13 @@ unsafe fn rsdp_mcfg(rsdp: &Rsdp) -> Option<&'static [u8]> {
 pub fn pci_mcfg() -> Option<&'static [u8]> {
     for table in std::system_table().config_tables() {
         match table.VendorGuid.kind() {
-            GuidKind::Acpi |
-            GuidKind::Acpi2 => unsafe {
+            GuidKind::Acpi | GuidKind::Acpi2 => unsafe {
                 let rsdp = &*(table.VendorTable as *const Rsdp);
                 if let Some(some) = rsdp_mcfg(rsdp) {
-                    return Some(some)
+                    return Some(some);
                 }
             },
-            _ => ()
+            _ => (),
         };
     }
     None
@@ -102,11 +103,11 @@ pub fn pci_read(bus: u8, dev: u8, func: u8, offset: u8) -> Result<u32, String> {
         return Err(format!("pci_read func 0x{:x} is greater than 0x7", func));
     }
 
-    let address = 0x80000000 |
-        (u32::from(bus) << 16) |
-        (u32::from(dev) << 11) |
-        (u32::from(func) << 8) |
-        u32::from(offset);
+    let address = 0x80000000
+        | (u32::from(bus) << 16)
+        | (u32::from(dev) << 11)
+        | (u32::from(func) << 8)
+        | u32::from(offset);
     Pio::<u32>::new(0xCF8).write(address);
     Ok(Pio::<u32>::new(0xCFC).read())
 }
