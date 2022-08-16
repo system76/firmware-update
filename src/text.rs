@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-use core::{char, mem};
 use core::ops::Deref;
+use core::{char, mem};
 use orbclient::{Color, Renderer};
 use std::proto::Protocol;
-use std::uefi::Handle;
 use std::uefi::boot::InterfaceType;
 use std::uefi::guid::SIMPLE_TEXT_OUTPUT_GUID;
 use std::uefi::status::{Result, Status};
 use std::uefi::text::TextOutputMode;
+use std::uefi::Handle;
 
-use crate::display::{Display, ScaledDisplay, Output};
+use crate::display::{Display, Output, ScaledDisplay};
 
 #[repr(C)]
 #[allow(non_snake_case)]
@@ -39,7 +39,9 @@ extern "win64" fn reset(_output: &mut TextDisplay, _extra: bool) -> Status {
 }
 
 extern "win64" fn output_string(output: &mut TextDisplay, string: *const u16) -> Status {
-    unsafe { output.write(string); }
+    unsafe {
+        output.write(string);
+    }
     Status(0)
 }
 
@@ -47,7 +49,12 @@ extern "win64" fn test_string(_output: &mut TextDisplay, _string: *const u16) ->
     Status(0)
 }
 
-extern "win64" fn query_mode(output: &mut TextDisplay, _mode: usize, columns: &mut usize, rows: &mut usize) -> Status {
+extern "win64" fn query_mode(
+    output: &mut TextDisplay,
+    _mode: usize,
+    columns: &mut usize,
+    rows: &mut usize,
+) -> Status {
     *columns = output.cols;
     *rows = output.rows;
     Status(0)
@@ -67,7 +74,11 @@ extern "win64" fn clear_screen(output: &mut TextDisplay) -> Status {
     Status(0)
 }
 
-extern "win64" fn set_cursor_position(output: &mut TextDisplay, column: usize, row: usize) -> Status {
+extern "win64" fn set_cursor_position(
+    output: &mut TextDisplay,
+    column: usize,
+    row: usize,
+) -> Status {
     output.set_cursor_pos(column as i32, row as i32);
     Status(0)
 }
@@ -88,8 +99,8 @@ impl<'a> TextDisplay<'a> {
             CursorVisible: false,
         });
 
-        let cols = display.width() as usize/8;
-        let rows = display.height() as usize/16;
+        let cols = display.width() as usize / 8;
+        let rows = display.height() as usize / 16;
 
         TextDisplay {
             Reset: reset,
@@ -140,10 +151,17 @@ impl<'a> TextDisplay<'a> {
                 crate::display::fast_copy(
                     data_ptr.offset(dst as isize * scale * scale) as *mut u8,
                     data_ptr.offset(src as isize * scale * scale) as *const u8,
-                    len * (scale * scale) as usize * 4);
+                    len * (scale * scale) as usize * 4,
+                );
             }
 
-            self.display.rect(self.off_x, self.off_y + (self.rows as i32 - 1) * 16, self.cols as u32 * 8, 16, color);
+            self.display.rect(
+                self.off_x,
+                self.off_y + (self.rows as i32 - 1) * 16,
+                self.cols as u32 * 8,
+                16,
+                color,
+            );
         }
     }
 
@@ -180,18 +198,20 @@ impl<'a> TextDisplay<'a> {
             }
 
             match c {
-                '\x08' => if self.mode.CursorColumn > 0 {
-                    let (x, y) = self.pos();
-                    self.display.rect(x, y, 8, 16, bg);
-                    self.mode.CursorColumn -= 1;
-                    changed = true;
-                },
-                '\r'=> {
+                '\x08' => {
+                    if self.mode.CursorColumn > 0 {
+                        let (x, y) = self.pos();
+                        self.display.rect(x, y, 8, 16, bg);
+                        self.mode.CursorColumn -= 1;
+                        changed = true;
+                    }
+                }
+                '\r' => {
                     self.mode.CursorColumn = 0;
-                },
+                }
                 '\n' => {
                     self.mode.CursorRow += 1;
-                },
+                }
                 _ => {
                     let (x, y) = self.pos();
                     self.display.rect(x, y, 8, 16, bg);
@@ -221,7 +241,12 @@ impl<'a> TextDisplay<'a> {
 
         let stdout = self as *mut _;
         let mut stdout_handle = Handle(0);
-        (uefi.BootServices.InstallProtocolInterface)(&mut stdout_handle, &SIMPLE_TEXT_OUTPUT_GUID, InterfaceType::Native, stdout as usize)?;
+        (uefi.BootServices.InstallProtocolInterface)(
+            &mut stdout_handle,
+            &SIMPLE_TEXT_OUTPUT_GUID,
+            InterfaceType::Native,
+            stdout as usize,
+        )?;
 
         let old_stdout_handle = uefi.ConsoleOutHandle;
         let old_stdout = uefi.ConsoleOut as *mut _;
@@ -240,7 +265,11 @@ impl<'a> TextDisplay<'a> {
         uefi.ConsoleErrorHandle = old_stderr_handle;
         uefi.ConsoleError = unsafe { mem::transmute(&mut *old_stderr) };
 
-        let _ = (uefi.BootServices.UninstallProtocolInterface)(stdout_handle, &SIMPLE_TEXT_OUTPUT_GUID, stdout as usize);
+        let _ = (uefi.BootServices.UninstallProtocolInterface)(
+            stdout_handle,
+            &SIMPLE_TEXT_OUTPUT_GUID,
+            stdout as usize,
+        );
 
         res
     }

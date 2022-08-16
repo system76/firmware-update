@@ -11,7 +11,7 @@ pub fn dmi() -> Vec<dmi::Table> {
                 //TODO: smbios is_valid fails on bonw14, assume UEFI is right
                 Some(slice::from_raw_parts(
                     smbios.table_address as *const u8,
-                    smbios.table_length as usize
+                    smbios.table_length as usize,
                 ))
             },
             GuidKind::Smbios3 => unsafe {
@@ -19,10 +19,10 @@ pub fn dmi() -> Vec<dmi::Table> {
                 //TODO: smbios is_valid fails on bonw14, assume UEFI is right
                 Some(slice::from_raw_parts(
                     smbios.table_address as *const u8,
-                    smbios.table_length as usize
+                    smbios.table_length as usize,
                 ))
             },
-            _ => None
+            _ => None,
         };
 
         if let Some(data) = data_opt {

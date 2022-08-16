@@ -13,7 +13,7 @@ pub struct ImageRoi<'a> {
     y: u32,
     w: u32,
     h: u32,
-    image: &'a Image
+    image: &'a Image,
 }
 
 impl<'a> ImageRoi<'a> {
@@ -21,7 +21,10 @@ impl<'a> ImageRoi<'a> {
     pub fn draw<R: Renderer>(&self, renderer: &mut R, x: i32, mut y: i32) {
         let stride = self.image.w;
         let mut offset = (self.y * stride + self.x) as usize;
-        let last_offset = cmp::min(((self.y + self.h) * stride + self.x) as usize, self.image.data.len());
+        let last_offset = cmp::min(
+            ((self.y + self.h) * stride + self.x) as usize,
+            self.image.data.len(),
+        );
         while offset < last_offset {
             let next_offset = offset + stride as usize;
             renderer.image_legacy(x, y, self.w, 1, &self.image.data[offset..]);
@@ -47,13 +50,20 @@ impl Image {
 
     /// Create a new image filled whole with color
     pub fn from_color(width: u32, height: u32, color: Color) -> Self {
-        Self::from_data(width, height, vec![color; width as usize * height as usize].into_boxed_slice()).unwrap()
+        Self::from_data(
+            width,
+            height,
+            vec![color; width as usize * height as usize].into_boxed_slice(),
+        )
+        .unwrap()
     }
 
     /// Create a new image from a boxed slice of colors
     pub fn from_data(width: u32, height: u32, data: Box<[Color]>) -> Result<Self, String> {
         if (width * height) as usize != data.len() {
-            return Err("not enough or too much data given compared to width and height".to_string())
+            return Err(
+                "not enough or too much data given compared to width and height".to_string(),
+            );
         }
 
         Ok(Image {
@@ -81,7 +91,7 @@ impl Image {
             y: y1,
             w: x2 - x1,
             h: y2 - y1,
-            image: self
+            image: self,
         }
     }
 

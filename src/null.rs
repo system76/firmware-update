@@ -2,11 +2,11 @@
 
 use core::mem;
 use core::ops::Deref;
-use std::uefi::Handle;
 use std::uefi::boot::InterfaceType;
 use std::uefi::guid::SIMPLE_TEXT_OUTPUT_GUID;
 use std::uefi::status::{Result, Status};
 use std::uefi::text::TextOutputMode;
+use std::uefi::Handle;
 
 #[repr(C)]
 #[allow(non_snake_case)]
@@ -37,7 +37,12 @@ extern "win64" fn test_string(_output: &mut NullDisplay, _string: *const u16) ->
     Status(0)
 }
 
-extern "win64" fn query_mode(_output: &mut NullDisplay, _mode: usize, columns: &mut usize, rows: &mut usize) -> Status {
+extern "win64" fn query_mode(
+    _output: &mut NullDisplay,
+    _mode: usize,
+    columns: &mut usize,
+    rows: &mut usize,
+) -> Status {
     *columns = 80;
     *rows = 30;
     Status(0)
@@ -56,7 +61,11 @@ extern "win64" fn clear_screen(_output: &mut NullDisplay) -> Status {
     Status(0)
 }
 
-extern "win64" fn set_cursor_position(output: &mut NullDisplay, column: usize, row: usize) -> Status {
+extern "win64" fn set_cursor_position(
+    output: &mut NullDisplay,
+    column: usize,
+    row: usize,
+) -> Status {
     output.mode.CursorColumn = column as i32;
     output.mode.CursorRow = row as i32;
     Status(0)
@@ -99,7 +108,12 @@ impl NullDisplay {
 
         let stdout = self as *mut _;
         let mut stdout_handle = Handle(0);
-        (uefi.BootServices.InstallProtocolInterface)(&mut stdout_handle, &SIMPLE_TEXT_OUTPUT_GUID, InterfaceType::Native, stdout as usize)?;
+        (uefi.BootServices.InstallProtocolInterface)(
+            &mut stdout_handle,
+            &SIMPLE_TEXT_OUTPUT_GUID,
+            InterfaceType::Native,
+            stdout as usize,
+        )?;
 
         let old_stdout_handle = uefi.ConsoleOutHandle;
         let old_stdout = uefi.ConsoleOut as *mut _;
@@ -118,7 +132,11 @@ impl NullDisplay {
         uefi.ConsoleErrorHandle = old_stderr_handle;
         uefi.ConsoleError = unsafe { mem::transmute(&mut *old_stderr) };
 
-        let _ = (uefi.BootServices.UninstallProtocolInterface)(stdout_handle, &SIMPLE_TEXT_OUTPUT_GUID, stdout as usize);
+        let _ = (uefi.BootServices.UninstallProtocolInterface)(
+            stdout_handle,
+            &SIMPLE_TEXT_OUTPUT_GUID,
+            stdout as usize,
+        );
 
         res
     }

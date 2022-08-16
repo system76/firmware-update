@@ -1,27 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-use core::{char, mem, ptr};
 use core::ops::{ControlFlow, Try};
 use core::prelude::v1::derive;
+use core::{char, mem, ptr};
 use ecflash::EcFlash;
 use orbclient::{Color, Renderer};
 use std::exec::exec_path;
 use std::ffi::{nstr, wstr};
 use std::fs::{find, load};
 use std::proto::Protocol;
-use std::vars::{
-    get_boot_current,
-    get_boot_next, set_boot_next,
-    get_boot_order, set_boot_order,
-    get_boot_item, set_boot_item,
-    get_os_indications, set_os_indications,
-    get_os_indications_supported
-};
 use std::uefi::guid;
 use std::uefi::reset::ResetType;
 use std::uefi::status::{Error, Result, Status};
+use std::vars::{
+    get_boot_current, get_boot_item, get_boot_next, get_boot_order, get_os_indications,
+    get_os_indications_supported, set_boot_item, set_boot_next, set_boot_order, set_os_indications,
+};
 
-use crate::display::{Display, ScaledDisplay, Output};
+use crate::display::{Display, Output, ScaledDisplay};
 use crate::image::{self, Image};
 use crate::key::raw_key;
 use crate::text::TextDisplay;
@@ -58,13 +54,7 @@ static UEFIFLASHTAG: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\uefiflas
 fn shell(cmd: &str) -> Result<usize> {
     exec_path(
         SHELLEFI,
-        &[
-            "-nointerrupt",
-            "-nomap",
-            "-nostartup",
-            "-noversion",
-            cmd
-        ]
+        &["-nointerrupt", "-nomap", "-nostartup", "-noversion", cmd],
     )
 }
 
@@ -82,7 +72,7 @@ enum ValidateKind {
     Found,
     Mismatch,
     NotFound,
-    Error(Error)
+    Error(Error),
 }
 
 fn components_validations() -> (Vec<Box<dyn Component>>, Vec<ValidateKind>) {
@@ -92,48 +82,54 @@ fn components_validations() -> (Vec<Box<dyn Component>>, Vec<ValidateKind>) {
         Box::new(EcComponent::new(false)),
     ];
 
-    let validations: Vec<ValidateKind> = components.iter().map(|component| {
-        let loading = "Loading";
+    let validations: Vec<ValidateKind> = components
+        .iter()
+        .map(|component| {
+            let loading = "Loading";
 
-        print!("{}: {}", component.name(), loading);
+            print!("{}: {}", component.name(), loading);
 
-        let ret =  match component.validate() {
-            Ok(valid) => if valid {
-                ValidateKind::Found
-            } else {
-                ValidateKind::Mismatch
-            },
-            Err(err) => if err == Error::NotFound || err == Error::InvalidParameter {
-                ValidateKind::NotFound
-            } else {
-                ValidateKind::Error(err)
-            }
-        };
+            let ret = match component.validate() {
+                Ok(valid) => {
+                    if valid {
+                        ValidateKind::Found
+                    } else {
+                        ValidateKind::Mismatch
+                    }
+                }
+                Err(err) => {
+                    if err == Error::NotFound || err == Error::InvalidParameter {
+                        ValidateKind::NotFound
+                    } else {
+                        ValidateKind::Error(err)
+                    }
+                }
+            };
 
-        for _c in loading.chars() {
-            print!("\x08");
-        }
-
-        if ret == ValidateKind::NotFound {
-            print!("\x08\x08");
-            for _c in component.name().chars() {
+            for _c in loading.chars() {
                 print!("\x08");
             }
-        } else {
-            println!("{:?}", ret);
 
-            let current_version = component.version();
-            if ! current_version.is_empty() {
-                println!("{}: Currently {}", component.name(), current_version);
+            if ret == ValidateKind::NotFound {
+                print!("\x08\x08");
+                for _c in component.name().chars() {
+                    print!("\x08");
+                }
+            } else {
+                println!("{:?}", ret);
+
+                let current_version = component.version();
+                if !current_version.is_empty() {
+                    println!("{}: Currently {}", component.name(), current_version);
+                }
             }
-        }
 
-        ret
-    }).collect();
+            ret
+        })
+        .collect();
 
     (components, validations)
 }
-
 
 fn reset_dmi() -> Result<()> {
     let uefi = std::system_table();
@@ -144,7 +140,8 @@ fn reset_dmi() -> Result<()> {
     let mut guid = guid::NULL_GUID;
     loop {
         let mut size = 1024;
-        let status = (uefi.RuntimeServices.GetNextVariableName)(&mut size, name.as_mut_ptr(), &mut guid);
+        let status =
+            (uefi.RuntimeServices.GetNextVariableName)(&mut size, name.as_mut_ptr(), &mut guid);
         if let ControlFlow::Break(err) = status.branch() {
             match err {
                 Error::NotFound => break,
@@ -164,7 +161,13 @@ fn reset_dmi() -> Result<()> {
         let mut attributes = 0;
         let mut data = [0; 65536];
         let mut data_size = data.len();
-        (uefi.RuntimeServices.GetVariable)(wname.as_ptr(), &guid, &mut attributes, &mut data_size, data.as_mut_ptr())?;
+        (uefi.RuntimeServices.GetVariable)(
+            wname.as_ptr(),
+            &guid,
+            &mut attributes,
+            &mut data_size,
+            data.as_mut_ptr(),
+        )?;
 
         let empty = [];
         (uefi.RuntimeServices.SetVariable)(wname.as_ptr(), &guid, attributes, 0, empty.as_ptr())?;
@@ -222,9 +225,12 @@ fn inner() -> Result<()> {
 
     let (mut components, mut validations) = components_validations();
 
-    let message = if validations.iter().any(|v| *v != ValidateKind::Found && *v != ValidateKind::NotFound) {
+    let message = if validations
+        .iter()
+        .any(|v| *v != ValidateKind::Found && *v != ValidateKind::NotFound)
+    {
         "! Errors were found !"
-    } else if ! validations.iter().any(|v| *v == ValidateKind::Found) {
+    } else if !validations.iter().any(|v| *v == ValidateKind::Found) {
         "* No updates were found *"
     } else {
         let mut setup_menu = false;
@@ -236,7 +242,7 @@ fn inner() -> Result<()> {
 
                     // Have to prevent Close from being called after Delete
                     mem::forget(ectag);
-                },
+                }
                 ControlFlow::Break(err) => {
                     println!("EC tag: failed to delete: {:?}", err);
                 }
@@ -279,7 +285,7 @@ fn inner() -> Result<()> {
                     match component.flash() {
                         Ok(()) => {
                             println!("{}: Success", component.name());
-                        },
+                        }
                         Err(err) => {
                             println!("{}: Failure: {:?}", component.name(), err);
                             success = false;
@@ -326,7 +332,7 @@ fn inner() -> Result<()> {
         match exec_path(IPXEEFI, &[]) {
             Ok(status) => {
                 println!("iPXE exited with status {}", status);
-            },
+            }
             Err(err) => {
                 println!("Failed to launch iPXE: {:?}", err);
             }
@@ -341,7 +347,12 @@ fn inner() -> Result<()> {
         println!("Press any key to shutdown...");
         raw_key()?;
 
-        (std::system_table().RuntimeServices.ResetSystem)(ResetType::Shutdown, Status(0), 0, ptr::null());
+        (std::system_table().RuntimeServices.ResetSystem)(
+            ResetType::Shutdown,
+            Status(0),
+            0,
+            ptr::null(),
+        );
     } else {
         println!("Press any key to restart...");
         raw_key()?;
@@ -399,14 +410,14 @@ pub fn main() -> Result<()> {
         display.set(bg);
 
         {
-            let x = (display.width() as i32 - splash.width() as i32)/2;
+            let x = (display.width() as i32 - splash.width() as i32) / 2;
             let y = 16;
             splash.draw(&mut display, x, y);
         }
 
         {
             let prompt = concat!("Firmware Updater ", env!("CARGO_PKG_VERSION"));
-            let mut x = (display.width() as i32 - prompt.len() as i32 * 8)/2;
+            let mut x = (display.width() as i32 - prompt.len() as i32 * 8) / 2;
             let y = display.height() as i32 - 64;
             for c in prompt.chars() {
                 display.char(x, y, c, Color::rgb(0xff, 0xff, 0xff));
@@ -416,7 +427,7 @@ pub fn main() -> Result<()> {
 
         {
             let prompt = "Do not disconnect your power adapter";
-            let mut x = (display.width() as i32 - prompt.len() as i32 * 8)/2;
+            let mut x = (display.width() as i32 - prompt.len() as i32 * 8) / 2;
             let y = display.height() as i32 - 32;
             for c in prompt.chars() {
                 display.char(x, y, c, Color::rgb(0xff, 0xff, 0xff));
@@ -427,11 +438,11 @@ pub fn main() -> Result<()> {
         display.sync();
     }
 
-    if ! ac_connected() {
+    if !ac_connected() {
         {
             let prompt = "Connect your power adapter!";
-            let mut x = (display.width() as i32 - prompt.len() as i32 * 8)/2;
-            let y = (display.height() as i32 - 16)/2;
+            let mut x = (display.width() as i32 - prompt.len() as i32 * 8) / 2;
+            let y = (display.height() as i32 - 16) / 2;
             for c in prompt.chars() {
                 display.char(x, y, c, Color::rgb(0xff, 0xff, 0xff));
                 x += 8;
@@ -440,17 +451,23 @@ pub fn main() -> Result<()> {
 
         display.sync();
 
-        while ! ac_connected() {
+        while !ac_connected() {
             let _ = (uefi.BootServices.Stall)(1000);
         }
     }
 
     {
         let cols = 80;
-        let off_x = (display.width() as i32 - cols as i32 * 8)/2;
+        let off_x = (display.width() as i32 - cols as i32 * 8) / 2;
         let off_y = 16 + splash.height() as i32 + 16;
-        let rows = (display.height() as i32 - 64 - off_y - 1) as usize/16;
-        display.rect(off_x, off_y, cols as u32 * 8, rows as u32 * 16, Color::rgb(0, 0, 0));
+        let rows = (display.height() as i32 - 64 - off_y - 1) as usize / 16;
+        display.rect(
+            off_x,
+            off_y,
+            cols as u32 * 8,
+            rows as u32 * 16,
+            Color::rgb(0, 0, 0),
+        );
         display.sync();
 
         let mut text = TextDisplay::new(display);
