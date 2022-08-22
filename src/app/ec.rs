@@ -3,6 +3,7 @@
 use core::ops::{ControlFlow, Try};
 use ecflash::{Ec, EcFile, EcFlash};
 use ectool::{timeout, Access, AccessLpcDirect, Firmware, Spi, SpiRom, SpiTarget, Timeout};
+use plain::Plain;
 use std::uefi::{
     self,
     status::{Error, Result},
@@ -178,7 +179,15 @@ impl EcComponent {
                 "PCx0Dx2" => "system76/oryp6".to_string(),
                 "PCx0Dx" => "system76/oryp7".to_string(),
                 "PCxxHX" => "system76/oryp8".to_string(),
-                "PDxxPNx" => "system76/oryp9".to_string(),
+                "PDxxPNx" => {
+                    // If the unit uses DDR5, it is oryp10
+                    let mem = memory_kind().unwrap_or(0x02);
+                    match mem {
+                        0x1A => "system76/oryp9".to_string(),
+                        0x22 => "system76/oryp10".to_string(),
+                        _ => model.to_string(),
+                    }
+                }
                 "X170SM-G" => "system76/bonw14".to_string(),
                 _ => model.to_string(),
             }
@@ -656,4 +665,22 @@ impl Component for EcComponent {
 
         result
     }
+}
+
+fn memory_kind() -> Result<u8> {
+    let tables = crate::dmi::dmi();
+
+    for table in tables {
+        if table.header.kind != 17 {
+            continue;
+        }
+
+        if let Ok(info) = dmi::MemoryDevice::from_bytes(&table.data) {
+            return Ok(info.memory_kind);
+        } else {
+            return Err(Error::DeviceError);
+        }
+    }
+
+    Err(Error::DeviceError)
 }
