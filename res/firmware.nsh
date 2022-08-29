@@ -104,7 +104,15 @@ if "%2" == "bios" then
             exit %lasterror%
         endif
 
+        # Flash with AsusFwUpdate and exit if possible
+        # For: thelio-mega-r2
+        if exist AsusFwUpdate.efi then
+            AsusFwUpdate.efi -FlashBIOS /P /D /U firmware.cap
+            exit %lasterror%
+        endif
+
         # Flash with msiefiflash and exit if possible
+        # For: thelio-b4
         if exist msiefiflash.efi then
             msiefiflash.efi firmware.rom /K
             exit %lasterror%
