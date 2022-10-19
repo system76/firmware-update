@@ -114,7 +114,7 @@ if "%2" == "bios" then
         # Flash with msiefiflash and exit if possible
         # For: thelio-b4
         if exist msiefiflash.efi then
-            msiefiflash.efi firmware.rom /K
+            msiefiflash.efi firmware.rom /K /RLC:E
             exit %lasterror%
         endif
 
