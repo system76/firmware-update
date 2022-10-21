@@ -2,7 +2,6 @@
 
 #![no_std]
 #![no_main]
-#![feature(asm)]
 #![feature(prelude_import)]
 #![feature(try_trait_v2)]
 #![feature(control_flow_enum)]

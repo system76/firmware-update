@@ -2,6 +2,7 @@
 
 use alloc::collections::BTreeMap;
 use alloc::string::String;
+use core::arch::asm;
 use core::char;
 use coreboot_fs::Rom;
 use ecflash::EcFlash;
