@@ -63,9 +63,9 @@ dependencies = [
 
 [[package]]
 name = "redox_hwio"
-version = "0.1.5"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9489d9e1b95e30ca0c6c5e9f5af5960ef838e4045eecd71db748248a7216778d"
+checksum = "8eb516ad341a84372b5b15a5a35cf136ba901a639c8536f521b108253d7fce74"
 
 [[package]]
 name = "redox_intelflash"
@@ -111,7 +111,7 @@ source = "git+https://github.com/system76/ecflash.git#2b94b81b971dce74f11fc8549f
 [[package]]
 name = "system76_ectool"
 version = "0.3.8"
-source = "git+https://github.com/system76/ec.git#01885609e80cd66d809711ab49c23dbb68f9f6eb"
+source = "git+https://github.com/system76/ec.git#a8e37276e908baf728b10f53cd3fd4356e8dddea"
 dependencies = [
  "downcast-rs",
  "redox_hwio",
