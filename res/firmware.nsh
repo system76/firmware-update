@@ -118,6 +118,13 @@ if "%2" == "bios" then
             exit %lasterror%
         endif
 
+        # Flash with msiAFUE51503 and exit if possible
+        # For: thelio-r3
+        if exist msiAFUE51503.efi then
+            msiAFUE51503.efi firmware.rom /P /FAB /N /K /CAPSULE /Q
+            exit %lasterror%
+        endif
+
         # Flash with efiflash and exit if possible
         if exist efiflash.efi then
             efiflash.efi firmware.rom /C /NR \NoOemId
