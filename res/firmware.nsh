@@ -49,6 +49,12 @@ cd "%1"
 
 if "%2" == "bios" then
     if "%3" == "flash" then
+        # Flash with firmware.nsh script and exit if possible
+        if exist firmware.nsh then
+            firmware.nsh
+            exit %lasterror%
+        endif
+
         # Unlock ME region if possible, should reboot automatically
         if exist meset.efi then
             # meset reboots automatically
@@ -214,8 +220,20 @@ endif
 
 if "%2" == "ec" then
     if "%3" == "flash" then
-        uecflash.efi ec.rom /AD /F2 /P /Y
-        exit %lasterror%
+        # Flash with ec.nsh script and exit if possible
+        if exist ec.nsh then
+            ec.nsh
+            exit %lasterror%
+        endif
+
+        # Flash with uecflash and exit if possible
+        if exist uecflash.efi then
+            uecflash.efi ec.rom /AD /F2 /P /Y
+            exit %lasterror%
+        endif
+
+        echo "ec: no flash implementation found"
+        exit 1
     endif
 
     echo "ec: unknown subcommand '%3'"
@@ -224,8 +242,14 @@ endif
 
 if "%2" == "ec2" then
     if "%3" == "flash" then
-        uecflash.efi ec2.rom /AD /O2 /P
-        exit %lasterror%
+        # Flash with uecflash and exit
+        if exist uecflash.efi then
+            uecflash.efi ec2.rom /AD /O2 /P
+            exit %lasterror%
+        endif
+
+        echo "ec2: no flash implementation found"
+        exit 1
     endif
 
     echo "ec2: unknown subcommand '%3'"
