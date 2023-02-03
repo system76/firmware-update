@@ -161,8 +161,8 @@ impl EcComponent {
             }
 
             if system_version == "pang12" {
-                //TODO: find best way to validate pang12 EC firmware file
-                return true;
+                return data.len() == 128 * 1024
+                    && &data[0x50 ..= 0x05F] == b"ITE EC-V14.6   \0";
             }
         }
 
