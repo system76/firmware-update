@@ -140,6 +140,33 @@ impl EcComponent {
     }
 
     pub fn validate_data(&self, data: Vec<u8>) -> bool {
+        // Special case for pang12
+        {
+            let mut system_version = String::new();
+
+            for table in crate::dmi::dmi() {
+                match table.header.kind {
+                    1 => {
+                        if let Ok(info) = dmi::SystemInfo::from_bytes(&table.data) {
+                            let index = info.version;
+                            if index > 0 {
+                                if let Some(value) = table.strings.get((index - 1) as usize) {
+                                    system_version = value.trim().to_string();
+                                }
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+
+            if system_version == "pang12" {
+                //TODO: find best way to validate pang12 EC firmware file
+                return true;
+            }
+        }
+
+
         let normalize_model = |model: &str| -> String {
             match model {
                 "L140CU" => "system76/lemp9".to_string(),
