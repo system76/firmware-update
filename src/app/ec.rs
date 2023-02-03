@@ -45,6 +45,7 @@ impl Timeout for UefiTimeout {
 }
 
 enum EcKind {
+    Pang12(ectool::Pmc<UefiTimeout>),
     System76(ectool::Ec<AccessLpcDirect<UefiTimeout>>),
     Legacy(EcFlash),
     Unknown,
@@ -52,6 +53,31 @@ enum EcKind {
 
 impl EcKind {
     unsafe fn new(primary: bool) -> Self {
+        // Special case for pang12
+        {
+            let mut system_version = String::new();
+
+            for table in crate::dmi::dmi() {
+                match table.header.kind {
+                    1 => {
+                        if let Ok(info) = dmi::SystemInfo::from_bytes(&table.data) {
+                            let index = info.version;
+                            if index > 0 {
+                                if let Some(value) = table.strings.get((index - 1) as usize) {
+                                    system_version = value.trim().to_string();
+                                }
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+
+            if system_version == "pang12" {
+                return EcKind::Pang12(ectool::Pmc::new(0x62, UefiTimeout::new(100_000)));
+            }
+        }
+
         if let Ok(access) = AccessLpcDirect::new(UefiTimeout::new(100_000)) {
             if let Ok(ec) = ectool::Ec::new(access) {
                 return EcKind::System76(ec);
@@ -67,6 +93,9 @@ impl EcKind {
 
     unsafe fn model(&mut self) -> String {
         match self {
+            EcKind::Pang12(_ec) => {
+                return "pang12".to_string();
+            },
             EcKind::System76(ec) => {
                 let data_size = ec.access().data_size();
                 let mut data = vec![0; data_size];
@@ -86,6 +115,35 @@ impl EcKind {
 
     unsafe fn version(&mut self) -> String {
         match self {
+            EcKind::Pang12(ec) => {
+                let mut hms = [0u8; 3];
+                for i in 0..hms.len() {
+                    match ec.acpi_read(0x08 + i as u8) {
+                        Ok(value) => hms[i] = value,
+                        Err(err) => {
+                            println!("Failed to read build time: {:?}", err);
+                            return String::new();
+                        },
+                    }
+                }
+
+                let mut ymd = [0u8; 3];
+                for i in 0..ymd.len() {
+                    match ec.acpi_read(0x0C + i as u8) {
+                        Ok(value) => ymd[i] = value,
+                        Err(err) => {
+                            println!("Failed to read build date: {:?}", err);
+                            return String::new();
+                        },
+                    }
+                }
+
+                return format!(
+                    "20{:02}/{:02}/{:02}_{:02}:{:02}:{:02}",
+                    ymd[0], ymd[1], ymd[2],
+                    hms[0], hms[1], hms[2]
+                );
+            },
             EcKind::System76(ec) => {
                 let data_size = ec.access().data_size();
                 let mut data = vec![0; data_size];
@@ -141,31 +199,13 @@ impl EcComponent {
 
     pub fn validate_data(&self, data: Vec<u8>) -> bool {
         // Special case for pang12
-        {
-            let mut system_version = String::new();
-
-            for table in crate::dmi::dmi() {
-                match table.header.kind {
-                    1 => {
-                        if let Ok(info) = dmi::SystemInfo::from_bytes(&table.data) {
-                            let index = info.version;
-                            if index > 0 {
-                                if let Some(value) = table.strings.get((index - 1) as usize) {
-                                    system_version = value.trim().to_string();
-                                }
-                            }
-                        }
-                    }
-                    _ => {}
-                }
-            }
-
-            if system_version == "pang12" {
+        match &self.ec {
+            EcKind::Pang12(_ec) => {
                 return data.len() == 128 * 1024
                     && &data[0x50 ..= 0x05F] == b"ITE EC-V14.6   \0";
-            }
+            },
+            _ => (),
         }
-
 
         let normalize_model = |model: &str| -> String {
             match model {
@@ -604,6 +644,20 @@ impl Component for EcComponent {
         }
 
         let result = match &self.ec {
+            EcKind::Pang12(_) => {
+                find(FIRMWARENSH)?;
+                let command = if self.master { "ec" } else { "ec2" };
+                let status = shell(&format!(
+                    "{} {} {} flash",
+                    FIRMWARENSH, FIRMWAREDIR, command
+                ))?;
+                if status == 0 {
+                    Ok(())
+                } else {
+                    println!("{} Flash Error: {}", self.name(), status);
+                    Err(Error::DeviceError)
+                }
+            },
             EcKind::System76(_) => {
                 // System76 EC requires reset to load new firmware
                 requires_reset = true;
