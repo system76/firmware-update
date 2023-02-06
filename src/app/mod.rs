@@ -3,7 +3,6 @@
 use core::ops::{ControlFlow, Try};
 use core::prelude::v1::derive;
 use core::{char, mem, ptr};
-use ecflash::EcFlash;
 use orbclient::{Color, Renderer};
 use std::exec::exec_path;
 use std::ffi::{nstr, wstr};
@@ -24,7 +23,7 @@ use crate::text::TextDisplay;
 
 pub use self::bios::BiosComponent;
 pub use self::component::Component;
-pub use self::ec::EcComponent;
+pub use self::ec::{EcComponent, EcKind};
 pub use self::mapper::UefiMapper;
 pub use self::pci::{pci_mcfg, pci_read};
 
@@ -56,15 +55,6 @@ fn shell(cmd: &str) -> Result<usize> {
         SHELLEFI,
         &["-nointerrupt", "-nomap", "-nostartup", "-noversion", cmd],
     )
-}
-
-fn ac_connected() -> bool {
-    if let Ok(mut ec) = EcFlash::new(true) {
-        let adp = unsafe { ec.get_param(0x10).unwrap_or(0) };
-        (adp & 0x01) == 0x01
-    } else {
-        true
-    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -438,21 +428,24 @@ pub fn main() -> Result<()> {
         display.sync();
     }
 
-    if !ac_connected() {
-        {
-            let prompt = "Connect your power adapter!";
-            let mut x = (display.width() as i32 - prompt.len() as i32 * 8) / 2;
-            let y = (display.height() as i32 - 16) / 2;
-            for c in prompt.chars() {
-                display.char(x, y, c, Color::rgb(0xff, 0xff, 0xff));
-                x += 8;
+    unsafe {
+        let mut ec_kind = EcKind::new(true);
+        if !ec_kind.ac_connected() {
+            {
+                let prompt = "Connect your power adapter!";
+                let mut x = (display.width() as i32 - prompt.len() as i32 * 8) / 2;
+                let y = (display.height() as i32 - 16) / 2;
+                for c in prompt.chars() {
+                    display.char(x, y, c, Color::rgb(0xff, 0xff, 0xff));
+                    x += 8;
+                }
             }
-        }
 
-        display.sync();
+            display.sync();
 
-        while !ac_connected() {
-            let _ = (uefi.BootServices.Stall)(1000);
+            while !ec_kind.ac_connected() {
+                let _ = (uefi.BootServices.Stall)(1000);
+            }
         }
     }
 
