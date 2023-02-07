@@ -117,6 +117,13 @@ if "%2" == "bios" then
             exit %lasterror%
         endif
 
+	# Flash with AsusFwUpd and exit if possible
+	# For: thelio-major-r4
+	if exist AsusFwUpd.efi then
+	    AsusFwUpd.efi -FlashBIOS /P /C firmware.cap
+	    exit %lasterror%
+	endif
+
         # Flash with msiefiflash and exit if possible
         # For: thelio-b4
         if exist msiefiflash.efi then
