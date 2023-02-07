@@ -150,6 +150,8 @@ impl BiosComponent {
                 "gaze17-3050" |
                 "gaze17-3060" |
                 "gaze17-3060-b" |
+                "gaze18-3050" |
+                "gaze18-40x0" |
                 "lemp9" |
                 "lemp10" |
                 "lemp11" |
@@ -158,7 +160,8 @@ impl BiosComponent {
                 "oryp7" |
                 "oryp8" |
                 "oryp9" |
-                "oryp10"
+                "oryp10" |
+                "oryp11"
                 => {
                     let mcfg = match pci_mcfg() {
                         Some(some) => some,

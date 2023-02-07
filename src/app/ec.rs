@@ -259,6 +259,8 @@ impl EcComponent {
                         "system76/gaze17-3060".to_string()
                     }
                 }
+                "NPxxRNx" => "system76/gaze18-3050".to_string(),
+                "NPxxSNx" => "system76/gaze18-40x0".to_string(),
                 "NS50MU" => "system76/darp7".to_string(),
                 "NS50_70PU" => "system76/darp8".to_string(),
                 "NV40Mx" | "NV40Mx-DV" | "NV40MJ" => "system76/galp5".to_string(),
@@ -278,6 +280,7 @@ impl EcComponent {
                         _ => model.to_string(),
                     }
                 }
+                "PDxxSNx" => "system76/oryp11".to_string(),
                 "X170SM-G" => "system76/bonw14".to_string(),
                 _ => model.to_string(),
             }
