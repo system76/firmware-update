@@ -9,7 +9,7 @@ lto = true
 
 [dependencies]
 coreboot-fs = "0.1.1"
-intel-spi = "0.1.4"
+intel-spi = "0.1.5"
 orbclient = { version = "0.3.42", default-features = false, features = ["unifont"] }
 plain = "0.2.3"
 redox_dmi = "0.1.5"
