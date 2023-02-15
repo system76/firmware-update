@@ -194,9 +194,13 @@ if "%2" == "bios" then
                 # meer7: Set all BIOS default settings and attempt to re-enable
                 #   iSetupCfg password protection setting (SCEPWD)
                 if exist isetupcfg.efi then
-                    isetupcfg.efi /i /cpwd admin /s SETTINGS.TXT /ds
+                    if exist SETTINGS.TXT then
+                        isetupcfg.efi /i /cpwd admin /s SETTINGS.TXT /ds
+                    endif
                     isetupcfg.efi /i /cpwd admin /ms SCEPWD /qv 0x00 /ds
-                    exit %lasterror%
+                    if not "%lasterror%" == "0" then
+                        exit %lasterror%
+                    endif
                 endif
 
                 # Update logo
