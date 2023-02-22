@@ -130,6 +130,7 @@ impl BiosComponent {
             "coreboot" => match self.system_version.as_str() {
                 "addw1" |
                 "addw2" |
+                "addw3" |
                 "bonw14" |
                 "darp5" |
                 "darp6" |
@@ -150,8 +151,7 @@ impl BiosComponent {
                 "gaze17-3050" |
                 "gaze17-3060" |
                 "gaze17-3060-b" |
-                "gaze18-3050" |
-                "gaze18-40x0" |
+                "gaze18" |
                 "lemp9" |
                 "lemp10" |
                 "lemp11" |
@@ -161,7 +161,8 @@ impl BiosComponent {
                 "oryp8" |
                 "oryp9" |
                 "oryp10" |
-                "oryp11"
+                "oryp11" |
+                "serw13"
                 => {
                     let mcfg = match pci_mcfg() {
                         Some(some) => some,
