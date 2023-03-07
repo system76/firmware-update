@@ -686,17 +686,20 @@ impl Component for EcComponent {
     }
 
     fn validate(&self) -> Result<bool> {
-        match &self.ec {
-            // Make sure EC is unlocked if running System76 EC
-            EcKind::System76(_, _) => match unsafe { security_unlock() } {
-                Ok(()) => (),
-                Err(err) => {
-                    println!("{} Failed to unlock: {:?}", self.name(), err);
-                    return Err(Error::DeviceError);
-                }
-            },
-            // Assume EC is unlocked if not running System76 EC
-            _ => (),
+        // If EC tag does not exist
+        if find(ECTAG).is_err() {
+            match &self.ec {
+                // Make sure EC is unlocked if running System76 EC
+                EcKind::System76(_, _) => match unsafe { security_unlock() } {
+                    Ok(()) => (),
+                    Err(err) => {
+                        println!("{} Failed to unlock: {:?}", self.name(), err);
+                        return Err(Error::DeviceError);
+                    }
+                },
+                // Assume EC is unlocked if not running System76 EC
+                _ => (),
+            }
         }
 
         let data = load(self.path())?;
