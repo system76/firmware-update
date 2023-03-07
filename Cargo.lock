@@ -192,7 +192,7 @@ source = "git+https://github.com/system76/ecflash.git#2b94b81b971dce74f11fc8549f
 [[package]]
 name = "system76_ectool"
 version = "0.3.8"
-source = "git+https://github.com/system76/ec.git?branch=rpl#625118ab17381a419fcef8823b3a072bfd91144b"
+source = "git+https://github.com/system76/ec.git?branch=rpl#d605371c4bce6bc7cce635c46dc7b9c61115d43a"
 dependencies = [
  "downcast-rs",
  "redox_hwio",
