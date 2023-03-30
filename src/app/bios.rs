@@ -132,6 +132,7 @@ impl BiosComponent {
                 "addw2" |
                 "addw3" |
                 "bonw14" |
+                "bonw15" |
                 "darp5" |
                 "darp6" |
                 "darp7" |

@@ -285,6 +285,7 @@ impl EcComponent {
                 "PDxxSNx" => "system76/serw13".to_string(),
                 "PE6xRNx" => "system76/oryp11".to_string(),
                 "X170SM-G" => "system76/bonw14".to_string(),
+                "X370SNx" => "system76/bonw15".to_string(),
                 _ => model.to_string(),
             }
         };
