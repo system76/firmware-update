@@ -20,6 +20,5 @@ system76_ecflash = { git = "https://github.com/system76/ecflash.git" }
 
 [dependencies.system76_ectool]
 git = "https://github.com/system76/ec.git"
-branch = "rpl"
 default-features = false
 features = ["redox_hwio"]
