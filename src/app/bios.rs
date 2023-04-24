@@ -156,6 +156,7 @@ impl BiosComponent {
                 "lemp9" |
                 "lemp10" |
                 "lemp11" |
+                "lemp12" |
                 "oryp5" |
                 "oryp6" |
                 "oryp7" |

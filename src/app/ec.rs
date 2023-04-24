@@ -237,6 +237,7 @@ impl EcComponent {
                 "L140CU" => "system76/lemp9".to_string(),
                 "L140MU" => "system76/lemp10".to_string(),
                 "L140PU" => "system76/lemp11".to_string(),
+                "L140AU" => "system76/lemp12".to_string(),
                 "N130ZU" => "system76/galp3-c".to_string(),
                 "N140CU" => "system76/galp4".to_string(),
                 "N150ZU" => "system76/darp5".to_string(),
