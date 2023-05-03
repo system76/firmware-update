@@ -144,6 +144,7 @@ impl BiosComponent {
                 "galp4" |
                 "galp5" |
                 "galp6" |
+                "galp7" |
                 "gaze14" |
                 "gaze15" |
                 "gaze16-3050" |

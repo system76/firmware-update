@@ -268,6 +268,7 @@ impl EcComponent {
                 "NS50_70PU" => "system76/darp8".to_string(),
                 "NV40Mx" | "NV40Mx-DV" | "NV40MJ" => "system76/galp5".to_string(),
                 "NV4xPZ" => "system76/galp6".to_string(),
+                "NV40RZ" => "system76/galp7".to_string(),
                 "PB50Ex" => "system76/addw1".to_string(),
                 "PBx0Dx2" => "system76/addw2".to_string(),
                 "P950Ex" => "system76/oryp5".to_string(),
