@@ -269,6 +269,26 @@ fn inner() -> Result<()> {
 
         if c == '\n' || c == '\r' {
             success = true;
+
+            {
+                let ec_kind = unsafe { EcKind::new(true) };
+                // If EC tag does not exist, unlock the firmware
+                if find(ECTAG).is_err() {
+                    match ec_kind {
+                        // Make sure EC is unlocked if running System76 EC
+                        EcKind::System76(_, _) => match unsafe { ec::security_unlock() } {
+                            Ok(()) => (),
+                            Err(err) => {
+                                println!("Failed to unlock firmware: {:?}", err);
+                                return Err(Error::DeviceError);
+                            }
+                        },
+                        // Assume EC is unlocked if not running System76 EC
+                        _ => (),
+                    }
+                }
+            }
+
             for (component, validation) in components.iter().zip(validations.iter()) {
                 if *validation == ValidateKind::Found {
                     // Only shutdown if components are flashed
