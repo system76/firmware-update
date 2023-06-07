@@ -15,8 +15,8 @@ use std::uefi::status::{Error, Result, Status};
 use std::vars::{get_boot_item, get_boot_order, set_boot_item, set_boot_order};
 
 use super::{
-    pci_mcfg, shell, Component, UefiMapper, FIRMWARECAP, FIRMWAREDIR, FIRMWARENSH, FIRMWAREROM,
-    H2OFFT, IFLASHV, UEFIFLASH,
+    cmos, pci_mcfg, shell, Component, UefiMapper, FIRMWARECAP, FIRMWAREDIR, FIRMWARENSH,
+    FIRMWAREROM, H2OFFT, IFLASHV, UEFIFLASH,
 };
 
 fn copy_region(
@@ -512,6 +512,13 @@ impl Component for BiosComponent {
                 }
                 println!();
             }
+
+            // Invalidate the 2-byte CMOS checksum to force writing the option defaults.
+            let mut cmos = cmos::Cmos::default();
+            let old_hi = cmos.read(123);
+            let old_lo = cmos.read(124);
+            cmos.write(123, !old_hi);
+            cmos.write(124, !old_lo);
         } else {
             find(FIRMWARENSH)?;
 

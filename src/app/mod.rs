@@ -28,6 +28,7 @@ pub use self::mapper::UefiMapper;
 pub use self::pci::{pci_mcfg, pci_read};
 
 mod bios;
+mod cmos;
 mod component;
 mod ec;
 mod mapper;
