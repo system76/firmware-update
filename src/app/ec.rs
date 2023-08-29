@@ -47,7 +47,7 @@ impl Timeout for UefiTimeout {
 }
 
 pub enum EcKind {
-    Pang12(ectool::Pmc<UefiTimeout>),
+    Pang(ectool::Pmc<UefiTimeout>, String),
     System76(ectool::Ec<AccessLpcDirect<UefiTimeout>>, ectool::Pmc<UefiTimeout>),
     Legacy(EcFlash),
     Unknown,
@@ -55,7 +55,7 @@ pub enum EcKind {
 
 impl EcKind {
     pub unsafe fn new(primary: bool) -> Self {
-        // Special case for pang12
+        // Special case for pang12 and pang13
         {
             let mut system_version = String::new();
 
@@ -75,9 +75,10 @@ impl EcKind {
                 }
             }
 
-            if system_version == "pang12" {
-                return EcKind::Pang12(
-                    ectool::Pmc::new(0x62, UefiTimeout::new(100_000))
+            if system_version == "pang12" || system_version == "pang13" {
+                return EcKind::Pang(
+                    ectool::Pmc::new(0x62, UefiTimeout::new(100_000)),
+                    system_version
                 );
             }
         }
@@ -100,7 +101,7 @@ impl EcKind {
 
     pub unsafe fn ac_connected(&mut self) -> bool {
         match self {
-            EcKind::Pang12(ref mut pmc) => {
+            EcKind::Pang(ref mut pmc, _system_version) => {
                 let ecwr = pmc.acpi_read(0x80).unwrap_or(0);
                 (ecwr & 0x01) == 0x01
             },
@@ -118,8 +119,8 @@ impl EcKind {
 
     unsafe fn model(&mut self) -> String {
         match self {
-            EcKind::Pang12(_pmc) => {
-                return "pang12".to_string();
+            EcKind::Pang(_pmc, system_version) => {
+                return system_version.clone();
             },
             EcKind::System76(ec, _pmc) => {
                 let data_size = ec.access().data_size();
@@ -140,7 +141,7 @@ impl EcKind {
 
     unsafe fn version(&mut self) -> String {
         match self {
-            EcKind::Pang12(pmc) => {
+            EcKind::Pang(pmc, _system_version) => {
                 let mut hms = [0u8; 3];
                 for i in 0..hms.len() {
                     match pmc.acpi_read(0x08 + i as u8) {
@@ -223,9 +224,9 @@ impl EcComponent {
     }
 
     pub fn validate_data(&self, data: Vec<u8>) -> bool {
-        // Special case for pang12
+        // Special case for pang12 and pang13
         match &self.ec {
-            EcKind::Pang12(_pmc) => {
+            EcKind::Pang(_pmc, _system_version) => {
                 return data.len() == 128 * 1024
                     && &data[0x50 ..= 0x05F] == b"ITE EC-V14.6   \0";
             },
@@ -706,7 +707,7 @@ impl Component for EcComponent {
         }
 
         let result = match &self.ec {
-            EcKind::Pang12(_pmc) => {
+            EcKind::Pang(_pmc, _system_version) => {
                 find(FIRMWARENSH)?;
                 let command = if self.master { "ec" } else { "ec2" };
                 let status = shell(&format!(
