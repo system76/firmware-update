@@ -138,6 +138,13 @@ if "%2" == "bios" then
             exit %lasterror%
         endif
 
+        # Flash with ASRockAfuEfix64 and exit if possible
+        # For: thelio-spark-b1
+        if exist ASRockAfuEfix64.efi then
+            ASRockAfuEfix64.efi firmware.rom /P /B /N /L
+            exit %lasterror%
+        endif
+
         # Flash with efiflash and exit if possible
         if exist efiflash.efi then
             efiflash.efi firmware.rom /C /NR \NoOemId
