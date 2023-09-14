@@ -142,6 +142,12 @@ if "%2" == "bios" then
         # For: thelio-spark-b1
         if exist ASRockAfuEfix64.efi then
             ASRockAfuEfix64.efi firmware.rom /P /B /N /L
+
+            # Turn off RGB (spark-b1 only, so far)
+            if exist RGBTool.efi then
+               RGBTool.efi /off
+            endif
+
             exit %lasterror%
         endif
 
