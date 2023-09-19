@@ -112,7 +112,7 @@ impl<'a> TextDisplay<'a> {
             ClearScreen: clear_screen,
             SetCursorPosition: set_cursor_position,
             EnableCursor: enable_cursor,
-            Mode: unsafe { mem::transmute(&*mode.deref()) },
+            Mode: unsafe { mem::transmute(mode.deref()) },
 
             mode,
             off_x: 0,
@@ -227,7 +227,7 @@ impl<'a> TextDisplay<'a> {
         if scrolled {
             let (cx, cw) = (0, self.display.width() as i32);
             let (cy, ch) = (self.off_y, self.rows as u32 * 16);
-            self.display.blit(cx, cy, cw as u32, ch as u32);
+            self.display.blit(cx, cy, cw as u32, ch);
         } else if changed {
             let (_x, y) = self.pos();
             let (cx, cw) = (0, self.display.width() as i32);

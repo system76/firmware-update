@@ -68,9 +68,9 @@ impl Display {
                 fast_copy(
                     data_ptr as *mut u8,
                     data_ptr.add(off1) as *const u8,
-                    off2 as usize * 4,
+                    off2 * 4,
                 );
-                fast_set32(data_ptr.add(off2), color.data, off1 as usize);
+                fast_set32(data_ptr.add(off2), color.data, off1);
             }
         }
     }

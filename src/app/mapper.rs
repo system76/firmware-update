@@ -8,7 +8,7 @@ impl Mapper for UefiMapper {
         address: PhysicalAddress,
         _size: usize,
     ) -> Result<VirtualAddress, &'static str> {
-        Ok(VirtualAddress(address.0 as usize))
+        Ok(VirtualAddress(address.0))
     }
 
     unsafe fn unmap_aligned(

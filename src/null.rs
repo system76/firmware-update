@@ -97,7 +97,7 @@ impl NullDisplay {
             ClearScreen: clear_screen,
             SetCursorPosition: set_cursor_position,
             EnableCursor: enable_cursor,
-            Mode: unsafe { mem::transmute(&*mode.deref()) },
+            Mode: unsafe { mem::transmute(mode.deref()) },
 
             mode,
         }
