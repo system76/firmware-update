@@ -2,6 +2,7 @@
 
 use core::mem;
 use core::ops::Deref;
+use std::prelude::*;
 use std::uefi::boot::InterfaceType;
 use std::uefi::guid::SIMPLE_TEXT_OUTPUT_GUID;
 use std::uefi::status::{Result, Status};

@@ -9,6 +9,7 @@ use ecflash::EcFlash;
 use intel_spi::{HsfStsCtl, Spi, SpiDev};
 use plain::Plain;
 use std::fs::{find, load};
+use std::prelude::*;
 use std::ptr;
 use std::uefi::reset::ResetType;
 use std::uefi::status::{Error, Result, Status};

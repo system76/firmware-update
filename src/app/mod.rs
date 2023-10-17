@@ -7,6 +7,7 @@ use orbclient::{Color, Renderer};
 use std::exec::exec_path;
 use std::ffi::{nstr, wstr};
 use std::fs::{find, load};
+use std::prelude::*;
 use std::proto::Protocol;
 use std::uefi::guid;
 use std::uefi::reset::ResetType;

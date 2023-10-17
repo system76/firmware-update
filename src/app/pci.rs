@@ -1,5 +1,6 @@
 use core::{mem, slice};
 use hwio::{Io, Pio};
+use std::prelude::*;
 use std::uefi::guid::GuidKind;
 
 #[allow(dead_code)]

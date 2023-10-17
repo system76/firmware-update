@@ -2,7 +2,6 @@
 
 #![no_std]
 #![no_main]
-#![feature(prelude_import)]
 #![feature(try_trait_v2)]
 #![feature(control_flow_enum)]
 #![allow(clippy::collapsible_if)]
@@ -16,8 +15,6 @@ extern crate alloc;
 #[macro_use]
 extern crate uefi_std as std;
 
-#[allow(unused_imports)]
-#[prelude_import]
 use std::prelude::*;
 
 use core::ops::{ControlFlow, Try};
