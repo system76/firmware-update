@@ -4,6 +4,7 @@ use core::ops::{ControlFlow, Try};
 use ecflash::{Ec, EcFile, EcFlash};
 use ectool::{timeout, Access, AccessLpcDirect, Firmware, SecurityState, Spi, SpiRom, SpiTarget, Timeout};
 use plain::Plain;
+use std::prelude::*;
 use std::uefi::{
     self,
     reset::ResetType,

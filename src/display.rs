@@ -4,6 +4,7 @@ use core::arch::asm;
 use core::cell::Cell;
 use core::ops::Try;
 use orbclient::{Color, Mode, Renderer};
+use std::prelude::*;
 use std::proto::Protocol;
 use std::uefi::graphics::{GraphicsBltOp, GraphicsBltPixel, GraphicsOutput};
 use std::uefi::guid::{Guid, GRAPHICS_OUTPUT_PROTOCOL_GUID};

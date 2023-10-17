@@ -3,6 +3,7 @@
 use core::ops::Deref;
 use core::{char, mem};
 use orbclient::{Color, Renderer};
+use std::prelude::*;
 use std::proto::Protocol;
 use std::uefi::boot::InterfaceType;
 use std::uefi::guid::SIMPLE_TEXT_OUTPUT_GUID;
