@@ -29,7 +29,6 @@ mod dmi;
 pub mod image;
 mod io;
 mod key;
-pub mod null;
 pub mod text;
 
 fn set_max_mode(output: &uefi::text::TextOutput) -> Result<()> {
