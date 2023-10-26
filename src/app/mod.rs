@@ -210,7 +210,7 @@ fn remove_override(option: u16) -> Result<()> {
 }
 
 fn inner() -> Result<()> {
-    let mut shutdown = false;
+    let mut reboot = false;
     let mut success = false;
 
     let option = set_override()?;
@@ -292,8 +292,8 @@ fn inner() -> Result<()> {
 
             for (component, validation) in components.iter().zip(validations.iter()) {
                 if *validation == ValidateKind::Found {
-                    // Only shutdown if components are flashed
-                    shutdown = true;
+                    // Only reboot if components are flashed
+                    reboot = true;
                     match component.flash() {
                         Ok(()) => {
                             println!("{}: Success", component.name());
@@ -355,12 +355,11 @@ fn inner() -> Result<()> {
         // H2OFFT will automatically shut down, so skip success confirmation
         println!("System will reboot in 5 seconds to perform capsule update");
         let _ = (std::system_table().BootServices.Stall)(5_000_000);
-    } else if shutdown {
-        println!("Press any key to shutdown...");
-        raw_key()?;
-
+    } else if reboot {
+        println!("System will reboot in 5 seconds");
+        let _ = (std::system_table().BootServices.Stall)(5_000_000);
         (std::system_table().RuntimeServices.ResetSystem)(
-            ResetType::Shutdown,
+            ResetType::Cold,
             Status(0),
             0,
             ptr::null(),
