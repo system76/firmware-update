@@ -13,8 +13,8 @@ use std::uefi::guid;
 use std::uefi::reset::ResetType;
 use std::uefi::status::{Error, Result, Status};
 use std::vars::{
-    get_boot_current, get_boot_item, get_boot_next, get_boot_order, get_os_indications,
-    get_os_indications_supported, set_boot_item, set_boot_next, set_boot_order, set_os_indications,
+    get_boot_current, get_boot_item, get_boot_next, get_boot_order,
+    set_boot_item, set_boot_next, set_boot_order,
 };
 
 use crate::display::{Display, Output, ScaledDisplay};
@@ -225,7 +225,6 @@ fn inner() -> Result<()> {
     } else if !validations.iter().any(|v| *v == ValidateKind::Found) {
         "* No updates were found *"
     } else {
-        let mut setup_menu = false;
         let c = if let Ok((_, ectag)) = find(ECTAG) {
             // Attempt to remove EC tag
             match (ectag.0.Delete)(ectag.0).branch() {
@@ -245,8 +244,7 @@ fn inner() -> Result<()> {
             validations.clear();
             '\n'
         } else if find(MESETTAG).is_ok() {
-            // Skip enter if ME unlocked, and boot into firmware setup to disable ME
-            setup_menu = true;
+            // Skip enter if ME unlocked
             '\n'
         } else if find(IFLASHVTAG).is_ok() {
             // Skip enter if flashing a meer5 and flashing already occured
@@ -312,18 +310,6 @@ fn inner() -> Result<()> {
                     // Do not reset DMI on meer5
                 } else if let Err(err) = reset_dmi() {
                     println!("Failed to reset DMI: {:?}", err);
-                }
-
-                if setup_menu {
-                    let supported = get_os_indications_supported().unwrap_or(0);
-                    if supported & 1 == 1 {
-                        println!("Booting into BIOS setup on next boot");
-                        let mut indications = get_os_indications().unwrap_or(0);
-                        indications |= 1;
-                        set_os_indications(Some(indications))?;
-                    } else {
-                        println!("Cannot boot into BIOS setup automatically");
-                    }
                 }
 
                 reboot = true;
