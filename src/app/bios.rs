@@ -546,13 +546,13 @@ impl Component for BiosComponent {
             match self.system_version.as_str() {
                 "thelio-b2" => {
                     // thelio-b2 sometimes has issues with keyboard input after flashing,
-                    // so we will shut down after a short delay
+                    // so we will reboot after a short delay
 
-                    println!("System will shut off in 5 seconds");
+                    println!("System will reboot in 5 seconds");
                     let _ = (std::system_table().BootServices.Stall)(5_000_000);
 
                     (std::system_table().RuntimeServices.ResetSystem)(
-                        ResetType::Shutdown,
+                        ResetType::Cold,
                         Status(0),
                         0,
                         ptr::null(),
