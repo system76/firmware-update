@@ -72,6 +72,7 @@ pub struct BiosComponent {
     bios_vendor: String,
     bios_version: String,
     system_version: String,
+    manufacturer: String,
 }
 
 impl BiosComponent {
@@ -81,6 +82,7 @@ impl BiosComponent {
         let mut bios_vendor = String::new();
         let mut bios_version = String::new();
         let mut system_version = String::new();
+        let mut manufacturer = String::new();
 
         for table in crate::dmi::dmi() {
             match table.header.kind {
@@ -109,6 +111,13 @@ impl BiosComponent {
                                 system_version = value.trim().to_string();
                             }
                         }
+
+                        let index = info.manufacturer;
+                        if index > 0 {
+                            if let Some(value) = table.strings.get((index - 1) as usize) {
+                                manufacturer = value.trim().to_string();
+                            }
+                        }
                     }
                 }
                 _ => {}
@@ -120,6 +129,7 @@ impl BiosComponent {
             bios_vendor,
             bios_version,
             system_version,
+            manufacturer,
         }
     }
 
@@ -128,47 +138,8 @@ impl BiosComponent {
 
         match self.bios_vendor.as_str() {
             #[rustfmt::skip]
-            "coreboot" => match self.system_version.as_str() {
-                "addw1" |
-                "addw2" |
-                "addw3" |
-                "bonw14" |
-                "bonw15" |
-                "darp5" |
-                "darp6" |
-                "darp7" |
-                "darp8" |
-                "darp9" |
-                "galp2" |
-                "galp3" |
-                "galp3-b" |
-                "galp3-c" |
-                "galp4" |
-                "galp5" |
-                "galp6" |
-                "galp7" |
-                "gaze14" |
-                "gaze15" |
-                "gaze16-3050" |
-                "gaze16-3060" |
-                "gaze16-3060-b" |
-                "gaze17-3050" |
-                "gaze17-3060" |
-                "gaze17-3060-b" |
-                "gaze18" |
-                "lemp9" |
-                "lemp10" |
-                "lemp11" |
-                "lemp12" |
-                "oryp5" |
-                "oryp6" |
-                "oryp7" |
-                "oryp8" |
-                "oryp9" |
-                "oryp10" |
-                "oryp11" |
-                "serw13"
-                => {
+            "coreboot" => match self.manufacturer.as_str() {
+                "System76" => {
                     let mcfg = match pci_mcfg() {
                         Some(some) => some,
                         None => {
