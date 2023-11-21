@@ -326,6 +326,7 @@ fn inner() -> Result<()> {
                     }
                 }
 
+                reboot = true;
                 "* All updates applied successfully *"
             } else {
                 "! Failed to apply updates !"
