@@ -1,7 +1,7 @@
 use core::{mem, slice};
 use hwio::{Io, Pio};
 use std::prelude::*;
-use std::uefi::guid::GuidKind;
+use std::uefi::guid;
 
 #[allow(dead_code)]
 #[repr(packed)]
@@ -82,8 +82,8 @@ unsafe fn rsdp_mcfg(rsdp: &Rsdp) -> Option<&'static [u8]> {
 
 pub fn pci_mcfg() -> Option<&'static [u8]> {
     for table in std::system_table().config_tables() {
-        match table.VendorGuid.kind() {
-            GuidKind::Acpi | GuidKind::Acpi2 => unsafe {
+        match table.VendorGuid {
+            guid::ACPI_TABLE_GUID | guid::ACPI_20_TABLE_GUID => unsafe {
                 let rsdp = &*(table.VendorTable as *const Rsdp);
                 if let Some(some) = rsdp_mcfg(rsdp) {
                     return Some(some);

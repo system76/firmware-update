@@ -2,12 +2,12 @@
 
 use core::slice;
 use std::prelude::*;
-use std::uefi::guid::GuidKind;
+use std::uefi::guid;
 
 pub fn dmi() -> Vec<dmi::Table> {
     for table in std::system_table().config_tables() {
-        let data_opt = match table.VendorGuid.kind() {
-            GuidKind::Smbios => unsafe {
+        let data_opt = match table.VendorGuid {
+            guid::SMBIOS_TABLE_GUID => unsafe {
                 let smbios = &*(table.VendorTable as *const dmi::Smbios);
                 //TODO: smbios is_valid fails on bonw14, assume UEFI is right
                 Some(slice::from_raw_parts(
@@ -15,7 +15,7 @@ pub fn dmi() -> Vec<dmi::Table> {
                     smbios.table_length as usize,
                 ))
             },
-            GuidKind::Smbios3 => unsafe {
+            guid::SMBIOS3_TABLE_GUID => unsafe {
                 let smbios = &*(table.VendorTable as *const dmi::Smbios3);
                 //TODO: smbios is_valid fails on bonw14, assume UEFI is right
                 Some(slice::from_raw_parts(
