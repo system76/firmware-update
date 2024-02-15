@@ -228,9 +228,10 @@ impl EcComponent {
         // Special case for pang12, pang13, and pang14
         match &self.ec {
             EcKind::Pang(_pmc, _system_version) => {
-                return data.len() == 128 * 1024
-                    && &data[0x50 ..= 0x05F] == b"ITE EC-V14.6   \0";
-            },
+                // XXX: Get flash size programatically?
+                return (data.len() == 128 * 1024 || data.len() == 256 * 1024)
+                    && &data[0x50..=0x05F] == b"ITE EC-V14.6   \0";
+            }
             _ => (),
         }
 
@@ -314,12 +315,10 @@ impl<T: Timeout> SpiLegacy<T> {
         }
     }
 
-    fn rom_size(&self) -> usize {
-        128 * 1024
-    }
     fn block_size(&self) -> usize {
         64 * 1024
     }
+
     fn page_size(&self) -> usize {
         256
     }
@@ -401,10 +400,13 @@ impl<T: Timeout> SpiLegacy<T> {
 unsafe fn flash_legacy(firmware_data: &[u8]) -> core::result::Result<(), ectool::Error> {
     let mut spi = SpiLegacy::new(UefiTimeout::new(1_000_000));
 
-    let rom_size = spi.rom_size();
-    let mut new_rom = firmware_data.to_vec();
-    while new_rom.len() < rom_size {
-        new_rom.push(0xFF);
+    let new_rom = firmware_data.to_vec();
+
+    // XXX: Get flash size programatically?
+    let rom_size = new_rom.len();
+    if rom_size % 1024 != 0 {
+        println!("ROM size of {} is not valid", rom_size);
+        return Err(ectool::Error::Verify);
     }
 
     println!("Entering scratch ROM");
@@ -534,11 +536,13 @@ unsafe fn flash(
         println!("ec version: {:?}", str::from_utf8(ec_version));
     }
 
-    let rom_size = 128 * 1024;
+    let new_rom = firmware_data.to_vec();
 
-    let mut new_rom = firmware_data.to_vec();
-    while new_rom.len() < rom_size {
-        new_rom.push(0xFF);
+    // XXX: Get flash size programatically?
+    let rom_size = new_rom.len();
+    if rom_size % 1024 != 0 {
+        println!("ROM size of {} is not valid", rom_size);
+        return Err(ectool::Error::Verify);
     }
 
     let mut spi_bus = ec.spi(SpiTarget::Main, true)?;
