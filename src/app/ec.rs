@@ -241,6 +241,7 @@ impl EcComponent {
                 "L140MU" => "system76/lemp10".to_string(),
                 "L140PU" => "system76/lemp11".to_string(),
                 "L140AU" => "system76/lemp12".to_string(),
+                "L2x0TU" => "system76/lemp13".to_string(),
                 "N130ZU" => "system76/galp3-c".to_string(),
                 "N140CU" => "system76/galp4".to_string(),
                 "N150ZU" => "system76/darp5".to_string(),
@@ -267,6 +268,7 @@ impl EcComponent {
                 }
                 "NPxxRNx" => "system76/gaze18".to_string(),
                 "NPxxSNx" => "system76/addw3".to_string(),
+                "V3x0SNx" => "system76/addw4".to_string(),
                 "NS50MU" => "system76/darp7".to_string(),
                 "NS50_70PU" => "system76/darp8".to_string(),
                 "NS50_70AU" => "system76/darp9".to_string(),
@@ -288,8 +290,9 @@ impl EcComponent {
                         _ => model.to_string(),
                     }
                 }
-                "PDxxSNx" => "system76/serw13".to_string(),
                 "PE6xRNx" => "system76/oryp11".to_string(),
+                "PE60SNx" => "system76/oryp12".to_string(),
+                "PDxxSNx" => "system76/serw13".to_string(),
                 "X170SM-G" => "system76/bonw14".to_string(),
                 "X370SNx" => "system76/bonw15".to_string(),
                 _ => model.to_string(),
