@@ -10,9 +10,9 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
 name = "bitflags"
-version = "2.4.2"
+version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed570934406eb16438a4e976b1b4500774099c13b8cb96eec99f620f05090ddf"
+checksum = "cf4b9d6a944f767f8e5e0db018570623c85f3d925ac718db4e06d0187adb21c1"
 
 [[package]]
 name = "coreboot-fs"
@@ -35,7 +35,7 @@ version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a896a575e2acf5f38da6b5eaf0e01b71c198cea0967046af864bda951102b2c6"
 dependencies = [
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
  "coreboot-fs",
  "libc",
  "redox_intelflash",
@@ -43,17 +43,28 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.148"
+version = "0.2.153"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9cdc71e17332e86d2e1d38c1f99edcb6288ee11b815fb1a4b049eaa2114d369b"
+checksum = "9c198f91728a82281a64e1f4f9eeb25d82cb32a5de251c6bd1b5154d63a8e7bd"
+
+[[package]]
+name = "libredox"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3af92c55d7d839293953fcd0fda5ecfe93297cfde6ffbdec13b41d99c0ba6607"
+dependencies = [
+ "bitflags 2.5.0",
+ "libc",
+ "redox_syscall",
+]
 
 [[package]]
 name = "orbclient"
-version = "0.3.46"
+version = "0.3.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8378ac0dfbd4e7895f2d2c1f1345cab3836910baf3a300b000d04250f0c8428f"
+checksum = "52f0d54bde9774d3a51dcf281a5def240c71996bc6ca05d2c847ec8b2b216166"
 dependencies = [
- "redox_syscall",
+ "libredox",
 ]
 
 [[package]]
@@ -90,33 +101,33 @@ dependencies = [
 
 [[package]]
 name = "redox_syscall"
-version = "0.3.5"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "567664f262709473930a4bf9e51bf2ebf3348f2e748ccc50dea20646858f8f29"
+checksum = "4722d768eff46b75989dd134e5c353f0d6296e5aaa3132e776cbdb56be7731aa"
 dependencies = [
  "bitflags 1.3.2",
 ]
 
 [[package]]
 name = "redox_uefi"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4143e69d22c9f79fd22cb37859a06af4936741c8ef70b5d6338953717feb68a5"
+checksum = "a3dbb9124e850a6953efb6ea3957d84fc48930a6dfd844d963bc8516c16f24e5"
 
 [[package]]
 name = "redox_uefi_alloc"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d12654bc506da36550bbd8e77438be985b839afdc98c0956fc7fd10fa9b45022"
+checksum = "e4ac0164918610031fe226ba74125aa03239eb86516131b8ee1e85de31b7c445"
 dependencies = [
  "redox_uefi",
 ]
 
 [[package]]
 name = "redox_uefi_std"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9dea5dc3b2366e4611520a4983b27aa11f373c86f774eff1fd3f93d040c0ebd"
+checksum = "d8e07da7709f8d1edbabf81657cd360886539c5c4a18fc047ed774bc1d6b466a"
 dependencies = [
  "redox_uefi",
  "redox_uefi_alloc",
@@ -131,7 +142,7 @@ checksum = "3b4428b459c1c06e7a3ecf1dd3e863f4e7442a474463094af6a702e3b860ec25"
 [[package]]
 name = "system76_ectool"
 version = "0.3.8"
-source = "git+https://github.com/system76/ec.git#166e03972bd26e1e6960f2cd14abe628f94ef411"
+source = "git+https://github.com/system76/ec.git#38d4666a9007b6d36e344bbc36109876e519028e"
 dependencies = [
  "downcast-rs",
  "redox_hwio",
