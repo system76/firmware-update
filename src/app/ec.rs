@@ -743,26 +743,13 @@ impl Component for EcComponent {
                 }
             }
             EcKind::Legacy(_ec) => {
-                if requires_reset {
-                    // Use open source flashing code if reset is required
-                    match unsafe { flash_legacy(&firmware_data) } {
-                        Ok(()) => Ok(()),
-                        Err(err) => {
-                            println!("{} Flash Error: {:X?}", self.name(), err);
-                            Err(Error::DeviceError)
-                        }
-                    }
-                } else {
-                    find(FIRMWARENSH)?;
-                    let command = if self.master { "ec" } else { "ec2" };
-                    let status = shell(&format!(
-                        "{} {} {} flash",
-                        FIRMWARENSH, FIRMWAREDIR, command
-                    ))?;
-                    if status == 0 {
-                        Ok(())
-                    } else {
-                        println!("{} Flash Error: {}", self.name(), status);
+                requires_reset = true;
+
+                // Use open source flashing code
+                match unsafe { flash_legacy(&firmware_data) } {
+                    Ok(()) => Ok(()),
+                    Err(err) => {
+                        println!("{} Flash Error: {:X?}", self.name(), err);
                         Err(Error::DeviceError)
                     }
                 }
