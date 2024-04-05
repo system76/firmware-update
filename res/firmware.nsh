@@ -80,26 +80,26 @@ if "%2" == "bios" then
         # Flash with FPT and exit if possible
         if exist fpt.efi then
             if exist fparts.txt then
-                fpt.efi -P "%1\fparts.txt" -F "%1\firmware.rom" -DESC
+                fpt.efi -P "%1\fparts.txt" -F "%1\firmware.rom" -DESC -Y
                 if %lasterror% ne 0 then
                     exit %lasterror%
                 endif
-                fpt.efi -P "%1\fparts.txt" -F "%1\firmware.rom" -ME
+                fpt.efi -P "%1\fparts.txt" -F "%1\firmware.rom" -ME -Y
                 if %lasterror% ne 0 then
                     exit %lasterror%
                 endif
-                fpt.efi -P "%1\fparts.txt" -F "%1\firmware.rom" -BIOS
+                fpt.efi -P "%1\fparts.txt" -F "%1\firmware.rom" -BIOS -Y
                 exit %lasterror%
             else
-                fpt.efi -F "%1\firmware.rom" -DESC
+                fpt.efi -F "%1\firmware.rom" -DESC -Y
                 if %lasterror% ne 0 then
                     exit %lasterror%
                 endif
-                fpt.efi -F "%1\firmware.rom" -ME
+                fpt.efi -F "%1\firmware.rom" -ME -Y
                 if %lasterror% ne 0 then
                     exit %lasterror%
                 endif
-                fpt.efi -F "%1\firmware.rom" -BIOS
+                fpt.efi -F "%1\firmware.rom" -BIOS -Y
                 exit %lasterror%
             endif
         endif
