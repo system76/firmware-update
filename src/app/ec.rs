@@ -241,7 +241,14 @@ impl EcComponent {
                 "L140MU" => "system76/lemp10".to_string(),
                 "L140PU" => "system76/lemp11".to_string(),
                 "L140AU" => "system76/lemp12".to_string(),
-                "L2x0TU" => "system76/lemp13".to_string(),
+                "L2x0TU" => {
+                    // If the EC version starts with 1.07. then this is the original keyboard
+                    if self.version.starts_with("1.07.") {
+                        "system76/lemp13".to_string()
+                    } else {
+                        "system76/lemp13-b".to_string()
+                    }
+                },
                 "N130ZU" => "system76/galp3-c".to_string(),
                 "N140CU" => "system76/galp4".to_string(),
                 "N150ZU" => "system76/darp5".to_string(),
