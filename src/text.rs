@@ -242,12 +242,12 @@ impl<'a> TextDisplay<'a> {
 
         let stdout = self as *mut _;
         let mut stdout_handle = Handle(0);
-        (uefi.BootServices.InstallProtocolInterface)(
+        Result::from((uefi.BootServices.InstallProtocolInterface)(
             &mut stdout_handle,
             &SIMPLE_TEXT_OUTPUT_GUID,
             InterfaceType::Native,
             stdout as usize,
-        )?;
+        ))?;
 
         let old_stdout_handle = uefi.ConsoleOutHandle;
         let old_stdout = uefi.ConsoleOut as *mut _;

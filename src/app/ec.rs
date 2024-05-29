@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-use core::ops::{ControlFlow, Try};
 use ecflash::{Ec, EcFile, EcFlash};
 use ectool::{timeout, Access, AccessLpcDirect, Firmware, SecurityState, Spi, SpiRom, SpiTarget, Timeout};
 use plain::Plain;
@@ -8,7 +7,7 @@ use std::prelude::*;
 use std::uefi::{
     self,
     reset::ResetType,
-    status::{Error, Result, Status},
+    status::{Result, Status},
 };
 use std::{
     cell::Cell,
@@ -741,7 +740,7 @@ impl Component for EcComponent {
                     Ok(())
                 } else {
                     println!("{} Flash Error: {}", self.name(), status);
-                    Err(Error::DeviceError)
+                    Err(Status::DEVICE_ERROR)
                 }
             },
             EcKind::System76(_ec, _pmc) => {
@@ -753,7 +752,7 @@ impl Component for EcComponent {
                     Ok(()) => Ok(()),
                     Err(err) => {
                         println!("{} Flash Error: {:X?}", self.name(), err);
-                        Err(Error::DeviceError)
+                        Err(Status::DEVICE_ERROR)
                     }
                 }
             }
@@ -765,13 +764,13 @@ impl Component for EcComponent {
                     Ok(()) => Ok(()),
                     Err(err) => {
                         println!("{} Flash Error: {:X?}", self.name(), err);
-                        Err(Error::DeviceError)
+                        Err(Status::DEVICE_ERROR)
                     }
                 }
             }
             EcKind::Unknown => {
                 println!("{} Failed to flash EcKind::Unknown", self.name());
-                Err(Error::DeviceError)
+                Err(Status::DEVICE_ERROR)
             }
         };
 
@@ -790,15 +789,14 @@ impl Component for EcComponent {
                             | uefi::fs::FILE_MODE_WRITE,
                         0,
                     )
-                    .branch()
                     {
-                        ControlFlow::Continue(_) => {
+                        Status::SUCCESS => {
                             unsafe {
                                 let _ = ((*file).Close)(&mut *file);
                             }
                             println!("EC tag: created successfully");
                         }
-                        ControlFlow::Break(err) => {
+                        err => {
                             println!("EC tag: failed to create {}: {:?}", ECTAG, err);
                         }
                     }
@@ -832,9 +830,9 @@ fn memory_kind() -> Result<u8> {
         if let Ok(info) = dmi::MemoryDevice::from_bytes(&table.data) {
             return Ok(info.memory_kind);
         } else {
-            return Err(Error::DeviceError);
+            return Err(Status::DEVICE_ERROR);
         }
     }
 
-    Err(Error::DeviceError)
+    Err(Status::DEVICE_ERROR)
 }

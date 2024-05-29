@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-use core::ops::{ControlFlow, Try};
 use core::prelude::v1::derive;
 use core::{char, mem, ptr};
 use orbclient::{Color, Renderer};
@@ -11,7 +10,7 @@ use std::prelude::*;
 use std::proto::Protocol;
 use std::uefi::guid;
 use std::uefi::reset::ResetType;
-use std::uefi::status::{Error, Result, Status};
+use std::uefi::status::{Result, Status};
 use std::vars::{
     get_boot_current, get_boot_item, get_boot_next, get_boot_order,
     set_boot_item, set_boot_next, set_boot_order,
@@ -64,7 +63,7 @@ enum ValidateKind {
     Found,
     Mismatch,
     NotFound,
-    Error(Error),
+    Error(Status),
 }
 
 fn components_validations() -> (Vec<Box<dyn Component>>, Vec<ValidateKind>) {
@@ -90,7 +89,7 @@ fn components_validations() -> (Vec<Box<dyn Component>>, Vec<ValidateKind>) {
                     }
                 }
                 Err(err) => {
-                    if err == Error::NotFound || err == Error::InvalidParameter {
+                    if err == Status::NOT_FOUND || err == Status::INVALID_PARAMETER {
                         ValidateKind::NotFound
                     } else {
                         ValidateKind::Error(err)
@@ -134,12 +133,13 @@ fn reset_dmi() -> Result<()> {
         let mut size = 1024;
         let status =
             (uefi.RuntimeServices.GetNextVariableName)(&mut size, name.as_mut_ptr(), &mut guid);
-        if let ControlFlow::Break(err) = status.branch() {
-            match err {
-                Error::NotFound => break,
-                _ => return Err(err),
-            }
+
+        match status {
+            Status::SUCCESS => (),
+            Status::NOT_FOUND => break,
+            _ => return Err(status),
         }
+
         let name_str = nstr(name.as_mut_ptr());
         if name_str.starts_with("DmiVar") {
             vars.push((name_str, guid));
@@ -153,16 +153,16 @@ fn reset_dmi() -> Result<()> {
         let mut attributes = 0;
         let mut data = [0; 65536];
         let mut data_size = data.len();
-        (uefi.RuntimeServices.GetVariable)(
+        Result::from((uefi.RuntimeServices.GetVariable)(
             wname.as_ptr(),
             &guid,
             &mut attributes,
             &mut data_size,
             data.as_mut_ptr(),
-        )?;
+        ))?;
 
         let empty = [];
-        (uefi.RuntimeServices.SetVariable)(wname.as_ptr(), &guid, attributes, 0, empty.as_ptr())?;
+        Result::from((uefi.RuntimeServices.SetVariable)(wname.as_ptr(), &guid, attributes, 0, empty.as_ptr()))?;
     }
 
     Ok(())
@@ -227,14 +227,14 @@ fn inner() -> Result<()> {
     } else {
         let c = if let Ok((_, ectag)) = find(ECTAG) {
             // Attempt to remove EC tag
-            match (ectag.0.Delete)(ectag.0).branch() {
-                ControlFlow::Continue(_) => {
+            match (ectag.0.Delete)(ectag.0) {
+                Status::SUCCESS => {
                     println!("EC tag: deleted successfully");
 
                     // Have to prevent Close from being called after Delete
                     mem::forget(ectag);
                 }
-                ControlFlow::Break(err) => {
+                err => {
                     println!("EC tag: failed to delete: {:?}", err);
                 }
             }
@@ -279,7 +279,7 @@ fn inner() -> Result<()> {
                             Ok(()) => (),
                             Err(err) => {
                                 println!("Failed to unlock firmware: {:?}", err);
-                                return Err(Error::DeviceError);
+                                return Err(Status::DEVICE_ERROR);
                             }
                         },
                         // Assume EC is unlocked if not running System76 EC
@@ -372,7 +372,7 @@ pub fn main() -> Result<()> {
         for i in 0..output.0.Mode.MaxMode {
             let mut mode_ptr = ::core::ptr::null_mut();
             let mut mode_size = 0;
-            (output.0.QueryMode)(output.0, i, &mut mode_size, &mut mode_ptr)?;
+            Result::from((output.0.QueryMode)(output.0, i, &mut mode_size, &mut mode_ptr))?;
 
             let mode = unsafe { &mut *mode_ptr };
             let w = mode.HorizontalResolution;
