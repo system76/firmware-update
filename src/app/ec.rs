@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-use core::ops::{ControlFlow, Try};
 use ecflash::{Ec, EcFile, EcFlash};
 use ectool::{timeout, Access, AccessLpcDirect, Firmware, SecurityState, Spi, SpiRom, SpiTarget, Timeout};
 use plain::Plain;
@@ -8,14 +7,13 @@ use std::prelude::*;
 use std::uefi::{
     self,
     reset::ResetType,
-    status::{Error, Result, Status},
 };
+use core::cell::Cell;
+use core::ptr;
+use core::str;
 use std::{
-    cell::Cell,
     ffi::wstr,
     fs::{find, load},
-    ptr,
-    str,
 };
 
 use super::{pci_read, shell, Component, EC2ROM, ECROM, ECTAG, FIRMWAREDIR, FIRMWARENSH, sideband::Sideband};
@@ -744,7 +742,7 @@ impl Component for EcComponent {
                     Ok(())
                 } else {
                     println!("{} Flash Error: {}", self.name(), status);
-                    Err(Error::DeviceError)
+                    Err(Status::DEVICE_ERROR)
                 }
             },
             EcKind::System76(_ec, _pmc) => {
@@ -756,7 +754,7 @@ impl Component for EcComponent {
                     Ok(()) => Ok(()),
                     Err(err) => {
                         println!("{} Flash Error: {:X?}", self.name(), err);
-                        Err(Error::DeviceError)
+                        Err(Status::DEVICE_ERROR)
                     }
                 }
             }
@@ -768,13 +766,13 @@ impl Component for EcComponent {
                     Ok(()) => Ok(()),
                     Err(err) => {
                         println!("{} Flash Error: {:X?}", self.name(), err);
-                        Err(Error::DeviceError)
+                        Err(Status::DEVICE_ERROR)
                     }
                 }
             }
             EcKind::Unknown => {
                 println!("{} Failed to flash EcKind::Unknown", self.name());
-                Err(Error::DeviceError)
+                Err(Status::DEVICE_ERROR)
             }
         };
 
@@ -783,7 +781,7 @@ impl Component for EcComponent {
                 Ok((_, firmware_dir)) => {
                     //Try to create tag file without running shell
                     let filename = wstr(ECTAG);
-                    let mut file = std::ptr::null_mut::<uefi::fs::File>();
+                    let mut file = ptr::null_mut::<uefi::fs::File>();
                     match (firmware_dir.0.Open)(
                         firmware_dir.0,
                         &mut file,
@@ -793,16 +791,15 @@ impl Component for EcComponent {
                             | uefi::fs::FILE_MODE_WRITE,
                         0,
                     )
-                    .branch()
                     {
-                        ControlFlow::Continue(_) => {
+                        Status::SUCCESS => {
                             unsafe {
                                 let _ = ((*file).Close)(&mut *file);
                             }
                             println!("EC tag: created successfully");
                         }
-                        ControlFlow::Break(err) => {
-                            println!("EC tag: failed to create {}: {:?}", ECTAG, err);
+                        err => {
+                            println!("EC tag: failed to create {}: {}", ECTAG, err);
                         }
                     }
                 }
@@ -835,9 +832,9 @@ fn memory_kind() -> Result<u8> {
         if let Ok(info) = dmi::MemoryDevice::from_bytes(&table.data) {
             return Ok(info.memory_kind);
         } else {
-            return Err(Error::DeviceError);
+            return Err(Status::DEVICE_ERROR);
         }
     }
 
-    Err(Error::DeviceError)
+    Err(Status::DEVICE_ERROR)
 }
