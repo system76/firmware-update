@@ -185,7 +185,7 @@ if "%2" == "bios" then
            exit %lasterror%
         endif
 
-        # meer5, meer6, meer7, meer8, meer8-b
+        # meer5, meer6, meer7, meer8
         # Set logo, should reboot automatically
         if exist iflashv.efi then
             if exist iflashv.tag then
@@ -204,7 +204,7 @@ if "%2" == "bios" then
                     endif
                 endif
 
-                # meer7, meer8, meer8-b
+                # meer7, meer8
                 # Set all BIOS default settings and attempt to re-enable
                 #   iSetupCfg password protection setting (SCEPWD)
                 if exist isetupcfg.efi then
