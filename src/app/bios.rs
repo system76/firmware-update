@@ -362,6 +362,7 @@ impl Component for BiosComponent {
                 }
             }
 
+            /*
             // Copy old areas to new areas
             let area_names = ["SMMSTORE".to_string()];
             for area_name in &area_names {
@@ -414,6 +415,7 @@ impl Component for BiosComponent {
                     );
                 }
             }
+            */
 
             // Erase and write
             {
