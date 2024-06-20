@@ -34,6 +34,7 @@ mod component;
 mod ec;
 mod mapper;
 mod pci;
+mod sideband;
 
 static ECROM: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\ec.rom");
 static ECTAG: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\ec.tag");

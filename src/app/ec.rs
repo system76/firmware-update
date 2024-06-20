@@ -18,7 +18,7 @@ use std::{
     str,
 };
 
-use super::{pci_read, shell, Component, EC2ROM, ECROM, ECTAG, FIRMWAREDIR, FIRMWARENSH};
+use super::{pci_read, shell, Component, EC2ROM, ECROM, ECTAG, FIRMWAREDIR, FIRMWARENSH, sideband::Sideband};
 
 pub struct UefiTimeout {
     duration: u64,
@@ -280,11 +280,14 @@ impl EcComponent {
                 "NS50_70PU" => "system76/darp8".to_string(),
                 "NS50_70AU" => "system76/darp9".to_string(),
                 "V5x0TU" => {
-                    // If the EC version starts with 1.07. then this is the 16 inch variant
-                    if self.version.starts_with("1.07.") {
-                        "system76/darp10".to_string()
-                    } else {
-                        "system76/darp10-b".to_string()
+                    // If GPP_E2 is high, this is the 16 inch variant
+                    unsafe {
+                        let sideband = Sideband::new(0xE000_0000);
+                        if sideband.gpio(0xD2, 0x36) & 2 == 2 {
+                            "system76/darp10-b".to_string()
+                        } else {
+                            "system76/darp10".to_string()
+                        }
                     }
                 },
                 "NV40Mx" | "NV40Mx-DV" | "NV40MJ" => "system76/galp5".to_string(),
