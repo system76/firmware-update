@@ -151,6 +151,14 @@ if "%2" == "bios" then
             exit %lasterror%
         endif
 
+        # Flash with WRX90AfuEfix64 and exit if possible
+        # For: thelio-mega-r3
+        if exist WRX90AfuEfix64.efi then
+            WRX90AfuEfix64.efi firmware.rom /P /B /N /L /CAPSULE
+
+            exit %lasterror%
+        endif
+
         # Flash with efiflash and exit if possible
         if exist efiflash.efi then
             efiflash.efi firmware.rom /C /NR \NoOemId
