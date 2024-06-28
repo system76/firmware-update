@@ -25,9 +25,9 @@ dependencies = [
 
 [[package]]
 name = "downcast-rs"
-version = "1.2.0"
+version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ea835d29036a4087793836fa931b08837ad5e957da9e23886b29586fb9b6650"
+checksum = "75b325c5dbd37f80359721ad39aca5a29fb04c89279657cffdda8736d0c0b9d2"
 
 [[package]]
 name = "intel-spi"
@@ -43,9 +43,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.153"
+version = "0.2.155"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c198f91728a82281a64e1f4f9eeb25d82cb32a5de251c6bd1b5154d63a8e7bd"
+checksum = "97b3888a4aecf77e811145cadf6eef5901f4782c53886191b2f693f24761847c"
 
 [[package]]
 name = "libredox"
@@ -96,7 +96,7 @@ checksum = "7d8e51d17548d82fa194ca49c6adf81fce4a45bbddfdd7d35f68725cec1943f5"
 dependencies = [
  "bitflags 1.3.2",
  "plain",
- "redox_uefi",
+ "redox_uefi 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -115,21 +115,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ad1ef8d2afbe5adfc257e0847f360d0f175e7012c4fa984a284966b54ad5834d"
 
 [[package]]
+name = "redox_uefi"
+version = "0.1.12"
+source = "git+https://gitlab.redox-os.org/redox-os/uefi.git#695096ab997d7a207cad90d976d8907306b7eb98"
+
+[[package]]
 name = "redox_uefi_alloc"
 version = "0.1.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12fe0357fd0ecc7c7de510c9add51a52a9268c3fa5890f9c8dbef890e4b2d1f6"
+source = "git+https://gitlab.redox-os.org/redox-os/uefi.git#695096ab997d7a207cad90d976d8907306b7eb98"
 dependencies = [
- "redox_uefi",
+ "redox_uefi 0.1.12 (git+https://gitlab.redox-os.org/redox-os/uefi.git)",
 ]
 
 [[package]]
 name = "redox_uefi_std"
 version = "0.1.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a19dfc2a64c4a152fff1819c6ce74460c322a46da9c812ffaa1282260c19ec2"
+source = "git+https://gitlab.redox-os.org/redox-os/uefi.git#695096ab997d7a207cad90d976d8907306b7eb98"
 dependencies = [
- "redox_uefi",
+ "redox_uefi 0.1.12 (git+https://gitlab.redox-os.org/redox-os/uefi.git)",
  "redox_uefi_alloc",
 ]
 
@@ -142,7 +145,7 @@ checksum = "3b4428b459c1c06e7a3ecf1dd3e863f4e7442a474463094af6a702e3b860ec25"
 [[package]]
 name = "system76_ectool"
 version = "0.3.8"
-source = "git+https://github.com/system76/ec.git#38d4666a9007b6d36e344bbc36109876e519028e"
+source = "git+https://github.com/system76/ec.git#fc3bad29a2a31555bccaaacb6af6d20b7bb1b7f6"
 dependencies = [
  "downcast-rs",
  "redox_hwio",
