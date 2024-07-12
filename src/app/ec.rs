@@ -312,7 +312,8 @@ impl EcComponent {
                 "PE60SNx" => "system76/oryp12".to_string(),
                 "PDxxSNx" => "system76/serw13".to_string(),
                 "X170SM-G" => "system76/bonw14".to_string(),
-                "X370SNx" | "X370SNx1" => "system76/bonw15".to_string(),
+                "X370SNx" => "system76/bonw15".to_string(),
+                "X370SNx1" => "system76/bonw15-b".to_string(),
                 _ => model.to_string(),
             }
         };
