@@ -4,7 +4,6 @@ use std::prelude::*;
 
 use core::cell::Cell;
 use core::cmp;
-use core::prelude::v1::derive;
 
 use orbclient::{Color, Mode, Renderer};
 
@@ -61,7 +60,7 @@ impl Image {
     }
 
     /// Create a new image from a boxed slice of colors
-    pub fn from_data(width: u32, height: u32, data: Box<[Color]>) -> Result<Self, String> {
+    pub fn from_data(width: u32, height: u32, data: Box<[Color]>) -> core::result::Result<Self, String> {
         if (width * height) as usize != data.len() {
             return Err(
                 "not enough or too much data given compared to width and height".to_string(),

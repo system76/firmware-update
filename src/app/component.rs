@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::uefi::status::Result;
+use std::prelude::*;
 
 pub trait Component {
     fn name(&self) -> &str;
