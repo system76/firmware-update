@@ -2,8 +2,6 @@
 
 #![no_std]
 #![no_main]
-#![feature(try_trait_v2)]
-#![feature(control_flow_enum)]
 #![allow(clippy::collapsible_if)]
 #![allow(clippy::many_single_char_names)]
 #![allow(clippy::missing_safety_doc)]
@@ -17,11 +15,9 @@ extern crate uefi_std as std;
 
 use std::prelude::*;
 
-use core::ops::{ControlFlow, Try};
 use core::ptr;
 use std::uefi;
 use std::uefi::reset::ResetType;
-use std::uefi::status::{Result, Status};
 
 mod app;
 mod display;
@@ -39,10 +35,7 @@ fn set_max_mode(output: &uefi::text::TextOutput) -> Result<()> {
     for i in 0..output.Mode.MaxMode as usize {
         let mut w = 0;
         let mut h = 0;
-        if (output.QueryMode)(output, i, &mut w, &mut h)
-            .branch()
-            .is_continue()
-        {
+        if (output.QueryMode)(output, i, &mut w, &mut h).is_success() {
             if w >= max_w && h >= max_h {
                 max_i = Some(i);
                 max_w = w;
@@ -52,7 +45,7 @@ fn set_max_mode(output: &uefi::text::TextOutput) -> Result<()> {
     }
 
     if let Some(i) = max_i {
-        (output.SetMode)(output, i)?;
+        Result::from((output.SetMode)(output, i))?;
     }
 
     Ok(())
@@ -64,7 +57,7 @@ pub extern "C" fn main() -> Status {
 
     let _ = (uefi.BootServices.SetWatchdogTimer)(0, 0, 0, ptr::null());
 
-    if let ControlFlow::Break(err) = set_max_mode(uefi.ConsoleOut).branch() {
+    if let Err(err) = set_max_mode(uefi.ConsoleOut) {
         println!("Failed to set max mode: {:?}", err);
     }
 

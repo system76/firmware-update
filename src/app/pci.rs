@@ -95,7 +95,7 @@ pub fn pci_mcfg() -> Option<&'static [u8]> {
     None
 }
 
-pub fn pci_read(bus: u8, dev: u8, func: u8, offset: u8) -> Result<u32, String> {
+pub fn pci_read(bus: u8, dev: u8, func: u8, offset: u8) -> core::result::Result<u32, String> {
     if dev > 0x1f {
         return Err(format!("pci_read dev 0x{:x} is greater than 0x1f", dev));
     }
