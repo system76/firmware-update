@@ -4,7 +4,7 @@ use std::prelude::*;
 
 use super::Image;
 
-pub fn parse(file_data: &[u8]) -> Result<Image, String> {
+pub fn parse(file_data: &[u8]) -> core::result::Result<Image, String> {
     use orbclient::Color;
 
     let get = |i: usize| -> u8 {

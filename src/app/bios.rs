@@ -4,15 +4,14 @@ use alloc::collections::BTreeMap;
 use alloc::string::String;
 use core::arch::asm;
 use core::char;
+use core::ptr;
 use coreboot_fs::Rom;
 use ecflash::EcFlash;
 use intel_spi::{HsfStsCtl, Spi, SpiDev};
 use plain::Plain;
 use std::fs::{find, load};
 use std::prelude::*;
-use std::ptr;
 use std::uefi::reset::ResetType;
-use std::uefi::status::{Error, Result, Status};
 use std::vars::{get_boot_item, get_boot_order, set_boot_item, set_boot_order};
 
 use super::{
@@ -224,7 +223,7 @@ impl Component for BiosComponent {
             //     Self::spi_unlock();
             // }
 
-            let len = spi.len().map_err(|_| Error::DeviceError)?;
+            let len = spi.len().map_err(|_| Status::DEVICE_ERROR)?;
             Ok(data.len() == len)
         } else if self.capsule {
             Ok(true)
@@ -290,11 +289,11 @@ impl Component for BiosComponent {
             }
 
             // Check ROM size
-            let len = spi.len().map_err(|_| Error::DeviceError)?;
+            let len = spi.len().map_err(|_| Status::DEVICE_ERROR)?;
             println!("SPI ROM: {} MB", len / (1024 * 1024));
             if len != new.len() {
                 println!("firmware.rom size invalid");
-                return Err(Error::DeviceError);
+                return Err(Status::DEVICE_ERROR);
             }
 
             // Read current data
@@ -306,7 +305,7 @@ impl Component for BiosComponent {
                     let mut buf = [0; 4096];
                     let read = spi
                         .read(data.len(), &mut buf)
-                        .map_err(|_| Error::DeviceError)?;
+                        .map_err(|_| Status::DEVICE_ERROR)?;
                     data.extend_from_slice(&buf[..read]);
 
                     // Print output once per megabyte
@@ -325,7 +324,7 @@ impl Component for BiosComponent {
                 Ok(false) => (),
                 Err(err) => {
                     println!("Ethernet: failed to copy: {}", err);
-                    return Err(Error::DeviceError);
+                    return Err(Status::DEVICE_ERROR);
                 }
             }
 
@@ -376,7 +375,7 @@ impl Component for BiosComponent {
                     );
                     let new_slice = new
                         .get_mut(new_offset..new_offset + new_size)
-                        .ok_or(Error::DeviceError)?;
+                        .ok_or(Status::DEVICE_ERROR)?;
 
                     if let Some(area) = areas.get(area_name) {
                         let offset = area.offset as usize;
@@ -387,7 +386,7 @@ impl Component for BiosComponent {
                             new_offset,
                             new_size / 1024
                         );
-                        let slice = data.get(offset..offset + size).ok_or(Error::DeviceError)?;
+                        let slice = data.get(offset..offset + size).ok_or(Status::DEVICE_ERROR)?;
 
                         if slice.len() == new_slice.len() {
                             new_slice.copy_from_slice(slice);
@@ -471,7 +470,7 @@ impl Component for BiosComponent {
                                 "\nverification failed as {:#x}: {:#x} != {:#x}",
                                 address, data[address], new[address]
                             );
-                            return Err(Error::DeviceError);
+                            return Err(Status::DEVICE_ERROR);
                         }
                         address += 1;
                     }
@@ -547,7 +546,7 @@ impl Component for BiosComponent {
 
             if status != 0 {
                 println!("{} Flash Error: {}", self.name(), status);
-                return Err(Error::DeviceError);
+                return Err(Status::DEVICE_ERROR);
             }
         }
 
