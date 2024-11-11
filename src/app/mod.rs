@@ -224,16 +224,15 @@ fn inner() -> Result<()> {
     } else {
         let c = if let Ok((_, ectag)) = find(ECTAG) {
             // Attempt to remove EC tag
-            match (ectag.0.Delete)(ectag.0) {
-                Status::SUCCESS => {
-                    println!("EC tag: deleted successfully");
+            let status = (ectag.0.Delete)(ectag.0);
+            // XXX: Match previous behavior, which ignored warnings.
+            if !status.is_error() {
+                println!("EC tag: deleted successfully");
 
-                    // Have to prevent Close from being called after Delete
-                    mem::forget(ectag);
-                }
-                err => {
-                    println!("EC tag: failed to delete: {}", err);
-                }
+                // Have to prevent Close from being called after Delete
+                mem::forget(ectag);
+            } else {
+                println!("EC tag: failed to delete: {}", status);
             }
 
             // Skip enter if system76 ec flashing already occured
