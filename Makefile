@@ -51,5 +51,4 @@ $(BUILD)/boot.efi: Cargo.lock Cargo.toml src/* src/*/*
 		--target $(TARGET) \
 		--release \
 		-- \
-		-C soft-float \
 		--emit link=$@
