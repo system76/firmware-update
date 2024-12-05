@@ -17,6 +17,7 @@ use std::vars::{get_boot_item, get_boot_order, set_boot_item, set_boot_order};
 use super::{
     cmos, pci_mcfg, shell, Component, UefiMapper, FIRMWARECAP, FIRMWAREDIR, FIRMWARENSH,
     FIRMWAREROM, H2OFFT, IFLASHV, UEFIFLASH,
+    sideband::Sideband,
 };
 
 fn copy_region(
@@ -217,11 +218,41 @@ impl Component for BiosComponent {
 
     fn validate(&self) -> Result<bool> {
         let data = load(self.path())?;
-        if let Some((mut spi, _hsfsts_ctl)) = self.spi() {
-            // if hsfsts_ctl.contains(HsfStsCtl::FDOPSS) {
-            //     println!("SPI currently locked, attempting to unlock");
-            //     Self::spi_unlock();
-            // }
+        if let Some((mut spi, hsfsts_ctl)) = self.spi() {
+            #[allow(clippy::single_match)]
+            match self.system_version.as_str() {
+                "meer9" => {
+                    if hsfsts_ctl.contains(HsfStsCtl::FDOPSS) {
+                        println!("SPI currently locked, attempting to unlock");
+
+                        // Set ME_OVERRIDE (GPP_D09) high
+                        unsafe {
+                            let sideband = Sideband::new(0xE000_0000);
+                            let port = 0xD5;
+                            let pad = 0x44;
+                            let mut value = sideband.gpio(port, pad);
+                            value |= 1;
+                            sideband.set_gpio(port, pad, value);
+                        }
+
+                        println!("System will reboot in 5 seconds");
+                        let _ = (std::system_table().BootServices.Stall)(5_000_000);
+
+                        (std::system_table().RuntimeServices.ResetSystem)(
+                            ResetType::Cold,
+                            Status(0),
+                            0,
+                            ptr::null(),
+                        );
+                    }
+                },
+                _ => {
+                    // if hsfsts_ctl.contains(HsfStsCtl::FDOPSS) {
+                    //     println!("SPI currently locked, attempting to unlock");
+                    //     Self::spi_unlock();
+                    // }
+                }
+            }
 
             let len = spi.len().map_err(|_| Status::DEVICE_ERROR)?;
             Ok(data.len() == len)
