@@ -217,9 +217,36 @@ impl Component for BiosComponent {
 
     fn validate(&self) -> Result<bool> {
         let data = load(self.path())?;
+
+        if self.system_version.as_str() == "meer9" {
+            // HACK:
+            // CSME must be disabled or in read-only mode to write
+            // CSME region of SPI flash. PCH reset does not trigger
+            // CSME reset, so ME_OVERRIDE will not be in effect on
+            // cold reset. HECI reset can't be requested after End
+            // Of Post (before payload runs), so disable CSME as a
+            // workaround.
+            let mut cmos_options = cmos::CmosOptionTable::new();
+            // XXX: Probably better to check for HECI device.
+            if cmos_options.me_state() {
+                println!("\nDisabling CSME for writing SPI flash");
+                unsafe { cmos_options.set_me_state(false); }
+
+                println!("System will reboot in 5 seconds");
+                let _ = (std::system_table().BootServices.Stall)(5_000_000);
+
+                (std::system_table().RuntimeServices.ResetSystem)(
+                    ResetType::Cold,
+                    Status(0),
+                    0,
+                    ptr::null(),
+                );
+            }
+        }
+
         if let Some((mut spi, _hsfsts_ctl)) = self.spi() {
             // if hsfsts_ctl.contains(HsfStsCtl::FDOPSS) {
-            //     println!("SPI currently locked, attempting to unlock");
+            //     println!("\nSPI currently locked, attempting to unlock");
             //     Self::spi_unlock();
             // }
 
@@ -484,12 +511,9 @@ impl Component for BiosComponent {
                 println!();
             }
 
-            // Invalidate the 2-byte CMOS checksum to force writing the option defaults.
-            let mut cmos = cmos::Cmos::default();
-            let old_hi = cmos.read(123);
-            let old_lo = cmos.read(124);
-            cmos.write(123, !old_hi);
-            cmos.write(124, !old_lo);
+            // Have coreboot reset the option table to the defaults.
+            let mut cmos_options = cmos::CmosOptionTable::new();
+            unsafe { cmos_options.invalidate_checksum(); }
         } else {
             find(FIRMWARENSH)?;
 
