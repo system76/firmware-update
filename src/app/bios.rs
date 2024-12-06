@@ -407,7 +407,7 @@ impl Component for BiosComponent {
                             area_name
                         );
                     }
-                } else if areas.get(area_name).is_some() {
+                } else if areas.contains_key(area_name) {
                     println!(
                         "{}: found in old firmware, but not found in new firmware",
                         area_name

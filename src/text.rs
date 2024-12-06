@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+#![allow(clippy::missing_transmute_annotations)]
+
 use core::ops::Deref;
 use core::{char, mem};
 use orbclient::{Color, Renderer};
@@ -14,15 +16,15 @@ use crate::display::{Display, Output, ScaledDisplay};
 #[repr(C)]
 #[allow(non_snake_case)]
 pub struct TextDisplay<'a> {
-    pub Reset: extern "win64" fn(&mut TextDisplay, bool) -> Status,
-    pub OutputString: extern "win64" fn(&mut TextDisplay, *const u16) -> Status,
-    pub TestString: extern "win64" fn(&mut TextDisplay, *const u16) -> Status,
-    pub QueryMode: extern "win64" fn(&mut TextDisplay, usize, &mut usize, &mut usize) -> Status,
-    pub SetMode: extern "win64" fn(&mut TextDisplay, usize) -> Status,
-    pub SetAttribute: extern "win64" fn(&mut TextDisplay, usize) -> Status,
-    pub ClearScreen: extern "win64" fn(&mut TextDisplay) -> Status,
-    pub SetCursorPosition: extern "win64" fn(&mut TextDisplay, usize, usize) -> Status,
-    pub EnableCursor: extern "win64" fn(&mut TextDisplay, bool) -> Status,
+    pub Reset: extern "efiapi" fn(&mut TextDisplay, bool) -> Status,
+    pub OutputString: extern "efiapi" fn(&mut TextDisplay, *const u16) -> Status,
+    pub TestString: extern "efiapi" fn(&mut TextDisplay, *const u16) -> Status,
+    pub QueryMode: extern "efiapi" fn(&mut TextDisplay, usize, &mut usize, &mut usize) -> Status,
+    pub SetMode: extern "efiapi" fn(&mut TextDisplay, usize) -> Status,
+    pub SetAttribute: extern "efiapi" fn(&mut TextDisplay, usize) -> Status,
+    pub ClearScreen: extern "efiapi" fn(&mut TextDisplay) -> Status,
+    pub SetCursorPosition: extern "efiapi" fn(&mut TextDisplay, usize, usize) -> Status,
+    pub EnableCursor: extern "efiapi" fn(&mut TextDisplay, bool) -> Status,
     pub Mode: &'static TextOutputMode,
 
     pub mode: Box<TextOutputMode>,
@@ -33,22 +35,22 @@ pub struct TextDisplay<'a> {
     pub display: ScaledDisplay<'a>,
 }
 
-extern "win64" fn reset(_output: &mut TextDisplay, _extra: bool) -> Status {
+extern "efiapi" fn reset(_output: &mut TextDisplay, _extra: bool) -> Status {
     Status(0)
 }
 
-extern "win64" fn output_string(output: &mut TextDisplay, string: *const u16) -> Status {
+extern "efiapi" fn output_string(output: &mut TextDisplay, string: *const u16) -> Status {
     unsafe {
         output.write(string);
     }
     Status(0)
 }
 
-extern "win64" fn test_string(_output: &mut TextDisplay, _string: *const u16) -> Status {
+extern "efiapi" fn test_string(_output: &mut TextDisplay, _string: *const u16) -> Status {
     Status(0)
 }
 
-extern "win64" fn query_mode(
+extern "efiapi" fn query_mode(
     output: &mut TextDisplay,
     _mode: usize,
     columns: &mut usize,
@@ -59,21 +61,21 @@ extern "win64" fn query_mode(
     Status(0)
 }
 
-extern "win64" fn set_mode(_output: &mut TextDisplay, _mode: usize) -> Status {
+extern "efiapi" fn set_mode(_output: &mut TextDisplay, _mode: usize) -> Status {
     Status(0)
 }
 
-extern "win64" fn set_attribute(output: &mut TextDisplay, attribute: usize) -> Status {
+extern "efiapi" fn set_attribute(output: &mut TextDisplay, attribute: usize) -> Status {
     output.mode.Attribute = attribute as i32;
     Status(0)
 }
 
-extern "win64" fn clear_screen(output: &mut TextDisplay) -> Status {
+extern "efiapi" fn clear_screen(output: &mut TextDisplay) -> Status {
     output.clear();
     Status(0)
 }
 
-extern "win64" fn set_cursor_position(
+extern "efiapi" fn set_cursor_position(
     output: &mut TextDisplay,
     column: usize,
     row: usize,
@@ -82,7 +84,7 @@ extern "win64" fn set_cursor_position(
     Status(0)
 }
 
-extern "win64" fn enable_cursor(output: &mut TextDisplay, enable: bool) -> Status {
+extern "efiapi" fn enable_cursor(output: &mut TextDisplay, enable: bool) -> Status {
     output.mode.CursorVisible = enable;
     Status(0)
 }

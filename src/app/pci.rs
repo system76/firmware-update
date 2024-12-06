@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 use core::{mem, slice};
 use hwio::{Io, Pio};
 use std::prelude::*;

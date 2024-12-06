@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 use intel_spi::{Mapper, PhysicalAddress, VirtualAddress};
 
 pub struct UefiMapper;

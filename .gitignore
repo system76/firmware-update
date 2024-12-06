@@ -1,4 +1,3 @@
-build
-firmware
-prefix
-target
+/build
+/firmware
+/target

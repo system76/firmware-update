@@ -1,6 +1,5 @@
-// Copyright 2018-2021 System76 <info@system76.com>
-//
 // SPDX-License-Identifier: GPL-3.0-only
+// Copyright 2018-2021 System76 <info@system76.com>
 
 use core::ptr;
 
@@ -14,6 +13,7 @@ pub struct Sideband {
     pub addr: u64,
 }
 
+#[allow(dead_code)]
 impl Sideband {
     pub unsafe fn new(sbreg_phys: usize) -> Self {
         // On UEFI, physical memory is identity mapped
