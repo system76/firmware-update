@@ -265,6 +265,34 @@ fn inner() -> Result<()> {
         if c == '\n' || c == '\r' {
             success = true;
 
+            for c in &components {
+                if c.model() == "meer9" {
+                    // HACK:
+                    // CSME must be disabled or in read-only mode to write
+                    // CSME region of SPI flash. PCH reset does not trigger
+                    // CSME reset, so ME_OVERRIDE will not be in effect on
+                    // cold reset. HECI reset can't be requested after End
+                    // Of Post (before payload runs), so disable CSME as a
+                    // workaround.
+                    let mut cmos_options = cmos::CmosOptionTable::new();
+                    // XXX: Probably better to check for HECI device.
+                    if cmos_options.me_state() {
+                        println!("Disabling CSME for writing SPI flash");
+                        unsafe { cmos_options.set_me_state(false); }
+
+                        println!("System will reboot in 5 seconds");
+                        let _ = (std::system_table().BootServices.Stall)(5_000_000);
+
+                        (std::system_table().RuntimeServices.ResetSystem)(
+                            ResetType::Cold,
+                            Status(0),
+                            0,
+                            ptr::null(),
+                        );
+                    }
+                }
+            }
+
             {
                 let ec_kind = unsafe { EcKind::new(true) };
                 // If EC tag does not exist, unlock the firmware
