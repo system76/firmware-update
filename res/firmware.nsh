@@ -151,6 +151,13 @@ if "%2" == "bios" then
             exit %lasterror%
         endif
 
+        # Flash with ASRockAfuEfix64v2.efi and exit if possible
+        # For: thelio-mira-r4
+        if exist ASRockAfuEfix64v2.efi then
+            ASRockAfuEfix64v2.efi firmware.rom /Capsule /fab /p /n /q /l
+            exit %lasterror%
+        endif
+
         # Flash with WRX90AfuEfix64 and exit if possible
         # For: thelio-mega-r3
         if exist WRX90AfuEfix64.efi then
