@@ -11,12 +11,12 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Setup Rust toolchain
-      run: rustup show
+      run: rustup show active-toolchain || rustup toolchain install
 
     - name: clippy
       env:
         BASEDIR: "."
-      run: cargo clippy --target x86_64-unknown-uefi -- -D warnings
+      run: cargo clippy -- -D warnings
       continue-on-error: true
 
   build:
@@ -27,7 +27,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt install --yes make mtools parted
-        rustup show
+        rustup show active-toolchain || rustup toolchain install
 
     - name: Build UEFI application
       run: make

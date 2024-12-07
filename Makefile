@@ -1,30 +1,38 @@
-TARGET?=x86_64-unknown-uefi
-export BASEDIR?=system76-firmware-update
+# SPDX-License-Identifier: GPL-3.0-only
 
-export LD=ld
-export RUST_TARGET_PATH=$(CURDIR)/targets
-BUILD=build/$(TARGET)
+TARGET = x86_64-unknown-uefi
+UEFI_APP = target/$(TARGET)/release/system76_firmware_update.efi
+BUILD = build/$(TARGET)
+QEMU = qemu-system-x86_64
+OVMF = /usr/share/OVMF
 
-QEMU?=qemu-system-x86_64
-QEMU_FLAGS=\
-	-accel kvm \
-	-M q35 \
-	-m 1024 \
-	-net none \
-	-vga std \
-	-bios /usr/share/OVMF/OVMF_CODE.fd
+export BASEDIR ?= system76-firmware-update
+
 all: $(BUILD)/boot.img
 
+$(UEFI_APP): build
+
+.PHONY: build
+build:
+	cargo build --release
+
+.PHONY: clean
 clean:
 	cargo clean
 	rm -rf build
 
-update:
-	git submodule update --init --recursive --remote
-	cargo update
-
-qemu: $(BUILD)/boot.img
-	$(QEMU) $(QEMU_FLAGS) $<
+.PHONY: qemu
+qemu: $(BUILD)/boot.img $(OVMF)/OVMF_VARS.fd $(OVMF)/OVMF_CODE.fd
+	cp $(OVMF)/OVMF_CODE.fd target/
+	cp $(OVMF)/OVMF_VARS.fd target/
+	$(QEMU) -enable-kvm -M q35 -m 1024 -vga std \
+		-chardev stdio,mux=on,id=debug \
+		-device isa-serial,index=2,chardev=debug \
+		-device isa-debugcon,iobase=0x402,chardev=debug \
+		-drive if=pflash,format=raw,readonly=on,file=target/OVMF_CODE.fd \
+		-drive if=pflash,format=raw,readonly=on,file=target/OVMF_VARS.fd \
+		-net none \
+		$<
 
 $(BUILD)/boot.img: $(BUILD)/efi.img
 	dd if=/dev/zero of=$@.tmp bs=512 count=100352
@@ -34,7 +42,8 @@ $(BUILD)/boot.img: $(BUILD)/efi.img
 	dd if=$< of=$@.tmp bs=512 count=98304 seek=2048 conv=notrunc
 	mv $@.tmp $@
 
-$(BUILD)/efi.img: $(BUILD)/boot.efi res/*
+$(BUILD)/efi.img: $(UEFI_APP) res/*
+	mkdir -p $(@D)
 	dd if=/dev/zero of=$@.tmp bs=512 count=98304
 	mkfs.vfat $@.tmp
 	mmd -i $@.tmp efi
@@ -44,11 +53,3 @@ $(BUILD)/efi.img: $(BUILD)/boot.efi res/*
 	mcopy -i $@.tmp -s res ::$(BASEDIR)
 	if [ -d firmware ]; then mcopy -i $@.tmp -s firmware ::$(BASEDIR); fi
 	mv $@.tmp $@
-
-$(BUILD)/boot.efi: Cargo.lock Cargo.toml src/* src/*/*
-	mkdir -p $(BUILD)
-	cargo rustc \
-		--target $(TARGET) \
-		--release \
-		-- \
-		--emit link=$@
