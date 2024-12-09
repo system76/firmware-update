@@ -8,10 +8,6 @@ use std::fs::{find, load};
 use std::prelude::*;
 use std::proto::Protocol;
 use std::uefi::reset::ResetType;
-use std::vars::{
-    get_boot_current, get_boot_item, get_boot_next, get_boot_order,
-    set_boot_item, set_boot_next, set_boot_order,
-};
 
 use crate::display::{Display, Output, ScaledDisplay};
 use crate::image::{self, Image};
@@ -165,52 +161,9 @@ fn reset_dmi() -> Result<()> {
     Ok(())
 }
 
-fn set_override() -> Result<u16> {
-    let option = get_boot_current()?;
-    println!("Booting from item {:>04X}", option);
-
-    set_boot_next(Some(option))?;
-    println!("Set boot override to {:>04X}", option);
-
-    Ok(option)
-}
-
-fn remove_override(option: u16) -> Result<()> {
-    if let Ok(next) = get_boot_next() {
-        println!("Found boot override {:>04X}", next);
-
-        set_boot_next(None)?;
-        println!("Removed boot override");
-    } else {
-        println!("Already removed boot override");
-    }
-
-    if let Ok(mut order) = get_boot_order() {
-        println!("Found boot order {:>04X?}", order);
-        order.retain(|&x| x != option);
-        set_boot_order(&order)?;
-        println!("Set boot order {:>04X?}", order);
-    } else {
-        println!("Failed to read boot order");
-    }
-
-    if get_boot_item(option).is_ok() {
-        println!("Found boot option {:>04X}", option);
-
-        set_boot_item(option, &[])?;
-        println!("Removed boot option {:>04X}", option);
-    } else {
-        println!("Already removed boot option {:>04X}", option);
-    }
-
-    Ok(())
-}
-
 fn inner() -> Result<()> {
     let mut reboot = false;
     let mut success = false;
-
-    let option = set_override()?;
 
     let (mut components, mut validations) = components_validations();
 
@@ -345,8 +298,6 @@ fn inner() -> Result<()> {
             "! Not applying updates !"
         }
     };
-
-    remove_override(option)?;
 
     println!("{}", message);
 
