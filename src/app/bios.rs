@@ -366,7 +366,7 @@ impl Component for BiosComponent {
             }
 
             // Copy old areas to new areas
-            let area_names = ["SMMSTORE".to_string()];
+            let area_names: [String; 0] = [];
             for area_name in &area_names {
                 if let Some(new_area) = new_areas.get(area_name) {
                     let new_offset = new_area.offset as usize;
