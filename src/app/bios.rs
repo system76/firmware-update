@@ -387,7 +387,9 @@ impl Component for BiosComponent {
                             new_offset,
                             new_size / 1024
                         );
-                        let slice = data.get(offset..offset + size).ok_or(Status::DEVICE_ERROR)?;
+                        let slice = data
+                            .get(offset..offset + size)
+                            .ok_or(Status::DEVICE_ERROR)?;
 
                         if slice.len() == new_slice.len() {
                             new_slice.copy_from_slice(slice);
@@ -407,7 +409,7 @@ impl Component for BiosComponent {
                             area_name
                         );
                     }
-                } else if areas.get(area_name).is_some() {
+                } else if areas.contains_key(area_name) {
                     println!(
                         "{}: found in old firmware, but not found in new firmware",
                         area_name
@@ -487,7 +489,9 @@ impl Component for BiosComponent {
 
             // Have coreboot reset the option table to the defaults.
             let mut cmos_options = cmos::CmosOptionTable::new();
-            unsafe { cmos_options.invalidate_checksum(); }
+            unsafe {
+                cmos_options.invalidate_checksum();
+            }
         } else {
             find(FIRMWARENSH)?;
 

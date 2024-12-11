@@ -16,6 +16,6 @@ firmware-update expects the firmware images to have specific names:
 
 The mechanism used to apply updates depends on the firmware image:
 
-- coreboot-based SBIOS: firmware-update flashes using [intel-spi](https://github.com/system76/intel-spi)
-- System76 EC: firmware-update flashes using [ecflash](https://github.com/system76/ecflash)
-- Proprietary: The vendor-provided tools are used
+- coreboot-based system firmware: [intel-spi](https://github.com/system76/intel-spi)
+- System76 EC: [ectool](https://github.com/system76/ec)
+- Proprietary: Vendor-provided tools

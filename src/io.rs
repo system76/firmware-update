@@ -8,7 +8,11 @@ pub fn wait_key() -> Result<char> {
     let uefi = std::system_table();
 
     let mut index = 0;
-    Result::from((uefi.BootServices.WaitForEvent)(1, &uefi.ConsoleIn.WaitForKey, &mut index))?;
+    Result::from((uefi.BootServices.WaitForEvent)(
+        1,
+        &uefi.ConsoleIn.WaitForKey,
+        &mut index,
+    ))?;
 
     let mut input = TextInputKey {
         ScanCode: 0,

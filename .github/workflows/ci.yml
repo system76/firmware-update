@@ -11,7 +11,7 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Setup Rust toolchain
-      run: rustup show
+      run: rustup show active-toolchain || rustup toolchain install
 
     - name: clippy
       env:
@@ -27,7 +27,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt install --yes make mtools parted
-        rustup show
+        rustup show active-toolchain || rustup toolchain install
 
     - name: Build UEFI application
       run: make
