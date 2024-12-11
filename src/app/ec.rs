@@ -1,22 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-use ecflash::{Ec, EcFile, EcFlash};
-use ectool::{timeout, Access, AccessLpcDirect, Firmware, SecurityState, Spi, SpiRom, SpiTarget, Timeout};
-use plain::Plain;
-use std::prelude::*;
-use std::uefi::{
-    self,
-    reset::ResetType,
-};
 use core::cell::Cell;
 use core::ptr;
 use core::str;
+use ecflash::{Ec, EcFile, EcFlash};
+use ectool::{
+    timeout, Access, AccessLpcDirect, Firmware, SecurityState, Spi, SpiRom, SpiTarget, Timeout,
+};
+use plain::Plain;
+use std::prelude::*;
+use std::uefi::{self, reset::ResetType};
 use std::{
     ffi::wstr,
     fs::{find, load},
 };
 
-use super::{pci_read, shell, Component, EC2ROM, ECROM, ECTAG, FIRMWAREDIR, FIRMWARENSH, sideband::Sideband};
+use super::{
+    pci_read, shell, sideband::Sideband, Component, EC2ROM, ECROM, ECTAG, FIRMWAREDIR, FIRMWARENSH,
+};
 
 pub struct UefiTimeout {
     duration: u64,
@@ -47,7 +48,10 @@ impl Timeout for UefiTimeout {
 
 pub enum EcKind {
     Pang(ectool::Pmc<UefiTimeout>, String),
-    System76(ectool::Ec<AccessLpcDirect<UefiTimeout>>, ectool::Pmc<UefiTimeout>),
+    System76(
+        ectool::Ec<AccessLpcDirect<UefiTimeout>>,
+        ectool::Pmc<UefiTimeout>,
+    ),
     Legacy(EcFlash),
     Unknown,
 }
@@ -74,21 +78,21 @@ impl EcKind {
                 }
             }
 
-            if system_version == "pang12" || system_version == "pang13" || system_version == "pang14" ||
-               system_version == "pang15" {
+            if system_version == "pang12"
+                || system_version == "pang13"
+                || system_version == "pang14"
+                || system_version == "pang15"
+            {
                 return EcKind::Pang(
                     ectool::Pmc::new(0x62, UefiTimeout::new(100_000)),
-                    system_version
+                    system_version,
                 );
             }
         }
 
         if let Ok(access) = AccessLpcDirect::new(UefiTimeout::new(100_000)) {
             if let Ok(ec) = ectool::Ec::new(access) {
-                return EcKind::System76(
-                    ec,
-                    ectool::Pmc::new(0x62, UefiTimeout::new(100_000))
-                );
+                return EcKind::System76(ec, ectool::Pmc::new(0x62, UefiTimeout::new(100_000)));
             }
         }
 
@@ -104,15 +108,15 @@ impl EcKind {
             EcKind::Pang(ref mut pmc, _system_version) => {
                 let ecwr = pmc.acpi_read(0x80).unwrap_or(0);
                 (ecwr & 0x01) == 0x01
-            },
+            }
             EcKind::System76(_ec, ref mut pmc) => {
                 let adp = pmc.acpi_read(0x10).unwrap_or(0);
                 (adp & 0x01) == 0x01
-            },
+            }
             EcKind::Legacy(ref mut ec) => {
                 let adp = ec.get_param(0x10).unwrap_or(0);
                 (adp & 0x01) == 0x01
-            },
+            }
             EcKind::Unknown => true,
         }
     }
@@ -121,7 +125,7 @@ impl EcKind {
         match self {
             EcKind::Pang(_pmc, system_version) => {
                 return system_version.clone();
-            },
+            }
             EcKind::System76(ec, _pmc) => {
                 let data_size = ec.access().data_size();
                 let mut data = vec![0; data_size];
@@ -149,7 +153,7 @@ impl EcKind {
                         Err(err) => {
                             println!("Failed to read build time: {:?}", err);
                             return String::new();
-                        },
+                        }
                     }
                 }
 
@@ -160,16 +164,15 @@ impl EcKind {
                         Err(err) => {
                             println!("Failed to read build date: {:?}", err);
                             return String::new();
-                        },
+                        }
                     }
                 }
 
                 return format!(
                     "20{:02}/{:02}/{:02}_{:02}:{:02}:{:02}",
-                    ymd[0], ymd[1], ymd[2],
-                    hms[0], hms[1], hms[2]
+                    ymd[0], ymd[1], ymd[2], hms[0], hms[1], hms[2]
                 );
-            },
+            }
             EcKind::System76(ec, _pmc) => {
                 let data_size = ec.access().data_size();
                 let mut data = vec![0; data_size];
@@ -247,7 +250,7 @@ impl EcComponent {
                     } else {
                         "system76/lemp13-b".to_string()
                     }
-                },
+                }
                 "N130ZU" => "system76/galp3-c".to_string(),
                 "N140CU" => "system76/galp4".to_string(),
                 "N150ZU" => "system76/darp5".to_string(),
@@ -288,7 +291,7 @@ impl EcComponent {
                             "system76/darp10".to_string()
                         }
                     }
-                },
+                }
                 "NV40Mx" | "NV40Mx-DV" | "NV40MJ" => "system76/galp5".to_string(),
                 "NV4xPZ" => "system76/galp6".to_string(),
                 "NV40RZ" => "system76/galp7".to_string(),
@@ -489,7 +492,7 @@ pub unsafe fn security_unlock() -> core::result::Result<(), ectool::Error> {
                     ResetType::Shutdown,
                     Status(0),
                     0,
-                    ptr::null()
+                    ptr::null(),
                 );
             }
         },
@@ -746,7 +749,7 @@ impl Component for EcComponent {
                     println!("{} Flash Error: {}", self.name(), status);
                     Err(Status::DEVICE_ERROR)
                 }
-            },
+            }
             EcKind::System76(_ec, _pmc) => {
                 // System76 EC requires reset to load new firmware
                 requires_reset = true;
@@ -792,8 +795,7 @@ impl Component for EcComponent {
                             | uefi::fs::FILE_MODE_READ
                             | uefi::fs::FILE_MODE_WRITE,
                         0,
-                    )
-                    {
+                    ) {
                         Status::SUCCESS => {
                             unsafe {
                                 let _ = ((*file).Close)(&mut *file);

@@ -387,7 +387,9 @@ impl Component for BiosComponent {
                             new_offset,
                             new_size / 1024
                         );
-                        let slice = data.get(offset..offset + size).ok_or(Status::DEVICE_ERROR)?;
+                        let slice = data
+                            .get(offset..offset + size)
+                            .ok_or(Status::DEVICE_ERROR)?;
 
                         if slice.len() == new_slice.len() {
                             new_slice.copy_from_slice(slice);
@@ -487,7 +489,9 @@ impl Component for BiosComponent {
 
             // Have coreboot reset the option table to the defaults.
             let mut cmos_options = cmos::CmosOptionTable::new();
-            unsafe { cmos_options.invalidate_checksum(); }
+            unsafe {
+                cmos_options.invalidate_checksum();
+            }
         } else {
             find(FIRMWARENSH)?;
 

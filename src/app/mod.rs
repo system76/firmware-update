@@ -9,8 +9,8 @@ use std::prelude::*;
 use std::proto::Protocol;
 use std::uefi::reset::ResetType;
 use std::vars::{
-    get_boot_current, get_boot_item, get_boot_next, get_boot_order,
-    set_boot_item, set_boot_next, set_boot_order,
+    get_boot_current, get_boot_item, get_boot_next, get_boot_order, set_boot_item, set_boot_next,
+    set_boot_order,
 };
 
 use crate::display::{Display, Output, ScaledDisplay};
@@ -159,7 +159,13 @@ fn reset_dmi() -> Result<()> {
         ))?;
 
         let empty = [];
-        Result::from((uefi.RuntimeServices.SetVariable)(wname.as_ptr(), &guid, attributes, 0, empty.as_ptr()))?;
+        Result::from((uefi.RuntimeServices.SetVariable)(
+            wname.as_ptr(),
+            &guid,
+            attributes,
+            0,
+            empty.as_ptr(),
+        ))?;
     }
 
     Ok(())
@@ -278,7 +284,9 @@ fn inner() -> Result<()> {
                     // XXX: Probably better to check for HECI device.
                     if cmos_options.me_state() {
                         println!("Disabling CSME for writing SPI flash");
-                        unsafe { cmos_options.set_me_state(false); }
+                        unsafe {
+                            cmos_options.set_me_state(false);
+                        }
 
                         println!("System will reboot in 5 seconds");
                         let _ = (std::system_table().BootServices.Stall)(5_000_000);
@@ -396,7 +404,12 @@ pub fn main() -> Result<()> {
         for i in 0..output.0.Mode.MaxMode {
             let mut mode_ptr = ::core::ptr::null_mut();
             let mut mode_size = 0;
-            Result::from((output.0.QueryMode)(output.0, i, &mut mode_size, &mut mode_ptr))?;
+            Result::from((output.0.QueryMode)(
+                output.0,
+                i,
+                &mut mode_size,
+                &mut mode_ptr,
+            ))?;
 
             let mode = unsafe { &mut *mode_ptr };
             let w = mode.HorizontalResolution;

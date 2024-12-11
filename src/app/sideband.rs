@@ -17,7 +17,9 @@ pub struct Sideband {
 impl Sideband {
     pub unsafe fn new(sbreg_phys: usize) -> Self {
         // On UEFI, physical memory is identity mapped
-        Self { addr: sbreg_phys as u64 }
+        Self {
+            addr: sbreg_phys as u64,
+        }
     }
 
     #[must_use]
