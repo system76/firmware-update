@@ -149,13 +149,16 @@ impl<'a> TextDisplay<'a> {
             unsafe {
                 let scale = self.display.scale() as isize;
                 let data_ptr = self.display.data_mut().as_mut_ptr() as *mut u32;
-                crate::display::fast_copy(
-                    data_ptr.offset(dst as isize * scale * scale) as *mut u8,
+
+                // Move data up
+                core::ptr::copy(
                     data_ptr.offset(src as isize * scale * scale) as *const u8,
+                    data_ptr.offset(dst as isize * scale * scale) as *mut u8,
                     len * (scale * scale) as usize * 4,
                 );
             }
 
+            // Fill unused region
             self.display.rect(
                 self.off_x,
                 self.off_y + (self.rows as i32 - 1) * 16,
