@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-use core::arch::asm;
 use core::cell::Cell;
 use orbclient::{Color, Mode, Renderer};
 use std::prelude::*;
@@ -61,16 +60,22 @@ impl Display {
         let width = self.w as usize;
         let height = self.h as usize;
         if rows > 0 && rows < height {
+            // Offset of region to start copy from
             let off1 = rows * width;
+            // Size of region to copy / Offset of region to clear
             let off2 = height * width - off1;
             unsafe {
                 let data_ptr = self.data.as_mut_ptr() as *mut u32;
-                fast_copy(
-                    data_ptr as *mut u8,
+
+                // Move data up
+                core::ptr::copy(
                     data_ptr.add(off1) as *const u8,
+                    data_ptr as *mut u8,
                     off2 * 4,
                 );
-                fast_set32(data_ptr.add(off2), color.data, off1);
+
+                // Fill unused region
+                core::slice::from_raw_parts_mut(data_ptr.add(off2), off1).fill(color.data);
             }
         }
     }
@@ -177,32 +182,4 @@ impl<'a> Renderer for ScaledDisplay<'a> {
     fn mode(&self) -> &Cell<Mode> {
         self.display.mode()
     }
-}
-
-#[cfg(target_arch = "x86_64")]
-#[inline(always)]
-#[cold]
-pub unsafe fn fast_copy(dst: *mut u8, src: *const u8, len: usize) {
-    asm!(
-        "cld",
-        "rep movsb [rdi], [rsi]",
-        inout("rdi") dst => _,
-        inout("rsi") src => _,
-        inout("rcx") len => _,
-        options(nostack)
-    );
-}
-
-#[cfg(target_arch = "x86_64")]
-#[inline(always)]
-#[cold]
-pub unsafe fn fast_set32(dst: *mut u32, src: u32, len: usize) {
-    asm!(
-        "cld",
-        "rep stosd [rdi], eax",
-        inout("rdi") dst => _,
-        inout("eax") src => _,
-        inout("rcx") len => _,
-        options(nostack)
-    );
 }
