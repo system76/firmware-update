@@ -173,6 +173,7 @@ impl<'a> TextDisplay<'a> {
         self.mode.CursorColumn = column;
     }
 
+    #[allow(clippy::missing_safety_doc)]
     pub unsafe fn write(&mut self, string: *const u16) {
         let bg = Color::rgb(0, 0, 0);
         let fg = Color::rgb(255, 255, 255);

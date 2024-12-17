@@ -3,11 +3,6 @@
 #![no_std]
 #![no_main]
 #![allow(clippy::collapsible_if)]
-#![allow(clippy::many_single_char_names)]
-#![allow(clippy::missing_safety_doc)]
-#![allow(clippy::needless_range_loop)]
-#![allow(clippy::single_match)]
-#![allow(clippy::uninlined_format_args)]
 
 extern crate alloc;
 #[macro_use]
