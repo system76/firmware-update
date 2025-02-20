@@ -404,7 +404,7 @@ impl<T: Timeout> SpiLegacy<T> {
 
     unsafe fn read(&mut self, data: &mut [u8]) -> core::result::Result<(), ectool::Error> {
         let block_size = self.block_size();
-        let blocks = (data.len() + block_size - 1) / block_size;
+        let blocks = data.len().div_ceil(block_size);
         for block in 0..blocks {
             unsafe {
                 self.pmc_cmd(0x03)?;
@@ -427,7 +427,7 @@ impl<T: Timeout> SpiLegacy<T> {
 
     unsafe fn write(&mut self, data: &[u8]) -> core::result::Result<(), ectool::Error> {
         let block_size = self.block_size();
-        let blocks = (data.len() + block_size - 1) / block_size;
+        let blocks = data.len().div_ceil(block_size);
         for block in 0..blocks {
             unsafe {
                 self.pmc_cmd(0x02)?;
