@@ -137,7 +137,7 @@ impl<'a> ScaledDisplay<'a> {
     }
 }
 
-impl<'a> Renderer for ScaledDisplay<'a> {
+impl Renderer for ScaledDisplay<'_> {
     fn width(&self) -> u32 {
         self.display.width() / self.scale
     }

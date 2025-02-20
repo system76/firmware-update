@@ -6,7 +6,7 @@ use std::prelude::*;
 use std::uefi::guid;
 
 #[allow(dead_code)]
-#[repr(packed)]
+#[repr(C, packed)]
 struct Rsdp {
     signature: [u8; 8], // b"RSD PTR "
     chksum: u8,
@@ -21,7 +21,7 @@ struct Rsdp {
 }
 
 #[allow(dead_code)]
-#[repr(packed)]
+#[repr(C, packed)]
 struct SdtHeader {
     signature: [u8; 4],
     length: u32,
