@@ -15,8 +15,8 @@ use std::uefi::reset::ResetType;
 use std::vars::{get_boot_item, get_boot_order, set_boot_item, set_boot_order};
 
 use super::{
-    cmos, pci_mcfg, shell, Component, UefiMapper, FIRMWARECAP, FIRMWAREDIR, FIRMWARENSH,
-    FIRMWAREROM, H2OFFT, IFLASHV, UEFIFLASH,
+    Component, FIRMWARECAP, FIRMWAREDIR, FIRMWARENSH, FIRMWAREROM, H2OFFT, IFLASHV, UEFIFLASH,
+    UefiMapper, cmos, pci_mcfg, shell,
 };
 
 fn copy_region(
@@ -146,6 +146,9 @@ impl BiosComponent {
                             return None;
                         }
                     };
+
+                    // FIXME: https://doc.rust-lang.org/nightly/edition-guide/rust-2024/static-mut-references.html
+                    #[allow(static_mut_refs)]
                     let spi = match unsafe { SpiDev::new(mcfg, &mut UEFI_MAPPER) } {
                         Ok(ok) => ok,
                         Err(err) => {

@@ -183,12 +183,12 @@ impl<'a> TextDisplay<'a> {
 
         let mut i = 0;
         loop {
-            let w = *string.offset(i);
+            let w = unsafe { *string.offset(i) };
             if w == 0 {
                 break;
             }
 
-            let c = char::from_u32_unchecked(w as u32);
+            let c = unsafe { char::from_u32_unchecked(w as u32) };
 
             if self.mode.CursorColumn as usize >= self.cols {
                 self.mode.CursorColumn = 0;

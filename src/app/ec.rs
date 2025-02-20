@@ -5,7 +5,7 @@ use core::ptr;
 use core::str;
 use ecflash::{Ec, EcFile, EcFlash};
 use ectool::{
-    timeout, Access, AccessLpcDirect, Firmware, SecurityState, Spi, SpiRom, SpiTarget, Timeout,
+    Access, AccessLpcDirect, Firmware, SecurityState, Spi, SpiRom, SpiTarget, Timeout, timeout,
 };
 use plain::Plain;
 use std::prelude::*;
@@ -16,7 +16,7 @@ use std::{
 };
 
 use super::{
-    pci_read, shell, sideband::Sideband, Component, EC2ROM, ECROM, ECTAG, FIRMWAREDIR, FIRMWARENSH,
+    Component, EC2ROM, ECROM, ECTAG, FIRMWAREDIR, FIRMWARENSH, pci_read, shell, sideband::Sideband,
 };
 
 pub struct UefiTimeout {
@@ -84,15 +84,17 @@ impl EcKind {
                 || system_version == "pang15"
             {
                 return EcKind::Pang(
-                    ectool::Pmc::new(0x62, UefiTimeout::new(100_000)),
+                    unsafe { ectool::Pmc::new(0x62, UefiTimeout::new(100_000)) },
                     system_version,
                 );
             }
         }
 
-        if let Ok(access) = AccessLpcDirect::new(UefiTimeout::new(100_000)) {
-            if let Ok(ec) = ectool::Ec::new(access) {
-                return EcKind::System76(ec, ectool::Pmc::new(0x62, UefiTimeout::new(100_000)));
+        if let Ok(access) = unsafe { AccessLpcDirect::new(UefiTimeout::new(100_000)) } {
+            if let Ok(ec) = unsafe { ectool::Ec::new(access) } {
+                return EcKind::System76(ec, unsafe {
+                    ectool::Pmc::new(0x62, UefiTimeout::new(100_000))
+                });
             }
         }
 
@@ -105,16 +107,16 @@ impl EcKind {
 
     pub unsafe fn ac_connected(&mut self) -> bool {
         match self {
-            EcKind::Pang(ref mut pmc, _system_version) => {
-                let ecwr = pmc.acpi_read(0x80).unwrap_or(0);
+            EcKind::Pang(pmc, _system_version) => {
+                let ecwr = unsafe { pmc.acpi_read(0x80).unwrap_or(0) };
                 (ecwr & 0x01) == 0x01
             }
-            EcKind::System76(_ec, ref mut pmc) => {
-                let adp = pmc.acpi_read(0x10).unwrap_or(0);
+            EcKind::System76(_ec, pmc) => {
+                let adp = unsafe { pmc.acpi_read(0x10).unwrap_or(0) };
                 (adp & 0x01) == 0x01
             }
-            EcKind::Legacy(ref mut ec) => {
-                let adp = ec.get_param(0x10).unwrap_or(0);
+            EcKind::Legacy(ec) => {
+                let adp = unsafe { ec.get_param(0x10).unwrap_or(0) };
                 (adp & 0x01) == 0x01
             }
             EcKind::Unknown => true,
@@ -127,9 +129,9 @@ impl EcKind {
                 return system_version.clone();
             }
             EcKind::System76(ec, _pmc) => {
-                let data_size = ec.access().data_size();
+                let data_size = unsafe { ec.access().data_size() };
                 let mut data = vec![0; data_size];
-                if let Ok(count) = ec.board(&mut data) {
+                if let Ok(count) = unsafe { ec.board(&mut data) } {
                     if let Ok(string) = str::from_utf8(&data[..count]) {
                         return string.to_string();
                     }
@@ -148,7 +150,7 @@ impl EcKind {
             EcKind::Pang(pmc, _system_version) => {
                 let mut hms = [0u8; 3];
                 for i in 0..hms.len() {
-                    match pmc.acpi_read(0x08 + i as u8) {
+                    match unsafe { pmc.acpi_read(0x08 + i as u8) } {
                         Ok(value) => hms[i] = value,
                         Err(err) => {
                             println!("Failed to read build time: {:?}", err);
@@ -159,7 +161,7 @@ impl EcKind {
 
                 let mut ymd = [0u8; 3];
                 for i in 0..ymd.len() {
-                    match pmc.acpi_read(0x0C + i as u8) {
+                    match unsafe { pmc.acpi_read(0x0C + i as u8) } {
                         Ok(value) => ymd[i] = value,
                         Err(err) => {
                             println!("Failed to read build date: {:?}", err);
@@ -174,9 +176,9 @@ impl EcKind {
                 );
             }
             EcKind::System76(ec, _pmc) => {
-                let data_size = ec.access().data_size();
+                let data_size = unsafe { ec.access().data_size() };
                 let mut data = vec![0; data_size];
-                if let Ok(count) = ec.version(&mut data) {
+                if let Ok(count) = unsafe { ec.version(&mut data) } {
                     if let Ok(string) = str::from_utf8(&data[..count]) {
                         return string.to_string();
                     }
@@ -334,7 +336,7 @@ struct SpiLegacy<T: Timeout> {
 impl<T: Timeout> SpiLegacy<T> {
     unsafe fn new(timeout: T) -> Self {
         Self {
-            pmc: ectool::Pmc::new(0x62, UefiTimeout::new(0)),
+            pmc: unsafe { ectool::Pmc::new(0x62, UefiTimeout::new(0)) },
             timeout,
         }
     }
@@ -349,42 +351,48 @@ impl<T: Timeout> SpiLegacy<T> {
 
     unsafe fn pmc_cmd(&mut self, data: u8) -> core::result::Result<(), ectool::Error> {
         self.timeout.reset();
-        timeout!(self.timeout, self.pmc.command(data))
+        timeout!(self.timeout, unsafe { self.pmc.command(data) })
     }
 
     unsafe fn pmc_read(&mut self) -> core::result::Result<u8, ectool::Error> {
         self.timeout.reset();
-        timeout!(self.timeout, self.pmc.read())
+        timeout!(self.timeout, unsafe { self.pmc.read() })
     }
 
     unsafe fn pmc_write(&mut self, data: u8) -> core::result::Result<(), ectool::Error> {
         self.timeout.reset();
-        timeout!(self.timeout, self.pmc.write(data))
+        timeout!(self.timeout, unsafe { self.pmc.write(data) })
     }
 
     unsafe fn scratch(&mut self) -> core::result::Result<u8, ectool::Error> {
-        self.pmc_cmd(0xDE)?;
-        self.pmc_cmd(0xDC)?;
-        self.pmc_cmd(0xF0)?;
-        self.pmc_read()
+        unsafe {
+            self.pmc_cmd(0xDE)?;
+            self.pmc_cmd(0xDC)?;
+            self.pmc_cmd(0xF0)?;
+            self.pmc_read()
+        }
     }
 
     unsafe fn erase_page(&mut self, page: u16) -> core::result::Result<(), ectool::Error> {
-        self.pmc_cmd(0x05)?;
-        self.pmc_cmd((page >> 8) as u8)?;
-        self.pmc_cmd(page as u8)?;
-        self.pmc_cmd(0)?;
-        Ok(())
+        unsafe {
+            self.pmc_cmd(0x05)?;
+            self.pmc_cmd((page >> 8) as u8)?;
+            self.pmc_cmd(page as u8)?;
+            self.pmc_cmd(0)?;
+            Ok(())
+        }
     }
 
     unsafe fn read(&mut self, data: &mut [u8]) -> core::result::Result<(), ectool::Error> {
         let block_size = self.block_size();
         let blocks = (data.len() + block_size - 1) / block_size;
         for block in 0..blocks {
-            self.pmc_cmd(0x03)?;
-            self.pmc_cmd(block as u8)?;
+            unsafe {
+                self.pmc_cmd(0x03)?;
+                self.pmc_cmd(block as u8)?;
+            }
             for i in 0..block_size {
-                let byte = self.pmc_read()?;
+                let byte = unsafe { self.pmc_read()? };
                 let addr = block * block_size + i;
                 if addr % self.page_size() == 0 {
                     print!("\r{}%", (addr * 100) / (blocks * block_size));
@@ -402,18 +410,20 @@ impl<T: Timeout> SpiLegacy<T> {
         let block_size = self.block_size();
         let blocks = (data.len() + block_size - 1) / block_size;
         for block in 0..blocks {
-            self.pmc_cmd(0x02)?;
-            self.pmc_cmd(0x00)?;
-            self.pmc_cmd(block as u8)?;
-            self.pmc_cmd(0x00)?;
-            self.pmc_cmd(0x00)?;
+            unsafe {
+                self.pmc_cmd(0x02)?;
+                self.pmc_cmd(0x00)?;
+                self.pmc_cmd(block as u8)?;
+                self.pmc_cmd(0x00)?;
+                self.pmc_cmd(0x00)?;
+            }
             for i in 0..block_size {
                 let addr = block * block_size + i;
                 if addr % self.page_size() == 0 {
                     print!("\r{}%", (addr * 100) / (blocks * block_size));
                 }
                 let byte = if addr < data.len() { data[addr] } else { 0xFF };
-                self.pmc_write(byte)?;
+                unsafe { self.pmc_write(byte)? };
             }
         }
         println!("\r100%");
@@ -422,7 +432,7 @@ impl<T: Timeout> SpiLegacy<T> {
 }
 
 unsafe fn flash_legacy(firmware_data: &[u8]) -> core::result::Result<(), ectool::Error> {
-    let mut spi = SpiLegacy::new(UefiTimeout::new(1_000_000));
+    let mut spi = unsafe { SpiLegacy::new(UefiTimeout::new(1_000_000)) };
 
     let new_rom = firmware_data.to_vec();
 
@@ -434,19 +444,19 @@ unsafe fn flash_legacy(firmware_data: &[u8]) -> core::result::Result<(), ectool:
     }
 
     println!("Entering scratch ROM");
-    let _ = spi.scratch()?;
+    let _ = unsafe { spi.scratch()? };
 
     println!("Erasing ROM");
     let pages = rom_size / spi.page_size();
     for page in 0..pages {
         print!("\r{}%", (page * 100) / pages);
-        spi.erase_page(page as u16)?;
+        unsafe { spi.erase_page(page as u16)? };
     }
     println!("\r100%");
 
     println!("Verifying ROM erase");
     let mut erased = vec![0; rom_size];
-    spi.read(&mut erased)?;
+    unsafe { spi.read(&mut erased)? };
     for (addr, byte) in erased.iter().enumerate() {
         if *byte != 0xFF {
             println!(
@@ -458,11 +468,11 @@ unsafe fn flash_legacy(firmware_data: &[u8]) -> core::result::Result<(), ectool:
     }
 
     println!("Writing ROM");
-    spi.write(&new_rom)?;
+    unsafe { spi.write(&new_rom)? };
 
     println!("Verifying ROM write");
     let mut written = vec![0; rom_size];
-    spi.read(&mut written)?;
+    unsafe { spi.read(&mut written)? };
     for (addr, byte) in written.iter().enumerate() {
         if *byte != written[addr] {
             println!(
@@ -477,16 +487,16 @@ unsafe fn flash_legacy(firmware_data: &[u8]) -> core::result::Result<(), ectool:
 }
 
 pub unsafe fn security_unlock() -> core::result::Result<(), ectool::Error> {
-    let access = AccessLpcDirect::new(UefiTimeout::new(100_000))?;
-    let mut ec = ectool::Ec::new(access)?;
+    let access = unsafe { AccessLpcDirect::new(UefiTimeout::new(100_000))? };
+    let mut ec = unsafe { ectool::Ec::new(access)? };
 
-    match ec.security_get() {
+    match unsafe { ec.security_get() } {
         Ok(state) => match state {
             // If already unlocked, continue
             SecurityState::Unlock => Ok(()),
             // If not unlocked, send the prepare to unlock command and shut off
             _ => {
-                ec.security_set(SecurityState::PrepareUnlock)?;
+                unsafe { ec.security_set(SecurityState::PrepareUnlock)? };
 
                 (std::system_table().RuntimeServices.ResetSystem)(
                     ResetType::Shutdown,
@@ -514,7 +524,7 @@ unsafe fn flash_read<S: Spi>(
     while address < rom.len() {
         print!("\rSPI Read {}K", address / 1024);
         let next_address = address + sector_size;
-        let count = spi.read_at(address as u32, &mut rom[address..next_address])?;
+        let count = unsafe { spi.read_at(address as u32, &mut rom[address..next_address])? };
         if count != sector_size {
             println!(
                 "\ncount {} did not match sector size {}",
@@ -532,9 +542,9 @@ unsafe fn flash(
     firmware_data: &[u8],
     target: SpiTarget,
 ) -> core::result::Result<(), ectool::Error> {
-    let access = AccessLpcDirect::new(UefiTimeout::new(100_000))?;
-    let mut ec = ectool::Ec::new(access)?;
-    let data_size = ec.access().data_size();
+    let access = unsafe { AccessLpcDirect::new(UefiTimeout::new(100_000))? };
+    let mut ec = unsafe { ectool::Ec::new(access)? };
+    let data_size = unsafe { ec.access().data_size() };
 
     println!(
         "Programming EC {} ROM",
@@ -546,7 +556,7 @@ unsafe fn flash(
 
     {
         let mut data = vec![0; data_size];
-        let size = ec.board(&mut data)?;
+        let size = unsafe { ec.board(&mut data)? };
 
         let ec_board = &data[..size];
         println!("ec board: {:?}", str::from_utf8(ec_board));
@@ -554,7 +564,7 @@ unsafe fn flash(
 
     {
         let mut data = vec![0; data_size];
-        let size = ec.version(&mut data)?;
+        let size = unsafe { ec.version(&mut data)? };
 
         let ec_version = &data[..size];
         println!("ec version: {:?}", str::from_utf8(ec_version));
@@ -569,12 +579,12 @@ unsafe fn flash(
         return Err(ectool::Error::Verify);
     }
 
-    let mut spi_bus = ec.spi(SpiTarget::Main, true)?;
+    let mut spi_bus = unsafe { ec.spi(SpiTarget::Main, true)? };
     let mut spi = SpiRom::new(&mut spi_bus, UefiTimeout::new(1_000_000));
     let sector_size = spi.sector_size();
 
     let mut rom = vec![0xFF; rom_size];
-    flash_read(&mut spi, &mut rom, sector_size)?;
+    unsafe { flash_read(&mut spi, &mut rom, sector_size)? };
 
     // Program chip, sector by sector
     //TODO: write signature last
@@ -602,10 +612,11 @@ unsafe fn flash(
 
             if !matches {
                 if !erased {
-                    spi.erase_sector(address as u32)?;
+                    unsafe { spi.erase_sector(address as u32)? };
                 }
                 if !new_erased {
-                    let count = spi.write_at(address as u32, &new_rom[address..next_address])?;
+                    let count =
+                        unsafe { spi.write_at(address as u32, &new_rom[address..next_address])? };
                     if count != sector_size {
                         println!(
                             "\nWrite count {} did not match sector size {}",
@@ -621,7 +632,7 @@ unsafe fn flash(
         println!("\rSPI Write {}K", address / 1024);
 
         // Verify chip write
-        flash_read(&mut spi, &mut rom, sector_size)?;
+        unsafe { flash_read(&mut spi, &mut rom, sector_size)? };
         for i in 0..rom.len() {
             if rom[i] != new_rom[i] {
                 println!(
@@ -651,64 +662,66 @@ struct I2EC {
 impl I2EC {
     unsafe fn new() -> Self {
         Self {
-            sio: ectool::SuperIo::new(0x2E),
+            sio: unsafe { ectool::SuperIo::new(0x2E) },
         }
     }
 
     unsafe fn d2_read(&mut self, addr: u8) -> u8 {
-        self.sio.write(0x2E, addr);
-        self.sio.read(0x2F)
+        unsafe {
+            self.sio.write(0x2E, addr);
+            self.sio.read(0x2F)
+        }
     }
 
     unsafe fn d2_write(&mut self, addr: u8, value: u8) {
-        self.sio.write(0x2E, addr);
-        self.sio.write(0x2F, value);
+        unsafe {
+            self.sio.write(0x2E, addr);
+            self.sio.write(0x2F, value);
+        }
     }
 
     unsafe fn read(&mut self, addr: u16) -> u8 {
-        self.d2_write(0x11, (addr >> 8) as u8);
-        self.d2_write(0x10, addr as u8);
-        self.d2_read(0x12)
+        unsafe {
+            self.d2_write(0x11, (addr >> 8) as u8);
+            self.d2_write(0x10, addr as u8);
+            self.d2_read(0x12)
+        }
     }
 
     unsafe fn write(&mut self, addr: u16, value: u8) {
-        self.d2_write(0x11, (addr >> 8) as u8);
-        self.d2_write(0x10, addr as u8);
-        self.d2_write(0x12, value);
+        unsafe {
+            self.d2_write(0x11, (addr >> 8) as u8);
+            self.d2_write(0x10, addr as u8);
+            self.d2_write(0x12, value);
+        }
     }
 }
 
 unsafe fn watchdog_reset(global: bool) {
-    let mut i2ec = I2EC::new();
+    unsafe {
+        let mut i2ec = I2EC::new();
 
-    let mut rsts = i2ec.read(0x2006);
-    if global {
-        rsts |= 1 << 2;
-    } else {
-        rsts &= !(1 << 2);
+        let mut rsts = i2ec.read(0x2006);
+        if global {
+            rsts |= 1 << 2;
+        } else {
+            rsts &= !(1 << 2);
+        }
+        i2ec.write(0x2006, rsts);
+
+        let etwcfg = i2ec.read(0x1F01);
+        i2ec.write(0x1F01, etwcfg | (1 << 5));
+        i2ec.write(0x1F07, 0);
     }
-    i2ec.write(0x2006, rsts);
-
-    let etwcfg = i2ec.read(0x1F01);
-    i2ec.write(0x1F01, etwcfg | (1 << 5));
-    i2ec.write(0x1F07, 0);
 }
 
 impl Component for EcComponent {
     fn name(&self) -> &str {
-        if self.master {
-            "EC"
-        } else {
-            "EC2"
-        }
+        if self.master { "EC" } else { "EC2" }
     }
 
     fn path(&self) -> &str {
-        if self.master {
-            ECROM
-        } else {
-            EC2ROM
-        }
+        if self.master { ECROM } else { EC2ROM }
     }
 
     fn model(&self) -> &str {

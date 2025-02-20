@@ -95,13 +95,17 @@ impl CmosOptionTable {
         };
 
         self.cmos.write(Self::ME_STATE_OFFSET, new_state);
-        self.set_checksum(new_cksum);
+        unsafe {
+            self.set_checksum(new_cksum);
+        }
     }
 
     /// Invalidate the 2-byte CMOS checksum to have coreboot erase the option
     /// table and write out the defaults.
     pub unsafe fn invalidate_checksum(&mut self) {
         let cksum = self.checksum();
-        self.set_checksum(!cksum);
+        unsafe {
+            self.set_checksum(!cksum);
+        }
     }
 }

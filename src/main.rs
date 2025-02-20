@@ -51,7 +51,7 @@ fn set_max_mode(output: &uefi::text::TextOutput) -> Result<()> {
     Ok(())
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn main() -> Status {
     let uefi = std::system_table();
 
