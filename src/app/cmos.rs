@@ -58,7 +58,7 @@ impl CmosOptionTable {
         let hi = u16::from(self.cmos.read(Self::CHECKSUM_OFFSET));
         let lo = u16::from(self.cmos.read(Self::CHECKSUM_OFFSET + 1));
 
-        hi << 8 | lo
+        (hi << 8) | lo
     }
 
     /// Write the checksum to the CMOS option table.
