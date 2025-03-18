@@ -284,14 +284,33 @@ impl EcComponent {
                 "NS50_70PU" => "system76/darp8".to_string(),
                 "NS50_70AU" => "system76/darp9".to_string(),
                 "V5x0TU" => {
-                    // If GPP_E2 is high, this is the 16 inch variant
-                    unsafe {
-                        let sideband = Sideband::new(0xE000_0000);
-                        if sideband.gpio(0xD2, 0x36) & 2 == 2 {
-                            "system76/darp10-b".to_string()
-                        } else {
-                            "system76/darp10".to_string()
-                        }
+                    // Check SPI device at 1f.5 for Arrow Lake or Meteor Lake
+                    match pci_read(0x00, 0x1f, 0x5, 0x00).unwrap() {
+                        // 0x7723 is Arrow Lake (darp11)
+                        0x77238086 => {
+                            // If GPP_E2 is high, this is the 16 inch variant
+                            unsafe {
+                                let sideband = Sideband::new(0xE000_0000);
+                                if sideband.gpio(0xD2, 0x36) & 2 == 2 {
+                                    "system76/darp11-b".to_string()
+                                } else {
+                                    "system76/darp11".to_string()
+                                }
+                            }
+                        },
+                        // 0x7e23 is Meteor Lake (darp10)
+                        0x7e238086 => {
+                            // If GPP_E2 is high, this is the 16 inch variant
+                            unsafe {
+                                let sideband = Sideband::new(0xE000_0000);
+                                if sideband.gpio(0xD2, 0x36) & 2 == 2 {
+                                    "system76/darp10-b".to_string()
+                                } else {
+                                    "system76/darp10".to_string()
+                                }
+                            }
+                        },
+                        _ => model.to_string(),
                     }
                 }
                 "NV40Mx" | "NV40Mx-DV" | "NV40MJ" => "system76/galp5".to_string(),
