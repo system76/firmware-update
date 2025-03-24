@@ -337,6 +337,7 @@ impl EcComponent {
                 "X170SM-G" => "system76/bonw14".to_string(),
                 "X370SNx" => "system76/bonw15".to_string(),
                 "X370SNx1" => "system76/bonw15-b".to_string(),
+                "X58xWNx" => "system76/bonw16".to_string(),
                 _ => model.to_string(),
             }
         };
