@@ -17,7 +17,7 @@ pub struct ImageRoi<'a> {
     image: &'a Image,
 }
 
-impl<'a> ImageRoi<'a> {
+impl ImageRoi<'_> {
     /// Draw the ROI on a window
     pub fn draw<R: Renderer>(&self, renderer: &mut R, x: i32, mut y: i32) {
         let stride = self.image.w;
