@@ -16,7 +16,8 @@ use std::{
 };
 
 use super::{
-    Component, EC2ROM, ECROM, ECTAG, FIRMWAREDIR, FIRMWARENSH, pci_read, shell, sideband::Sideband,
+    Component, EC2ROM, ECROM, ECTAG, FIRMWAREDIR, FIRMWARENSH, MODEL_EC_NSH, pci_read, shell,
+    sideband::Sideband,
 };
 
 pub struct UefiTimeout {
@@ -768,49 +769,64 @@ impl Component for EcComponent {
             println!("file version: {:?}", str::from_utf8(firmware.version));
         }
 
-        let result = match &self.ec {
-            EcKind::Pang(_pmc, _system_version) => {
-                find(FIRMWARENSH)?;
-                let command = if self.master { "ec" } else { "ec2" };
-                let status = shell(&format!(
-                    "{} {} {} flash",
-                    FIRMWARENSH, FIRMWAREDIR, command
-                ))?;
-                if status == 0 {
-                    Ok(())
-                } else {
-                    println!("{} Flash Error: {}", self.name(), status);
+        let result = if find(MODEL_EC_NSH).is_ok() {
+            find(FIRMWARENSH)?;
+            let command = if self.master { "ec" } else { "ec2" };
+            let status = shell(&format!(
+                "{} {} {} flash",
+                FIRMWARENSH, FIRMWAREDIR, command
+            ))?;
+            if status == 0 {
+                Ok(())
+            } else {
+                println!("{} Flash Error: {}", self.name(), status);
+                Err(Status::DEVICE_ERROR)
+            }
+        } else {
+            match &self.ec {
+                EcKind::Pang(_pmc, _system_version) => {
+                    find(FIRMWARENSH)?;
+                    let command = if self.master { "ec" } else { "ec2" };
+                    let status = shell(&format!(
+                        "{} {} {} flash",
+                        FIRMWARENSH, FIRMWAREDIR, command
+                    ))?;
+                    if status == 0 {
+                        Ok(())
+                    } else {
+                        println!("{} Flash Error: {}", self.name(), status);
+                        Err(Status::DEVICE_ERROR)
+                    }
+                }
+                EcKind::System76(_ec, _pmc) => {
+                    // System76 EC requires reset to load new firmware
+                    requires_reset = true;
+
+                    // Flash main ROM
+                    match unsafe { flash(&firmware_data, SpiTarget::Main) } {
+                        Ok(()) => Ok(()),
+                        Err(err) => {
+                            println!("{} Flash Error: {:X?}", self.name(), err);
+                            Err(Status::DEVICE_ERROR)
+                        }
+                    }
+                }
+                EcKind::Legacy(_ec) => {
+                    requires_reset = true;
+
+                    // Use open source flashing code
+                    match unsafe { flash_legacy(&firmware_data) } {
+                        Ok(()) => Ok(()),
+                        Err(err) => {
+                            println!("{} Flash Error: {:X?}", self.name(), err);
+                            Err(Status::DEVICE_ERROR)
+                        }
+                    }
+                }
+                EcKind::Unknown => {
+                    println!("{} Failed to flash EcKind::Unknown", self.name());
                     Err(Status::DEVICE_ERROR)
                 }
-            }
-            EcKind::System76(_ec, _pmc) => {
-                // System76 EC requires reset to load new firmware
-                requires_reset = true;
-
-                // Flash main ROM
-                match unsafe { flash(&firmware_data, SpiTarget::Main) } {
-                    Ok(()) => Ok(()),
-                    Err(err) => {
-                        println!("{} Flash Error: {:X?}", self.name(), err);
-                        Err(Status::DEVICE_ERROR)
-                    }
-                }
-            }
-            EcKind::Legacy(_ec) => {
-                requires_reset = true;
-
-                // Use open source flashing code
-                match unsafe { flash_legacy(&firmware_data) } {
-                    Ok(()) => Ok(()),
-                    Err(err) => {
-                        println!("{} Flash Error: {:X?}", self.name(), err);
-                        Err(Status::DEVICE_ERROR)
-                    }
-                }
-            }
-            EcKind::Unknown => {
-                println!("{} Failed to flash EcKind::Unknown", self.name());
-                Err(Status::DEVICE_ERROR)
             }
         };
 
