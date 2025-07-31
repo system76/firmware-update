@@ -49,6 +49,10 @@ static SPLASHBMP: &str = concat!("\\", env!("BASEDIR"), "\\res\\splash.bmp");
 static UEFIFLASH: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\uefiflash.efi");
 static UEFIFLASHTAG: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\uefiflash.tag");
 
+// Model-specific flash scripts
+static MODEL_FIRMWARE_NSH: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\firmware.nsh");
+static MODEL_EC_NSH: &str = concat!("\\", env!("BASEDIR"), "\\firmware\\ec.nsh");
+
 fn shell(cmd: &str) -> Result<usize> {
     exec_path(
         SHELLEFI,

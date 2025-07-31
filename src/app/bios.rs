@@ -15,8 +15,8 @@ use std::uefi::reset::ResetType;
 use std::vars::{get_boot_item, get_boot_order, set_boot_item, set_boot_order};
 
 use super::{
-    Component, FIRMWARECAP, FIRMWAREDIR, FIRMWARENSH, FIRMWAREROM, H2OFFT, IFLASHV, UEFIFLASH,
-    UefiMapper, cmos, pci_mcfg, shell,
+    Component, FIRMWARECAP, FIRMWAREDIR, FIRMWARENSH, FIRMWAREROM, H2OFFT, IFLASHV,
+    MODEL_FIRMWARE_NSH, UEFIFLASH, UefiMapper, cmos, pci_mcfg, shell,
 };
 
 fn copy_region(
@@ -245,7 +245,46 @@ impl Component for BiosComponent {
     }
 
     fn flash(&self) -> Result<()> {
-        if let Some((mut spi, _hsfsts_ctl)) = self.spi() {
+        if find(MODEL_FIRMWARE_NSH).is_ok() {
+            find(FIRMWARENSH)?;
+
+            let mut boot_options: Vec<(u16, Vec<u8>)> = vec![];
+
+            let order = get_boot_order();
+            if order.is_ok() {
+                println!("Preserving boot order");
+                for num in order.clone().unwrap() {
+                    if let Ok(item) = get_boot_item(num) {
+                        boot_options.push((num, item));
+                    } else {
+                        println!("Failed to read Boot{:>04X}", num);
+                    }
+                }
+            } else {
+                println!("Failed to preserve boot order");
+            }
+
+            let cmd = format!("{} {} bios flash", FIRMWARENSH, FIRMWAREDIR);
+            let status = shell(&cmd)?;
+
+            if let Ok(order) = order {
+                if set_boot_order(&order).is_ok() {
+                    for (num, data) in boot_options {
+                        if set_boot_item(num, &data).is_err() {
+                            println!("Failed to write Boot{:>04X}", num);
+                        }
+                    }
+                    println!("Restored boot order");
+                } else {
+                    println!("Failed to restore boot order");
+                }
+            }
+
+            if status != 0 {
+                println!("{} Flash Error: {}", self.name(), status);
+                return Err(Status::DEVICE_ERROR);
+            }
+        } else if let Some((mut spi, _hsfsts_ctl)) = self.spi() {
             // Read new data
             let mut new;
             {
