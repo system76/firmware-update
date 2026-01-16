@@ -16,7 +16,7 @@ use std::vars::{get_boot_item, get_boot_order, set_boot_item, set_boot_order};
 
 use super::{
     Component, FIRMWARECAP, FIRMWAREDIR, FIRMWARENSH, FIRMWAREROM, H2OFFT, IFLASHV, UEFIFLASH,
-    UefiMapper, cmos, pci_mcfg, shell,
+    UefiMapper, cmos, intel_pmc, pci_mcfg, pci_read, shell
 };
 
 fn copy_region(
@@ -490,10 +490,34 @@ impl Component for BiosComponent {
                 println!();
             }
 
-            // Have coreboot reset the option table to the defaults.
-            let mut cmos_options = cmos::CmosOptionTable::new();
-            unsafe {
-                cmos_options.invalidate_checksum();
+            // Check the SPI PCI ID to identify the platform
+            let intel_pmc_opt = match pci_read(0x00, 0x1f, 0x5, 0x00).unwrap_or(0) {
+                0x43A4_8086 | // Tiger Lake-H
+                0x51A4_8086 | // Alder Lake-P
+                0x7723_8086 | // Arrow Lake-HU
+                0x7A24_8086 | // Alder Lake-S
+                0x7E23_8086 | // Meteor Lake-HU
+                0xA0A4_8086   // Tiger Lake
+                => {
+                    // TigerLake and onwards have used the same register settings
+                    Some(intel_pmc::IntelPmc::tigerlake())
+                },
+                _ => None,
+            };
+            match intel_pmc_opt {
+                Some(intel_pmc) => {
+                    unsafe {
+                        // Setting RTC_PWR_STS will trigger a CMOS reset on any firmware, coreboot or proprietary
+                        intel_pmc.set_rtc_pwr_sts();
+                    }
+                }
+                None => {
+                    let mut cmos_options = cmos::CmosOptionTable::new();
+                    unsafe {
+                        // Invalidating checksum will trigger a CMOS reset only on coreboot
+                        cmos_options.invalidate_checksum();
+                    }
+                }
             }
         } else {
             find(FIRMWARENSH)?;

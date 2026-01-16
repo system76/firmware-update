@@ -261,7 +261,7 @@ impl EcComponent {
                 "NH5xHX" => "system76/gaze16-3050".to_string(),
                 "NH5_7HPQ" => {
                     // If the builtin ethernet at 00:1f.6 is present, this is a -b variant
-                    if pci_read(0x00, 0x1f, 0x6, 0x00).unwrap() == 0x15fa8086 {
+                    if pci_read(0x00, 0x1f, 0x6, 0x00).unwrap() == 0x15fa_8086 {
                         "system76/gaze16-3060-b".to_string()
                     } else {
                         "system76/gaze16-3060".to_string()
@@ -271,7 +271,7 @@ impl EcComponent {
                 "NPxxPNP" => {
                     // If the builtin ethernet at 00:1f.6 is present, this is a -b variant
                     let pciid = pci_read(0x00, 0x1f, 0x6, 0x00).unwrap();
-                    if pciid == 0x1a1e8086 || pciid == 0x1a1f8086 {
+                    if pciid == 0x1a1e_8086 || pciid == 0x1a1f_8086 {
                         "system76/gaze17-3060-b".to_string()
                     } else {
                         "system76/gaze17-3060".to_string()
@@ -287,7 +287,7 @@ impl EcComponent {
                     // Check SPI device at 1f.5 for Arrow Lake or Meteor Lake
                     match pci_read(0x00, 0x1f, 0x5, 0x00).unwrap() {
                         // 0x7723 is Arrow Lake (darp11)
-                        0x77238086 => {
+                        0x7723_8086 => {
                             // If GPP_E2 is high, this is the 16 inch variant
                             unsafe {
                                 let sideband = Sideband::new(0xE000_0000);
@@ -299,7 +299,7 @@ impl EcComponent {
                             }
                         },
                         // 0x7e23 is Meteor Lake (darp10)
-                        0x7e238086 => {
+                        0x7e23_8086 => {
                             // If GPP_E2 is high, this is the 16 inch variant
                             unsafe {
                                 let sideband = Sideband::new(0xE000_0000);

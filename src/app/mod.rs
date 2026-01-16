@@ -28,6 +28,7 @@ mod bios;
 mod cmos;
 mod component;
 mod ec;
+mod intel_pmc;
 mod mapper;
 mod pci;
 mod sideband;
