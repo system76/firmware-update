@@ -7,8 +7,6 @@ pub struct IntelPmc {
 impl IntelPmc {
     pub fn tigerlake() -> Self {
         Self {
-            //TODO: read from PCI 00:1f.2 BAR? This device is hidden
-            // so that may not work.
             pwrmbase: 0xfe000000,
             gen_pmcon_b_offset: 0x1024,
             gen_pmcon_b_rtc_pwr_sts: 1 << 2,
