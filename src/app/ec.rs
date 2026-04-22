@@ -254,6 +254,17 @@ impl EcComponent {
                         "system76/lemp13-b".to_string()
                     }
                 }
+                "L2x0JU" => {
+                    // BOARD_ID2 (GPP_E14): Low=14", High=16"
+                    unsafe {
+                        let sideband = Sideband::new(0xE000_0000);
+                        if sideband.gpio(0x5A, 0x50) & 2 == 2 {
+                            "system76/lemp14-b".to_string()
+                        } else {
+                            "system76/lemp14".to_string()
+                        }
+                    }
+                }
                 "N130ZU" => "system76/galp3-c".to_string(),
                 "N140CU" => "system76/galp4".to_string(),
                 "N150ZU" => "system76/darp5".to_string(),
