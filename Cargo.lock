@@ -32,8 +32,7 @@ checksum = "75b325c5dbd37f80359721ad39aca5a29fb04c89279657cffdda8736d0c0b9d2"
 [[package]]
 name = "intel-spi"
 version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b6b3b6a047aa89b5e4b0e98749a3a0e08481f1f54d22838d0c16a4233dc39df"
+source = "git+https://github.com/system76/intel-spi#b469bcff07461200e7f53b7c12039df1775188b7"
 dependencies = [
  "bitflags 2.9.0",
  "coreboot-fs",
