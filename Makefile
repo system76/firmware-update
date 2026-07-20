@@ -28,16 +28,16 @@ qemu: $(BUILD)/boot.img $(OVMF)/OVMF_VARS.fd $(OVMF)/OVMF_CODE.fd
 		$<
 
 $(BUILD)/boot.img: $(BUILD)/efi.img
-	dd if=/dev/zero of=$@.tmp bs=512 count=100352
+	dd if=/dev/zero of=$@.tmp bs=512 count=266240
 	parted $@.tmp -s -a minimal mklabel gpt
-	parted $@.tmp -s -a minimal mkpart EFI FAT16 2048s 93716s
+	parted $@.tmp -s -a minimal mkpart EFI FAT32 2048s 264191s
 	parted $@.tmp -s -a minimal toggle 1 boot
-	dd if=$< of=$@.tmp bs=512 count=98304 seek=2048 conv=notrunc
+	dd if=$< of=$@.tmp bs=512 count=262144 seek=2048 conv=notrunc
 	mv $@.tmp $@
 
 $(BUILD)/efi.img: $(BUILD)/boot.efi res/*
-	dd if=/dev/zero of=$@.tmp bs=512 count=98304
-	mkfs.vfat $@.tmp
+	dd if=/dev/zero of=$@.tmp bs=512 count=262144
+	mkfs.fat -F32 $@.tmp
 	mmd -i $@.tmp efi
 	mmd -i $@.tmp efi/boot
 	mcopy -i $@.tmp $< ::efi/boot/bootx64.efi
