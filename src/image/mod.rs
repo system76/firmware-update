@@ -80,7 +80,7 @@ impl Image {
     }
 
     /// Get a piece of the image
-    pub fn roi(&self, x: u32, y: u32, w: u32, h: u32) -> ImageRoi {
+    pub fn roi(&self, x: u32, y: u32, w: u32, h: u32) -> ImageRoi<'_> {
         let x1 = cmp::min(x, self.width());
         let y1 = cmp::min(y, self.height());
         let x2 = cmp::max(x1, cmp::min(x + w, self.width()));

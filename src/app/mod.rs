@@ -226,7 +226,7 @@ fn inner() -> Result<()> {
         .any(|v| *v != ValidateKind::Found && *v != ValidateKind::NotFound)
     {
         "! Errors were found !"
-    } else if !validations.iter().any(|v| *v == ValidateKind::Found) {
+    } else if !validations.contains(&ValidateKind::Found) {
         "* No updates were found *"
     } else {
         let c = if let Ok((_, ectag)) = find(ECTAG) {

@@ -5,13 +5,12 @@ use orbclient::{Color, Mode, Renderer};
 use std::prelude::*;
 use std::proto::Protocol;
 use std::uefi::graphics::{GraphicsBltOp, GraphicsBltPixel, GraphicsOutput};
-use std::uefi::guid::GRAPHICS_OUTPUT_PROTOCOL_GUID;
 
 pub struct Output(pub &'static mut GraphicsOutput);
 
 impl Protocol<GraphicsOutput> for Output {
     fn guid() -> Guid {
-        GRAPHICS_OUTPUT_PROTOCOL_GUID
+        GraphicsOutput::GUID
     }
 
     fn new(inner: &'static mut GraphicsOutput) -> Self {

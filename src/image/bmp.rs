@@ -37,8 +37,8 @@ pub fn parse(file_data: &[u8]) -> core::result::Result<Image, String> {
         let height = getd(0x16);
         let depth = getw(0x1C) as u32;
 
-        let bytes = (depth + 7) / 8;
-        let row_bytes = (depth * width + 31) / 32 * 4;
+        let bytes = depth.div_ceil(8);
+        let row_bytes = (depth * width).div_ceil(32) * 4;
 
         let mut blue_mask = 0xFF;
         let mut green_mask = 0xFF00;

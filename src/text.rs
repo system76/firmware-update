@@ -8,8 +8,7 @@ use orbclient::{Color, Renderer};
 use std::prelude::*;
 use std::proto::Protocol;
 use std::uefi::boot::InterfaceType;
-use std::uefi::guid::SIMPLE_TEXT_OUTPUT_GUID;
-use std::uefi::text::TextOutputMode;
+use std::uefi::text::{TextOutput, TextOutputMode};
 
 use crate::display::{Display, Output, ScaledDisplay};
 
@@ -247,7 +246,7 @@ impl<'a> TextDisplay<'a> {
         let mut stdout_handle = Handle(0);
         Result::from((uefi.BootServices.InstallProtocolInterface)(
             &mut stdout_handle,
-            &SIMPLE_TEXT_OUTPUT_GUID,
+            &TextOutput::GUID,
             InterfaceType::Native,
             stdout as usize,
         ))?;
@@ -271,7 +270,7 @@ impl<'a> TextDisplay<'a> {
 
         let _ = (uefi.BootServices.UninstallProtocolInterface)(
             stdout_handle,
-            &SIMPLE_TEXT_OUTPUT_GUID,
+            &TextOutput::GUID,
             stdout as usize,
         );
 

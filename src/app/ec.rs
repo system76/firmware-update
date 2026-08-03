@@ -416,7 +416,7 @@ impl<T: Timeout> SpiLegacy<T> {
             for i in 0..block_size {
                 let byte = unsafe { self.pmc_read()? };
                 let addr = block * block_size + i;
-                if addr % self.page_size() == 0 {
+                if addr.is_multiple_of(self.page_size()) {
                     print!("\r{}%", (addr * 100) / (blocks * block_size));
                 }
                 if addr < data.len() {
@@ -441,7 +441,7 @@ impl<T: Timeout> SpiLegacy<T> {
             }
             for i in 0..block_size {
                 let addr = block * block_size + i;
-                if addr % self.page_size() == 0 {
+                if addr.is_multiple_of(self.page_size()) {
                     print!("\r{}%", (addr * 100) / (blocks * block_size));
                 }
                 let byte = if addr < data.len() { data[addr] } else { 0xFF };
@@ -460,7 +460,7 @@ unsafe fn flash_legacy(firmware_data: &[u8]) -> core::result::Result<(), ectool:
 
     // XXX: Get flash size programatically?
     let rom_size = new_rom.len();
-    if rom_size % 1024 != 0 {
+    if !rom_size.is_multiple_of(1024) {
         println!("ROM size of {} is not valid", rom_size);
         return Err(ectool::Error::Verify);
     }
@@ -596,7 +596,7 @@ unsafe fn flash(
 
     // XXX: Get flash size programatically?
     let rom_size = new_rom.len();
-    if rom_size % 1024 != 0 {
+    if !rom_size.is_multiple_of(1024) {
         println!("ROM size of {} is not valid", rom_size);
         return Err(ectool::Error::Verify);
     }
