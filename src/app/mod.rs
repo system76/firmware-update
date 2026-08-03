@@ -138,7 +138,7 @@ fn reset_dmi() -> Result<()> {
                 _ => return Err(status),
             }
         }
-        let name_str = nstr(name.as_mut_ptr());
+        let name_str = unsafe { nstr(name.as_mut_ptr()) };
         if name_str.starts_with("DmiVar") {
             vars.push((name_str, guid));
         }
