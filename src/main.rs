@@ -68,5 +68,5 @@ pub extern "C" fn main() -> Status {
         let _ = io::wait_key();
     }
 
-    (uefi.RuntimeServices.ResetSystem)(ResetType::Cold, Status(0), 0, ptr::null());
+    (uefi.RuntimeServices.ResetSystem)(ResetType::Cold, Status::SUCCESS, 0, ptr::null());
 }

@@ -35,18 +35,18 @@ pub struct TextDisplay<'a> {
 }
 
 extern "efiapi" fn reset(_output: &mut TextDisplay, _extra: bool) -> Status {
-    Status(0)
+    Status::SUCCESS
 }
 
 extern "efiapi" fn output_string(output: &mut TextDisplay, string: *const u16) -> Status {
     unsafe {
         output.write(string);
     }
-    Status(0)
+    Status::SUCCESS
 }
 
 extern "efiapi" fn test_string(_output: &mut TextDisplay, _string: *const u16) -> Status {
-    Status(0)
+    Status::SUCCESS
 }
 
 extern "efiapi" fn query_mode(
@@ -57,21 +57,21 @@ extern "efiapi" fn query_mode(
 ) -> Status {
     *columns = output.cols;
     *rows = output.rows;
-    Status(0)
+    Status::SUCCESS
 }
 
 extern "efiapi" fn set_mode(_output: &mut TextDisplay, _mode: usize) -> Status {
-    Status(0)
+    Status::SUCCESS
 }
 
 extern "efiapi" fn set_attribute(output: &mut TextDisplay, attribute: usize) -> Status {
     output.mode.Attribute = attribute as i32;
-    Status(0)
+    Status::SUCCESS
 }
 
 extern "efiapi" fn clear_screen(output: &mut TextDisplay) -> Status {
     output.clear();
-    Status(0)
+    Status::SUCCESS
 }
 
 extern "efiapi" fn set_cursor_position(
@@ -80,12 +80,12 @@ extern "efiapi" fn set_cursor_position(
     row: usize,
 ) -> Status {
     output.set_cursor_pos(column as i32, row as i32);
-    Status(0)
+    Status::SUCCESS
 }
 
 extern "efiapi" fn enable_cursor(output: &mut TextDisplay, enable: bool) -> Status {
     output.mode.CursorVisible = enable;
-    Status(0)
+    Status::SUCCESS
 }
 
 impl<'a> TextDisplay<'a> {

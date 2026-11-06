@@ -552,7 +552,7 @@ impl Component for BiosComponent {
 
                     (std::system_table().RuntimeServices.ResetSystem)(
                         ResetType::Cold,
-                        Status(0),
+                        Status::SUCCESS,
                         0,
                         ptr::null(),
                     );

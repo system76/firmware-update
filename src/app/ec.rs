@@ -533,7 +533,7 @@ pub unsafe fn security_unlock() -> core::result::Result<(), ectool::Error> {
 
                 (std::system_table().RuntimeServices.ResetSystem)(
                     ResetType::Shutdown,
-                    Status(0),
+                    Status::SUCCESS,
                     0,
                     ptr::null(),
                 );

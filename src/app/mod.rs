@@ -294,7 +294,7 @@ fn inner() -> Result<()> {
 
                         (std::system_table().RuntimeServices.ResetSystem)(
                             ResetType::Cold,
-                            Status(0),
+                            Status::SUCCESS,
                             0,
                             ptr::null(),
                         );
@@ -380,7 +380,7 @@ fn inner() -> Result<()> {
         let _ = (std::system_table().BootServices.Stall)(5_000_000);
         (std::system_table().RuntimeServices.ResetSystem)(
             ResetType::Cold,
-            Status(0),
+            Status::SUCCESS,
             0,
             ptr::null(),
         );
